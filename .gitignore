@@ -1,0 +1,6 @@
+/target
+/dist/
+/node_modules/
+/data.json
+/package-lock.json
+/pnpm-lock.yaml

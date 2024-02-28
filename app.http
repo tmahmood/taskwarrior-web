@@ -1,0 +1,8 @@
+### List all tasks
+GET localhost:3000/tasks
+
+
+### List all projects
+GET localhost:3000/projects
+
+

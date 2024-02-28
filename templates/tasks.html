@@ -1,0 +1,86 @@
+<div>
+    {% set on_all = "all" %}
+    {% set on_complete = "complete" %}
+    {% set on_pending = "pending" %}
+    {% set on_waiting = "waiting" %}
+    {% set on_recurring = "recurring" %}
+    <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-md mt-2 text-xs flex">
+        <label for="filtering" class="uppercase flex-shrink pt-1.5 font-medium text-neutral-400">Filter</label>
+        <input class="px-3 py-1.5 ml-1.5 rounded-sm flex-1 bg-neutral-600 text-neutral-900 outline-none" type="text"
+               id="filtering" placeholder="You can use any task filters"
+               hx-target="#list-of-tasks"
+               name="query"
+               hx-get="tasks"
+               hx-trigger="keyup[key=='Enter']"
+        />
+    </div>
+    <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-md mt-2 text-xs flex">
+        <p class="tag-list">
+            {% for f in current_filter | split(pat=',') %}
+            <a class="tag-item" hx-get='tasks?query={{ f | replace(from="+", to="%2B") }}' hx-target="#list-of-tasks" hx-swap="innerHTML">
+                {{ f }}
+            </a>
+            {% endfor %}
+        </p>
+    </div>
+
+    <div class="mt-2">
+        <button class="btn" id="all" hx-get="tasks" hx-target="#list-of-tasks" hx-swap="innerHTML">All</button>
+        <button class="btn {{ on_complete }}" id="completed" hx-get="tasks?query=status:completed" hx-target="#list-of-tasks" hx-swap="innerHTML">Completed</button>
+        <button class="btn {{ on_pending }}" id="pending" hx-get="tasks?query=status:pending" hx-target="#list-of-tasks" hx-swap="innerHTML">Pending</button>
+        <button class="btn {{ on_waiting }}" id="waiting" hx-get="tasks?query=status:waiting" hx-target="#list-of-tasks" hx-swap="innerHTML">Waiting</button>
+        <button class="btn {{ on_recurring }}" id="recur" hx-get="tasks?query=status:recurring" hx-target="#list-of-tasks" hx-swap="innerHTML">Recurring</button>
+    </div>
+
+    <table class="w-full" id="list-of-tasks">
+        <thead>
+        <tr>
+            <th>Project</th>
+            <th>Description</th>
+            <th>Tags</th>
+        </tr>
+        </thead>
+        <tbody class="list-view">
+        {% for task in tasks %}
+        {% set status_color = on_all %}
+        {% if task.status == 'pending' %}
+        {% set status_color = on_pending %}
+        {% elif task.status == 'complete' %}
+        {% set status_color = on_complete %}
+        {% elif task.status == 'waiting' %}
+        {% set status_color = on_waiting %}
+        {% elif task.status == 'recurring' %}
+        {% set status_color = on_recurring %}
+        {% endif %}
+        <tr>
+            <td>
+                {% if task.project %}
+                <div class="breadcrumb tag-list">
+                    {% for p in task.project | split(pat=".") %}
+                    <a class="tag-item" hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}" hx-target="#list-of-tasks" hx-swap="innerHTML">
+                        {{ p }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </td>
+            <td>{{ task.description }}</td>
+            <td>
+                <div class="tag-list">
+                    {% if task.tags %}
+                    {% for p in task.tags %}
+                    <a class="tag-item" hx-get="tasks?query=%2B{{ p }}" hx-target="#list-of-tasks" hx-swap="innerHTML">
+                        {{ p }}
+                    </a>
+                    {% endfor %}
+                    {% endif %}
+                    {% if task.priority %}
+                    <a class="tag-item {{ task.priority }}">{{ task.priority }}</a>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="/dist/style.css" />
+    <script src="/dist/htmx.min.js"></script>
+    <script src="/dist/live.js"></script>
+    <title>
+        {% block title %}{% endblock title %} - Org.Me
+    </title>
+</head>
+<body class="bg-neutral-900">
+<div id="content" class="container mx-auto">
+    <main>
+        <div id="list-of-tasks">
+            {% include "tasks.html" %}
+        </div>
+        <div id="ledger_things"></div>
+    </main>
+</div>
+</body>
+</html>
