@@ -30,7 +30,6 @@ lazy_static::lazy_static! {
 fn get_project_name_link() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         let r = String::new();
-
         let pname = tera::from_value::<String>(
             args.get("full_name").clone().unwrap().clone()
         ).unwrap();
@@ -38,7 +37,6 @@ fn get_project_name_link() -> impl tera::Function {
             args.get("index").clone().unwrap().clone()
         ).unwrap();
         let r:Vec<&str> = pname.split(".").take(index).collect();
-        debug!("{:?} {}", r, index);
         Ok(tera::to_value(r.join(".")).unwrap())
     })
 }

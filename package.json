@@ -3,6 +3,7 @@
     "tailwindcss": "^3.4.1"
   },
   "dependencies": {
-    "htmx.org": "^1.9.10"
+    "htmx.org": "^1.9.10",
+    "hyperscript.org": "^0.9.12"
   }
 }

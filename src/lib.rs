@@ -57,11 +57,17 @@ impl Params {
     pub fn query(&self) -> Vec<&str> {
         trace!("{:?}", self.query);
         if let Some(tlist) = self.query.as_ref() {
-            tlist
-                .split(" ")
-                .collect()
+            if tlist == "[ALL]" {
+                vec![]
+            } else {
+                tlist.trim()
+                    .split(" ")
+                    .filter(|v| *v != " ")
+                    .map(|v| v.trim())
+                    .collect()
+            }
         } else {
-            vec!["status:pending"]
+            vec![]
         }
     }
 }

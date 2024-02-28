@@ -12,7 +12,7 @@ th {
 }
 
 td {
-    @apply px-5;
+    @apply px-5 py-2;
 }
 
 tr {
@@ -26,7 +26,7 @@ tr {
     @apply
     border-neutral-700 border
     rounded-md inline-flex
-    overflow-hidden my-2 text-sm drop-shadow-sm
+    overflow-hidden text-sm drop-shadow-sm
     ;
 }
 
