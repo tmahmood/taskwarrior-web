@@ -51,12 +51,13 @@ mod tests {
 #[allow(dead_code)]
 pub struct Params {
     query: Option<String>,
+    q: Option<String>
 }
 
 impl Params {
     pub fn query(&self) -> Vec<&str> {
-        trace!("{:?}", self.query);
-        if let Some(tlist) = self.query.as_ref() {
+        trace!("{:?} {:?}", self.query, self.q);
+        let mut current_filters = if let Some(tlist) = self.query.as_ref() {
             if tlist == "[ALL]" {
                 vec![]
             } else {
@@ -68,7 +69,16 @@ impl Params {
             }
         } else {
             vec![]
+        };
+        let q = self.q.as_ref();
+        if let Some(_q) = q {
+            if current_filters.contains(&_q.as_str()) {
+                current_filters.retain_mut(|iv| iv != &_q);
+            } else {
+                current_filters.push(_q);
+            }
         }
+        current_filters
     }
 }
 

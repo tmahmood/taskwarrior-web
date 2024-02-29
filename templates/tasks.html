@@ -6,8 +6,12 @@
     {% set on_recurring = "recurring" %}
     <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
         <p class="tag-list">
-            {% for f in current_filter | split(pat=',') %}
-            <button class="tag-item" _="on click append ' {{ f }}' to the value of #filtering">
+            {% for f in current_filter %}
+            <button class="tag-item"
+                    hx-include="[id='filtering']"
+                    hx-get="tasks?q={{ f | replace(from='+', to='%2B') }}"
+                    hx-target="#list-of-tasks"
+>
                 {{ f }}
             </button>
             {% endfor %}
@@ -19,9 +23,10 @@
         <input class="px-3 py-1.5 ml-1.5 rounded-sm flex-1 bg-neutral-600 text-neutral-900 outline-none" type="text"
                id="filtering" placeholder="You can use any task filters"
                hx-target="#list-of-tasks"
+               value="{% if filter_value %}{{ filter_value }}{% endif %}"
                name="query"
                hx-get="tasks"
-               hx-trigger="keyup[key=='Enter']"
+               hx-trigger="input changed delay:1s, keyup[key=='Enter']"
         />
     </div>
 
@@ -41,13 +46,16 @@
                 hx-target="#list-of-tasks" hx-swap="innerHTML">Completed
         </button>
         <div class="ml-10 inline"></div>
-        <button class="btn" id="priority-h" hx-get="tasks?query=priority=H" hx-target="#list-of-tasks"
+        <button class="btn" id="priority-h" hx-get="tasks?q=priority=H" hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
                 hx-swap="innerHTML">P-H
         </button>
-        <button class="btn" id="priority-m" hx-get="tasks?query=priority=M" hx-target="#list-of-tasks"
+        <button class="btn" id="priority-m" hx-get="tasks?q=priority=M" hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
                 hx-swap="innerHTML">P-M
         </button>
-        <button class="btn" id="priority-l" hx-get="tasks?query=priority=L" hx-target="#list-of-tasks"
+        <button class="btn" id="priority-l" hx-get="tasks?q=priority=L" hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
                 hx-swap="innerHTML">P-L
         </button>
     </div>
@@ -94,8 +102,6 @@
                             xml:space="preserve"
                             sodipodi:docname="check_mark.svg"
                             inkscape:version="1.3.2 (091e20ef0f, 2023-11-25, custom)"
-                            xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-                            xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
                             xmlns="http://www.w3.org/2000/svg"
                             xmlns:svg="http://www.w3.org/2000/svg"><defs id="defs1" />
                         <sodipodi:namedview
@@ -144,8 +150,10 @@
                 <div class="breadcrumb tag-list">
                     {% for p in task.project | split(pat=".") %}
                     <button class="tag-item"
-                            hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}"
-                            hx-target="#list-of-tasks" hx-swap="innerHTML">
+                            hx-include="[id='filtering']"
+                            hx-target="#list-of-tasks"
+                            hx-get="tasks?q=project:{{ project_name(full_name=task.project, index=loop.index) }}"
+                    >
                         {{ p }}
                     </button>
                     {% endfor %}
@@ -156,7 +164,9 @@
                 <div class="tag-list">
                     {% if task.tags %}
                     {% for p in task.tags %}
-                    <button class="tag-item" hx-get="tasks?query=%2B{{ p }}" hx-target="#list-of-tasks"
+                    <button class="tag-item" hx-get="tasks?q=%2B{{ p }}"
+                            hx-target="#list-of-tasks"
+                            hx-include="[id='filtering']"
                             hx-swap="innerHTML">
                         {{ p }}
                     </button>
@@ -164,7 +174,8 @@
                     {% endif %}
                     {% if task.priority %}
                     <button class="tag-item {{ task.priority }}"
-                            hx-get="tasks?query=priority:{{ task.priority }}" hx-target="#list-of-tasks"
+                            hx-get="tasks?q=priority:{{ task.priority }}" hx-target="#list-of-tasks"
+                            hx-include="[id='filtering']"
                             hx-swap="innerHTML"
                     >{{ task.priority }}
                     </button>

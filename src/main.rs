@@ -76,7 +76,8 @@ async fn front_page() -> Html<String> {
     let tasks = list_tasks(filter.clone()).unwrap();
     let mut ctx = Context::new();
     ctx.insert("tasks", &tasks);
-    ctx.insert("current_filter", &filter.join(","));
+    ctx.insert("current_filter", &filter);
+    ctx.insert("filter_value", &filter.join(" "));
     Html(TEMPLATES.render("base.html", &ctx).unwrap())
 }
 
@@ -90,7 +91,8 @@ async fn tasks_display(Query(params): Query<Params>) -> Html<String> {
     };
     let mut ctx = Context::new();
     ctx.insert("tasks", &tasks);
-    ctx.insert("current_filter", &query.join(","));
+    ctx.insert("current_filter", &query);
+    ctx.insert("filter_value", &query.join(" "));
 
     Html(TEMPLATES.render("tasks.html", &ctx).unwrap())
 }
