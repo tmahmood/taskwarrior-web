@@ -1,45 +1,18 @@
 use std::collections::HashMap;
-use axum::{Router, routing::get};
-use axum::extract::Query;
+use anyhow::Error;
+use axum::{Form, Router, routing::get};
+use axum::extract::{Multipart, Query};
 use axum::response::Html;
+use axum::routing::post;
+use serde::Deserialize;
 use tera::{Context, Tera};
-use tracing::debug;
+use tracing::{debug, error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use org_me::endpoints::tasks::list_tasks;
-use org_me::Params;
+use org_me::endpoints::tasks::{list_tasks, Task, update_tasks};
+use org_me::{Params, TEMPLATES};
 
-lazy_static::lazy_static! {
-    pub static ref TEMPLATES: Tera = {
-        let mut tera = match Tera::new("templates/**/*") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {}", e);
-                ::std::process::exit(1);
-            }
-        };
-        tera.register_function("project_name", get_project_name_link());
-        tera.autoescape_on(vec![
-            ".html",
-            ".sql"
-        ]);
-        tera
-    };
-}
 
-fn get_project_name_link() -> impl tera::Function {
-    Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
-        let r = String::new();
-        let pname = tera::from_value::<String>(
-            args.get("full_name").clone().unwrap().clone()
-        ).unwrap();
-        let index = tera::from_value::<usize>(
-            args.get("index").clone().unwrap().clone()
-        ).unwrap();
-        let r:Vec<&str> = pname.split(".").take(index).collect();
-        Ok(tera::to_value(r.join(".")).unwrap())
-    })
-}
 #[tokio::main]
 async fn main() {
     // initialize tracing
@@ -60,10 +33,11 @@ async fn main() {
         .route("/", get(front_page))
         .nest_service(
             "/dist",
-            tower_http::services::ServeDir::new("./dist")
+            tower_http::services::ServeDir::new("./dist"),
         )
         .route("/tasks", get(tasks_display))
-    ;
+        .route("/tasks", post(change_task_status))
+        ;
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -82,17 +56,40 @@ async fn front_page() -> Html<String> {
 }
 
 async fn tasks_display(Query(params): Query<Params>) -> Html<String> {
+    get_tasks_view(params)
+}
+
+fn get_tasks_view(params: Params) -> Html<String> {
     let query = params.query();
     let tasks = match list_tasks(query.clone()) {
-        Ok(t) => {t},
+        Ok(t) => { t }
         Err(e) => {
-            return Html(e.to_string())
+            return Html(e.to_string());
         }
     };
     let mut ctx = Context::new();
     ctx.insert("tasks", &tasks);
     ctx.insert("current_filter", &query);
     ctx.insert("filter_value", &query.join(" "));
-
     Html(TEMPLATES.render("tasks.html", &ctx).unwrap())
+}
+
+async fn change_task_status(
+    Form(mut multipart): Form<Params>
+) -> Html<String> {
+    if let Some(task) = multipart.task() {
+        let mut tasks = list_tasks(multipart.query()).unwrap();
+        if let Some(existing_task) = tasks.iter_mut().find(|v| v.uuid == task.uuid) {
+            existing_task.status = task.status.clone();
+            match update_tasks(existing_task) {
+                Ok(_) => {
+                    info!("Task was updated");
+                }
+                Err(e) => {
+                    error!("Task was not updated: {}", e);
+                }
+            }
+        }
+    }
+    get_tasks_view(multipart)
 }

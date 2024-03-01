@@ -32,13 +32,26 @@ tr {
 
 .tag-item {
     @apply
-    py-1.5 px-2 text-neutral-400
-    bg-neutral-800 relative
-    hover:bg-neutral-950
-    border-r border-r-neutral-600
+    py-1.5 px-2
     last:border-r-0
     text-xs
     ;
+}
+
+.tag-item-700 {
+    @apply
+    text-neutral-400
+    bg-neutral-700 relative
+    hover:bg-neutral-800
+    border-r border-r-neutral-600;
+    ;
+}
+.tag-item-800 {
+    @apply
+    text-neutral-400
+    bg-neutral-800 relative
+    hover:bg-neutral-950
+    border-r border-r-neutral-600;
 }
 
 .breadcrumb > .tag-item {
@@ -88,5 +101,22 @@ tr {
 
 .recurring {
     @apply bg-blue-900 bg-blend-luminosity text-blue-100;
+}
+
+.small-tag-list {
+    @apply
+    border-neutral-700 border
+    inline-flex overflow-hidden text-xs
+    ;
+}
+
+.small-tag-item {
+    @apply
+    py-0.5 px-1.5 text-neutral-400
+    bg-neutral-800 relative
+    hover:bg-neutral-950
+    border-r border-r-neutral-600
+    last:border-r-0
+    ;
 }
 

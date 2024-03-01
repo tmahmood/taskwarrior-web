@@ -7,17 +7,16 @@
     <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
         <p class="tag-list">
             {% for f in current_filter %}
-            <button class="tag-item"
+            <button class="tag-item tag-item-800"
                     hx-include="[id='filtering']"
                     hx-get="tasks?q={{ f | replace(from='+', to='%2B') }}"
                     hx-target="#list-of-tasks"
->
+            >
                 {{ f }}
             </button>
             {% endfor %}
         </p>
     </div>
-
     <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
         <label for="filtering" class="uppercase flex-shrink pt-1.5 font-medium text-neutral-400">Filter</label>
         <input class="px-3 py-1.5 ml-1.5 rounded-sm flex-1 bg-neutral-600 text-neutral-900 outline-none" type="text"
@@ -26,23 +25,25 @@
                value="{% if filter_value %}{{ filter_value }}{% endif %}"
                name="query"
                hx-get="tasks"
-               hx-trigger="input changed delay:1s, keyup[key=='Enter']"
+               hx-trigger="input changed delay:3s, keyup[key=='Enter']"
         />
-    </div>
 
-    <div class="px-5 py-1.5 bg-neutral-500 shadow-xl rounded-sm mt-2 text-xs">
         <button class="btn" id="all" hx-get="tasks?query=[ALL]" hx-target="#list-of-tasks" hx-swap="innerHTML">All
         </button>
-        <button class="btn {{ on_pending }}" id="pending" hx-get="tasks?query=status:pending" hx-target="#list-of-tasks"
+        <button class="btn {{ on_pending }}" id="pending" hx-get="tasks?q=status:pending" hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
                 hx-swap="innerHTML">Pending
         </button>
-        <button class="btn {{ on_waiting }}" id="waiting" hx-get="tasks?query=status:waiting" hx-target="#list-of-tasks"
+        <button class="btn {{ on_waiting }}" id="waiting" hx-get="tasks?q=status:waiting" hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
                 hx-swap="innerHTML">Waiting
         </button>
-        <button class="btn {{ on_recurring }}" id="recur" hx-get="tasks?query=status:recurring"
+        <button class="btn {{ on_recurring }}" id="recur" hx-get="tasks?q=status:recurring"
+                hx-include="[id='filtering']"
                 hx-target="#list-of-tasks" hx-swap="innerHTML">Recurring
         </button>
-        <button class="btn {{ on_complete }}" id="completed" hx-get="tasks?query=status:completed"
+        <button class="btn {{ on_complete }}" id="completed" hx-get="tasks?q=status:completed"
+                hx-include="[id='filtering']"
                 hx-target="#list-of-tasks" hx-swap="innerHTML">Completed
         </button>
         <div class="ml-10 inline"></div>
@@ -83,8 +84,13 @@
         {% endif %}
         <tr>
             <td>
-                <button>
-                    {% if task.status != "completed" %}
+                {% if task.status != "completed" %}
+                <button
+                        hx-post="tasks" hx-target="#list-of-tasks"
+                        hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
+                        hx-include="[id='filtering']"
+                        hx-swap="innerHTML"
+                >
                     <svg fill="#171717" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
                          width="24px"
                          height="24px"
@@ -92,7 +98,13 @@
                         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
                         <g id="SVGRepo_iconCarrier"> <g> <path
                                 d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"></path> </g> </g></svg>
-                    {% else %}
+                </button>
+                {% else %}
+                <button
+                        hx-post="tasks" hx-target="#list-of-tasks"
+                        hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "{% if filter_value %}{{ filter_value }}{% endif %}" }'
+                        hx-swap="innerHTML"
+                >
                     <svg
                             fill="#000000"
                             id="Capa_1"
@@ -137,19 +149,24 @@
                                     d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"
                                     id="path1"
                                     style="fill:#153b24"/> </g> </g></svg>
-                    {% endif %}
                 </button>
+                {% endif %}
             </td>
             <td>
-                <p>
-                    {{ task.description }}
-                </p>
+                <div>
+                    <p>{{ task.description }}</p>
+                    <div class="small-tag-list">
+                        <span class="small-tag-item">{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</span>
+                        <span class="small-tag-item">{% if task.modified %}{{ date_proper(date=task.modified) }}{% endif %}</span>
+                        <span class="small-tag-item">{% if task.end %}{{ date_proper(date=task.end) }}{% endif %}</span>
+                    </div>
+                </div>
             </td>
             <td>
                 {% if task.project %}
                 <div class="breadcrumb tag-list">
                     {% for p in task.project | split(pat=".") %}
-                    <button class="tag-item"
+                    <button class="tag-item tag-item-800"
                             hx-include="[id='filtering']"
                             hx-target="#list-of-tasks"
                             hx-get="tasks?q=project:{{ project_name(full_name=task.project, index=loop.index) }}"
@@ -164,7 +181,7 @@
                 <div class="tag-list">
                     {% if task.tags %}
                     {% for p in task.tags %}
-                    <button class="tag-item" hx-get="tasks?q=%2B{{ p }}"
+                    <button class="tag-item tag-item-800" hx-get="tasks?q=%2B{{ p }}"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-swap="innerHTML">
@@ -173,7 +190,7 @@
                     {% endfor %}
                     {% endif %}
                     {% if task.priority %}
-                    <button class="tag-item {{ task.priority }}"
+                    <button class="tag-item {{ task.priority }} tag-item-800"
                             hx-get="tasks?q=priority:{{ task.priority }}" hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-swap="innerHTML"

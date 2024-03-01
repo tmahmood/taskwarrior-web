@@ -1,31 +1,62 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::{error, info, trace};
-use std::process::Command;
+use std::process::{Command, ExitStatus, Output};
 use std::fs;
 use std::fs::File;
 use std::io::Error;
 use std::str::FromStr;
+use anyhow::anyhow;
+use serde_json::Value;
 
 pub const TASK_DATA_FILE: &str = "data.json";
+pub const TASK_DATA_FILE_EDIT: &str = "data_edit.json";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
     pub id: i64,
     pub description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
     pub entry: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub until: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annotation: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub due: Option<String>,
     pub modified: String,
     pub status: String,
     pub uuid: String,
     pub urgency: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub wait: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
-    pub priority: Option<String>
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depends: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recur: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mask: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imask: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename="UDA")]
+    pub uda: Option<HashMap<String, Value>>
 }
 
-pub fn fetch_task_from_cmd(params: Vec<&str>) -> Result<(), anyhow::Error>{
+pub fn fetch_task_from_cmd(params: Vec<&str>) -> Result<PathBuf, anyhow::Error> {
     let data_file = PathBuf::from_str(TASK_DATA_FILE).unwrap();
     let mut task = Command::new("task");
     if params.len() > 0 {
@@ -40,15 +71,13 @@ pub fn fetch_task_from_cmd(params: Vec<&str>) -> Result<(), anyhow::Error>{
             // write the output to file,
             fs::write(&data_file, v.stdout)
         }) {
-        Ok(_) => Ok(()),
+        Ok(_) => Ok(data_file),
         Err(_) => anyhow::bail!("Failed to read tasks")
     }
 }
 
-// what would happen
-pub fn list_tasks(params: Vec<&str>) -> Result<Vec<Task>, anyhow::Error> {
-    fetch_task_from_cmd(params)?;
-    let data_file = PathBuf::from_str(TASK_DATA_FILE).unwrap();
+fn read_task_file(params: Vec<&str>) -> Result<Vec<Task>, anyhow::Error> {
+    let data_file = fetch_task_from_cmd(params)?;
     let content = fs::read_to_string(&data_file)?;
     match serde_json::from_str(&content) {
         Ok(s) => Ok(s),
@@ -56,7 +85,46 @@ pub fn list_tasks(params: Vec<&str>) -> Result<Vec<Task>, anyhow::Error> {
     }
 }
 
-pub fn update_tasks(tasks: &mut Vec<Task>) -> Result<(), anyhow::Error> {
+// what would happen
+pub fn list_tasks(params: Vec<&str>) -> Result<Vec<Task>, anyhow::Error> {
+    read_task_file(params)
+}
 
-    Ok(())
+// update a single task
+pub fn update_tasks(task: &mut Task) -> Result<(), anyhow::Error> {
+    let mut tasks = read_task_file(vec![])?;
+    let t = match tasks.iter_mut()
+        .find(|v| {
+            v.uuid == task.uuid
+        }) {
+        None => return anyhow::bail!("Matching task not found"),
+        Some(t) => t
+    };
+    *t = task.clone();
+    let entry = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
+    t.end = Some(entry.clone());
+    t.modified = entry;
+
+    let data_file = PathBuf::from(TASK_DATA_FILE_EDIT);
+    fs::write(&data_file, serde_json::to_string(&tasks)?)?;
+    match data_file.canonicalize()
+        .and_then(|v| {
+            Command::new("task")
+                .arg("import")
+                .arg(v.to_str().unwrap())
+                .output()
+        }) {
+        Ok(o) if o.status.exit_ok().is_ok() => {
+            info!("Synced with task");
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to sync with task");
+            return anyhow::bail!("Failed to sync");
+        }
+        Ok(o) => {
+            error!("Not ok from task command {:?} {:?}", o, o.stderr);
+            return anyhow::bail!("Failed to sync");
+        }
+    }
 }

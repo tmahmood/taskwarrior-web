@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.7.4"
+axum = { version = "0.7.4", features = ["multipart"] }
 serde = { version = "1.0.197", features = ["derive"] }
 tokio = { version = "1.36.0", features = ["full", "parking_lot", "tracing"] }
 tracing = "0.1.40"
@@ -14,4 +14,5 @@ tera = "1.19.1"
 anyhow = "1.0.80"
 lazy_static = "1.4.0"
 tower = "0.4.13"
-tower-http = { version = "0.5.2" , features = ["fs", "tracing", "trace"]}
+tower-http = { version = "0.5.2", features = ["fs", "tracing", "trace"] }
+chrono = { version = "0.4.34", features = ["serde"] }
