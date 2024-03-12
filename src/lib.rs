@@ -5,9 +5,9 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{de, Deserialize, Deserializer};
 use std::str::FromStr;
-use std::fmt;
+use std::{fmt, fs};
 use serde::de::Error;
-use tracing::trace;
+use tracing::{debug, info, trace};
 use std::collections::HashMap;
 use chrono::Local;
 use crate::endpoints::tasks::Task;
@@ -63,6 +63,7 @@ pub mod endpoints;
 pub struct Params {
     query: Option<String>,
     q: Option<String>,
+    f: Option<String>,
     status: Option<String>,
     uuid: Option<String>,
 }
@@ -72,6 +73,7 @@ impl Default for Params {
         Self {
             query: Some("status:pending".to_string()),
             q: None,
+            f: None,
             status: None,
             uuid: None,
         }
@@ -82,6 +84,7 @@ pub struct TaskUpdateStatus {
     pub status: String,
     pub uuid: String,
 }
+
 
 impl Params {
     pub fn task(&self) -> Option<TaskUpdateStatus> {
@@ -95,14 +98,17 @@ impl Params {
     }
 
     pub fn query(&self) -> Vec<&str> {
-        trace!("{:?} {:?}", self.query, self.q);
+        info!("{:#?}", self);
+        if let Some(user_inp) = self.f.as_ref() {
+
+        }
         let mut current_filters = if let Some(tlist) = self.query.as_ref() {
             if tlist == "[ALL]" {
                 vec![]
             } else {
                 tlist.trim()
                     .split(" ")
-                    .filter(|v| *v != " " || *v != "")
+                    .filter(|v| *v != " " && *v != "")
                     .map(|v| v.trim())
                     .collect()
             }
@@ -110,19 +116,26 @@ impl Params {
             vec![]
         };
         let q = self.q.as_ref();
+        debug!("{:?}", self.query);
         if let Some(_q) = q {
-            if _q.starts_with("priority=") {
-                current_filters.retain_mut(|iv| !iv.starts_with("priority="));
-                current_filters.push(_q);
-            } else if _q.starts_with("status:") {
-                current_filters.retain_mut(|iv| !iv.starts_with("status:"));
-                current_filters.push(_q);
-            } else if current_filters.contains(&_q.as_str()) {
-                current_filters.retain_mut(|iv| iv != &_q);
-            } else {
-                current_filters.push(_q);
+            if _q != "" {
+                if _q.starts_with("priority:") {
+                    let had = current_filters.contains(&&**_q);
+                    current_filters.retain_mut(|iv| !iv.starts_with("priority:"));
+                    if !had {
+                        current_filters.push(_q);
+                    }
+                } else if _q.starts_with("status:") {
+                    current_filters.retain_mut(|iv| !iv.starts_with("status:"));
+                    current_filters.push(_q);
+                } else if current_filters.contains(&_q.as_str()) {
+                    current_filters.retain_mut(|iv| iv != &_q);
+                } else {
+                    current_filters.push(_q);
+                }
             }
         }
+        debug!("{:?}", current_filters);
         current_filters
     }
 }
@@ -157,11 +170,36 @@ fn get_project_name_link() -> impl tera::Function {
 
 fn get_date_proper() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        // we are working with utc time
         let time = chrono::prelude::NaiveDateTime::parse_from_str(
             args.get("date").unwrap().as_str().unwrap(),
-            "%Y%m%dT%H%M%SZ"
-        ).unwrap().and_local_timezone(Local).unwrap();
-        let s = time.format("%Y-%m-%d %H:%M:%S").to_string();
+            "%Y%m%dT%H%M%SZ",
+        ).unwrap().and_utc();
+
+        let in_future = args.get("in_future")
+            .cloned()
+            .unwrap_or(tera::Value::Bool(false))
+            .as_bool().unwrap();
+
+        let now = chrono::prelude::Utc::now();
+
+        let delta = now - time;
+        let num_weeks = delta.num_weeks();
+        let num_days = delta.num_days();
+        let num_hours = delta.num_hours();
+        let num_minutes = delta.num_minutes();
+
+        let sign = if in_future { -1  } else { 1 };
+
+        let mut s = if num_weeks.abs() > 0 {
+            format!("{}w", sign * num_weeks)
+        } else if num_days.abs() > 0 {
+            format!("{}d", sign * num_days)
+        } else if num_hours.abs() > 0 {
+            format!("{}h", sign * num_hours)
+        } else {
+            format!("{}m", sign * num_minutes)
+        };
         Ok(tera::to_value(s).unwrap())
     })
 }

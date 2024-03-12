@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.table-large {
+    @apply mt-2 rounded-sm bg-neutral-700 shadow-xl w-full text-sm text-left rtl:text-right text-neutral-800 dark:text-neutral-950;
+}
+
+.table-large-header {
+    @apply text-xs text-neutral-700 uppercase bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-400;
+}
+
+
+.table-large th {
+    @apply font-medium uppercase border-b-neutral-900 border-b-4 p-2;
+}
+
+.table-large td {
+    @apply px-2 py-1 border-r border-r-neutral-950 border-dotted;
+
+}
+
+.table-large tr {
+    @apply
+    font-medium even:bg-neutral-600 ;
+}
+
+.table-small {
+    @apply text-xs p-2;
+}
+
+.tag-list {
+    @apply
+    border-neutral-700 border
+    rounded-md inline-flex
+    overflow-hidden text-sm drop-shadow-sm
+    ;
+}
+
+.tag-item {
+    @apply
+    py-1 px-2
+    last:border-r-0
+    text-xs
+    ;
+}
+
+.tag-item-700 {
+    @apply
+    text-neutral-400
+    bg-neutral-700 relative
+    hover:bg-neutral-800
+    border-r border-r-neutral-600;
+    ;
+}
+
+.tag-item-800 {
+    @apply
+    text-neutral-400
+    bg-neutral-800 relative
+    hover:bg-neutral-950
+    border-r border-r-neutral-600;
+}
+
+.breadcrumb > .tag-item {
+    @apply last:bg-neutral-900;
+}
+
+.H {
+    @apply text-red-300 font-bold;
+}
+
+.M {
+    @apply text-emerald-300;
+}
+
+.L {
+    @apply text-neutral-700;
+}
+
+.btn {
+    @apply
+    text-xs py-1 px-2 uppercase text-neutral-300
+        font-mono
+    hover:bg-blend-darken
+    hover:opacity-95
+    hover:shadow-lg
+
+    rounded-md
+        shadow-sm
+        shadow-neutral-800
+    opacity-60
+    border
+    border-opacity-30
+    border-t-neutral-300
+    border-l-neutral-300
+    border-b-neutral-900
+    border-r-neutral-900
+
+    active:shadow-inner
+    active:bg-inherit
+    bg-blend-luminosity
+    bg-neutral-800;
+
+}
+
+.pending {
+    @apply
+    bg-orange-900
+    text-orange-300;
+}
+
+.waiting {
+    @apply bg-gray-700 text-gray-300;
+}
+
+.all {
+    @apply bg-cyan-950 text-gray-300;
+}
+
+.complete {
+    @apply bg-green-900 text-green-100;
+}
+
+.recurring {
+    @apply bg-blue-900 text-blue-100;
+}
+
+.small-tag-list {
+    @apply
+    border-neutral-700 border
+    inline-flex overflow-hidden text-xs
+    ;
+}
+
+.small-tag-item {
+    @apply text-xs
+    py-0.5 px-1.5
+    relative
+        rounded-sm
+        font-medium
+    justify-center
+    ;
+}
+
+.small-tag-item.amber-item {
+    @apply bg-amber-500 text-amber-700;
+}
+
+.small-tag-item.normal {
+    @apply bg-neutral-800 text-neutral-400;
+}
+

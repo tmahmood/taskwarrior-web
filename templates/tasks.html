@@ -5,7 +5,7 @@
     {% set on_waiting = "waiting" %}
     {% set on_recurring = "recurring" %}
     <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
-        <p class="tag-list">
+        <div class="tag-list">
             {% for f in current_filter %}
             <button class="tag-item tag-item-800"
                     hx-include="[id='filtering']"
@@ -15,192 +15,270 @@
                 {{ f }}
             </button>
             {% endfor %}
-        </p>
+        </div>
     </div>
-    <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
-        <label for="filtering" class="uppercase flex-shrink pt-1.5 font-medium text-neutral-400">Filter</label>
+    <div class="px-6 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
+        <label for="task-cmd" class="uppercase flex-shrink pt-1.5 font-medium text-neutral-400">Filtering</label>
         <input class="px-3 py-1.5 ml-1.5 rounded-sm flex-1 bg-neutral-600 text-neutral-900 outline-none" type="text"
-               id="filtering" placeholder="You can use any task filters"
+               id=task-cmd
+               placeholder="You can use any task filters, separate by ';'"
                hx-target="#list-of-tasks"
                value="{% if filter_value %}{{ filter_value }}{% endif %}"
-               name="query"
+               name="f"
                hx-get="tasks"
-               hx-trigger="input changed delay:3s, keyup[key=='Enter']"
+               hx-trigger="keyup[key=='Enter']"
         />
-
-        <button class="btn" id="all" hx-get="tasks?query=[ALL]" hx-target="#list-of-tasks" hx-swap="innerHTML">All
-        </button>
-        <button class="btn {{ on_pending }}" id="pending" hx-get="tasks?q=status:pending" hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-swap="innerHTML">Pending
-        </button>
-        <button class="btn {{ on_waiting }}" id="waiting" hx-get="tasks?q=status:waiting" hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-swap="innerHTML">Waiting
-        </button>
-        <button class="btn {{ on_recurring }}" id="recur" hx-get="tasks?q=status:recurring"
-                hx-include="[id='filtering']"
-                hx-target="#list-of-tasks" hx-swap="innerHTML">Recurring
-        </button>
-        <button class="btn {{ on_complete }}" id="completed" hx-get="tasks?q=status:completed"
-                hx-include="[id='filtering']"
-                hx-target="#list-of-tasks" hx-swap="innerHTML">Completed
-        </button>
-        <div class="ml-10 inline"></div>
-        <button class="btn" id="priority-h" hx-get="tasks?q=priority=H" hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-swap="innerHTML">P-H
-        </button>
-        <button class="btn" id="priority-m" hx-get="tasks?q=priority=M" hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-swap="innerHTML">P-M
-        </button>
-        <button class="btn" id="priority-l" hx-get="tasks?q=priority=L" hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-swap="innerHTML">P-L
-        </button>
+        <input type="hidden" id="filtering" value="{% if filter_value %}{{ filter_value }}{% endif %}" name="query">
+    </div>
+    <div class="flex px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs ">
+        <div class="md:flex-1 sm:flex-grow">
+            <button class="btn" id="all" hx-get="tasks?query=[ALL]"
+                    hx-target="#list-of-tasks" hx-swap="innerHTML">All
+            </button>
+            <button class="btn {{ on_pending }}" id="pending" hx-get="tasks?q=status:pending"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">Pending
+            </button>
+            <button class="btn {{ on_waiting }}" id="waiting" hx-get="tasks?q=status:waiting"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">Waiting
+            </button>
+            <button class="btn {{ on_recurring }}" id="recur" hx-get="tasks?q=status:recurring"
+                    hx-include="[id='filtering']"
+                    hx-target="#list-of-tasks" hx-swap="innerHTML">Recurring
+            </button>
+            <button class="btn {{ on_complete }}" id="completed" hx-get="tasks?q=status:completed"
+                    hx-include="[id='filtering']"
+                    hx-target="#list-of-tasks" hx-swap="innerHTML">Completed
+            </button>
+        </div>
+        <div class="md:flex-1 sm:flex-grow">
+            <button class="btn" id="priority-h" hx-get="tasks?q=priority:H"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">P-H
+            </button>
+            <button class="btn" id="priority-m" hx-get="tasks?q=priority:M"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">P-M
+            </button>
+            <button class="btn" id="priority-l" hx-get="tasks?q=priority:L"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">P-L
+            </button>
+        </div>
+        <div class="md:flex-1 sm:flex-grow">
+            <button class="btn" hx-get="tasks?r=next"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">Next
+            </button>
+            <button class="btn" hx-get="tasks?r=ready"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">Ready
+            </button>
+            <button class="btn" hx-get="tasks?r=new"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-swap="innerHTML">New
+            </button>
+        </div>
     </div>
 
-    <table class="w-full" id="list-of-tasks">
-        <thead>
-        <tr>
-            <th></th>
-            <th>Description</th>
-            <th>Project</th>
-            <th>Tags</th>
-        </tr>
-        </thead>
-        <tbody class="list-view">
-        {% for task in tasks %}
-        {% set status_color = on_all %}
-        {% if task.status == 'pending' %}
-        {% set status_color = on_pending %}
-        {% elif task.status == 'complete' %}
-        {% set status_color = on_complete %}
-        {% elif task.status == 'waiting' %}
-        {% set status_color = on_waiting %}
-        {% elif task.status == 'recurring' %}
-        {% set status_color = on_recurring %}
-        {% endif %}
-        <tr>
-            <td>
-                {% if task.status != "completed" %}
-                <button
-                        hx-post="tasks" hx-target="#list-of-tasks"
-                        hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
-                        hx-include="[id='filtering']"
-                        hx-swap="innerHTML"
-                >
-                    <svg fill="#171717" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
-                         width="24px"
-                         height="24px"
-                         xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 47 47" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                        <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                        <g id="SVGRepo_iconCarrier"> <g> <path
-                                d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"></path> </g> </g></svg>
-                </button>
-                {% else %}
-                <button
-                        hx-post="tasks" hx-target="#list-of-tasks"
-                        hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "{% if filter_value %}{{ filter_value }}{% endif %}" }'
-                        hx-swap="innerHTML"
-                >
-                    <svg
-                            fill="#000000"
-                            id="Capa_1"
-                            width="24px"
-                            height="24px"
-                            viewBox="0 0 47 47"
-                            xml:space="preserve"
-                            sodipodi:docname="check_mark.svg"
-                            inkscape:version="1.3.2 (091e20ef0f, 2023-11-25, custom)"
-                            xmlns="http://www.w3.org/2000/svg"
-                            xmlns:svg="http://www.w3.org/2000/svg"><defs id="defs1" />
-                        <sodipodi:namedview
-                                id="namedview1"
-                                pagecolor="#ffffff"
-                                bordercolor="#666666"
-                                borderopacity="1.0"
-                                inkscape:showpageshadow="2"
-                                inkscape:pageopacity="0.0"
-                                inkscape:pagecheckerboard="0"
-                                inkscape:deskcolor="#d1d1d1"
-                                inkscape:zoom="19.521277"
-                                inkscape:cx="31.376022"
-                                inkscape:cy="33.066485"
-                                inkscape:current-layer="g1"/>
-                        <g
-                                id="SVGRepo_bgCarrier"
-                                stroke-width="0"/>
-                        <g
-                                id="SVGRepo_tracerCarrier"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"/>
-                        <g
-                                id="SVGRepo_iconCarrier"> <g
-                                id="g1"> <rect
-                                style="fill:#afe8c6;stroke-width:3.30331;stroke-linecap:round;stroke-linejoin:round"
-                                id="rect1"
-                                width="37.11755"
-                                height="37.476978"
-                                x="6.8397193"
-                                y="5.7590747"/>
-                            <path
-                                    d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"
-                                    id="path1"
-                                    style="fill:#153b24"/> </g> </g></svg>
-                </button>
-                {% endif %}
-            </td>
-            <td>
-                <div>
-                    <p>{{ task.description }}</p>
-                    <div class="small-tag-list">
-                        <span class="small-tag-item">{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</span>
-                        <span class="small-tag-item">{% if task.modified %}{{ date_proper(date=task.modified) }}{% endif %}</span>
-                        <span class="small-tag-item">{% if task.end %}{{ date_proper(date=task.end) }}{% endif %}</span>
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto">
+        <table id="list-of-tasks" class="table-large">
+            <thead class="table-large-header">
+            <tr>
+                <th></th>
+                <th>ID</th>
+                <th>Age</th>
+                <th>Project</th>
+                <th>Tag</th>
+                <th>
+                    <div class="grid grid-cols-4 gap-1">
+                        <span class="basis-3">
+                            ACT
+                        </span>
+                        <span class="basis-3">
+                            DUE
+                        </span>
+                        <span class="basis-3">
+                            SCH
+                        </span>
+                        <span class="basis-3">
+                            END
+                        </span>
                     </div>
-                </div>
-            </td>
-            <td>
-                {% if task.project %}
-                <div class="breadcrumb tag-list">
-                    {% for p in task.project | split(pat=".") %}
-                    <button class="tag-item tag-item-800"
-                            hx-include="[id='filtering']"
-                            hx-target="#list-of-tasks"
-                            hx-get="tasks?q=project:{{ project_name(full_name=task.project, index=loop.index) }}"
-                    >
-                        {{ p }}
-                    </button>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </td>
-            <td>
-                <div class="tag-list">
-                    {% if task.tags %}
-                    {% for p in task.tags %}
-                    <button class="tag-item tag-item-800" hx-get="tasks?q=%2B{{ p }}"
-                            hx-target="#list-of-tasks"
-                            hx-include="[id='filtering']"
-                            hx-swap="innerHTML">
-                        {{ p }}
-                    </button>
-                    {% endfor %}
-                    {% endif %}
-                    {% if task.priority %}
-                    <button class="tag-item {{ task.priority }} tag-item-800"
-                            hx-get="tasks?q=priority:{{ task.priority }}" hx-target="#list-of-tasks"
+                </th>
+                <th>Recur</th>
+                <th>Description</th>
+                <th>Urg</th>
+            </tr>
+            </thead>
+            <tbody class="list-view">
+            {% for task in tasks %}
+            {% set status_color = on_all %}
+            {% if task.status == 'pending' %}
+            {% set status_color = on_pending %}
+            {% elif task.status == 'complete' %}
+            {% set status_color = on_complete %}
+            {% elif task.status == 'waiting' %}
+            {% set status_color = on_waiting %}
+            {% elif task.status == 'recurring' %}
+            {% set status_color = on_recurring %}
+            {% endif %}
+            <tr>
+                <td>
+                    {% if task.status != "completed" %}
+                    <button
+                            hx-post="tasks" hx-target="#list-of-tasks"
+                            hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
                             hx-include="[id='filtering']"
                             hx-swap="innerHTML"
-                    >{{ task.priority }}
+                    >
+                        <svg fill="#171717" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
+                             width="24px"
+                             height="24px"
+                             xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 47 47" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                            <g id="SVGRepo_iconCarrier"> <g> <path
+                                    d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"></path> </g> </g></svg>
+                    </button>
+                    {% else %}
+                    <button
+                            hx-post="tasks" hx-target="#list-of-tasks"
+                            hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "{% if filter_value %}{{ filter_value }}{% endif %}" }'
+                            hx-swap="innerHTML"
+                    >
+                        <svg
+                                fill="#000000"
+                                id="Capa_1"
+                                width="24px"
+                                height="24px"
+                                viewBox="0 0 47 47"
+                                xml:space="preserve"
+                                sodipodi:docname="check_mark.svg"
+                                inkscape:version="1.3.2 (091e20ef0f, 2023-11-25, custom)"
+                                xmlns="http://www.w3.org/2000/svg"
+                                xmlns:svg="http://www.w3.org/2000/svg"><defs id="defs1" />
+                            <sodipodi:namedview
+                                    id="namedview1"
+                                    pagecolor="#ffffff"
+                                    bordercolor="#666666"
+                                    borderopacity="1.0"
+                                    inkscape:showpageshadow="2"
+                                    inkscape:pageopacity="0.0"
+                                    inkscape:pagecheckerboard="0"
+                                    inkscape:deskcolor="#d1d1d1"
+                                    inkscape:zoom="19.521277"
+                                    inkscape:cx="31.376022"
+                                    inkscape:cy="33.066485"
+                                    inkscape:current-layer="g1"/>
+                            <g
+                                    id="SVGRepo_bgCarrier"
+                                    stroke-width="0"/>
+                            <g
+                                    id="SVGRepo_tracerCarrier"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"/>
+                            <g
+                                    id="SVGRepo_iconCarrier"> <g
+                                    id="g1"> <rect
+                                    style="fill:#afe8c6;stroke-width:3.30331;stroke-linecap:round;stroke-linejoin:round"
+                                    id="rect1"
+                                    width="37.11755"
+                                    height="37.476978"
+                                    x="6.8397193"
+                                    y="5.7590747"/>
+                                <path
+                                        d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"
+                                        id="path1"
+                                        style="fill:#153b24"/> </g> </g></svg>
                     </button>
                     {% endif %}
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+                </td>
+                <td>{{ task.id}}</td>
+                <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
+                <td>
+                    {% if task.project %}
+                    <div class="breadcrumb tag-list">
+                        {% for p in task.project | split(pat=".") %}
+                        <button class="tag-item tag-item-800"
+                                hx-include="[id='filtering']"
+                                hx-target="#list-of-tasks"
+                                hx-get="tasks?q=project:{{ project_name(full_name=task.project, index=loop.index) }}"
+                        >
+                            {{ p }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="tag-list">
+                        {% if task.tags %}
+                        {% for p in task.tags %}
+                        <button class="tag-item tag-item-800" hx-get="tasks?q=%2B{{ p }}"
+                                hx-target="#list-of-tasks"
+                                hx-include="[id='filtering']"
+                                hx-swap="innerHTML">
+                          {{ p }}
+                        </button>
+                        {% endfor %}
+                        {% endif %}
+                        {% if task.priority %}
+                        <button class="tag-item {{ task.priority }} tag-item-800"
+                                hx-get="tasks?q=priority:{{ task.priority }}" hx-target="#list-of-tasks"
+                                hx-include="[id='filtering']"
+                                hx-swap="innerHTML"
+                        >{{ task.priority }}
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div class="grid grid-cols-4 gap-1 ">
+                        <span class="small-tag-item {% if task.start %}amber-item{% else %}normal{% endif %}">
+                            {% if task.start %}
+                                {{ date_proper(date=task.start) }}
+                            {% endif %}
+                        </span>
+
+                        <span class="small-tag-item normal">
+                            {% if task.due and task.status != 'completed' %}
+                            {{ date_proper(date=task.due, in_future=true) }}
+                            {% endif %}
+                        </span>
+
+                        <span class="small-tag-item normal">
+                            {% if task.scheduled %}
+                            {{ date_proper(date=task.scheduled, in_future=true) }}
+                            {% endif%}
+                        </span>
+
+                        <span class="small-tag-item normal">
+                            {% if task.end %}{{ date_proper(date=task.end) }}
+                            {% else %}
+                            &nbsp;
+                            {% endif %}
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    {% if task.recur %}{{task.recur}}{% endif %}
+                </td>
+                <td>
+                    <div>{{ task.description }}</div>
+                </td>
+                <td>{{ task.urgency }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>

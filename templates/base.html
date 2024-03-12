@@ -2,15 +2,13 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" href="/dist/style.css" />
-    <script src="/dist/htmx.min.js"></script>
-    <script src="/dist/hyperscript.min.js"></script>
-    <script src="/dist/live.js"></script>
+    <script src="/dist/bundle.js" type="module"></script>
     <title>
-        {% block title %}{% endblock title %} - Org.Me
+        Org.Me
     </title>
 </head>
 <body class="bg-neutral-900">
-<div id="content" class="container mx-auto">
+<div id="content" class="px-5">
     <main>
         <div id="list-of-tasks">
             {% include "tasks.html" %}
