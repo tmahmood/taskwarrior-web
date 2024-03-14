@@ -14,7 +14,7 @@ use crate::endpoints::tasks::Task;
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
-        let mut tera = match tera::Tera::new("templates/**/*") {
+        let mut tera = match tera::Tera::new("frontend/templates/**/*") {
             Ok(t) => t,
             Err(e) => {
                 println!("Parsing error(s): {}", e);

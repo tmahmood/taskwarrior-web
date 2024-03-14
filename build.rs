@@ -2,7 +2,6 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=frontend/");
-    println!("cargo:rerun-if-changed=templates/");
     if !Command::new("tailwindcss")
         .args(["-i", "frontend/css/style.css", "-o", "dist/style.css", "-c", "frontend/tailwind.config.js"])
         .status().unwrap().success() {

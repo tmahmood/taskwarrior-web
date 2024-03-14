@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-typescript": "^11.1.6",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
