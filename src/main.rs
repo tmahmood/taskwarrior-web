@@ -48,13 +48,13 @@ async fn main() {
 
 async fn front_page() -> Html<String> {
     let tq = TaskQuery::new(Params::default());
-    let tasks = list_tasks(tq).unwrap();
-    let task_list:Vec<Task> = tasks.values().cloned().collect();
+    let tasks = list_tasks(tq.clone()).unwrap();
+    let task_list: Vec<Task> = tasks.values().cloned().collect();
     let mut ctx = Context::new();
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
-    ctx.insert("current_filter", "next");
-    ctx.insert("filter_value", "next");
+    ctx.insert("current_filter", &tq.as_filter_text());
+    ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     Html(TEMPLATES.render("base.html", &ctx).unwrap())
 }
 
@@ -63,19 +63,19 @@ async fn tasks_display(Query(params): Query<Params>) -> Html<String> {
 }
 
 fn get_tasks_view(params: Params) -> Html<String> {
-    let tasks = match list_tasks(TaskQuery::new(params)) {
+    let tq = params.previous_param();
+    let tasks = match list_tasks(tq.clone()) {
         Ok(t) => { t }
         Err(e) => {
             return Html(e.to_string());
         }
     };
-    let task_list:Vec<Task> = tasks.values().cloned().collect();
+    let task_list: Vec<Task> = tasks.values().cloned().collect();
     let mut ctx = Context::new();
-
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
-    ctx.insert("current_filter", "");
-    ctx.insert("filter_value", "");
+    ctx.insert("current_filter", &tq.as_filter_text());
+    ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     Html(TEMPLATES.render("tasks.html", &ctx).unwrap())
 }
 

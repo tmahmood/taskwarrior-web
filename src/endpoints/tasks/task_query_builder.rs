@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use crate::Params;
 
 pub enum TQUpdateTypes {
@@ -9,7 +10,7 @@ pub enum TQUpdateTypes {
     Report(String),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TaskReport {
     Next,
     New,
@@ -43,7 +44,7 @@ impl From<String> for TaskReport {
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TaskPriority {
     High,
     Medium,
@@ -76,7 +77,7 @@ impl Display for TaskPriority {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum TaskStatus {
     Pending,
     Completed,
@@ -110,7 +111,7 @@ impl Display for TaskStatus {
 }
 
 // this will get the params and build task command
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TaskQuery {
     status: TaskStatus,
     priority: TaskPriority,
@@ -146,17 +147,25 @@ impl TaskQuery {
             self.priority = p.clone().into();
         }
         if let Some(t) = params.q {
+            info!(t);
             if t.starts_with("project:") {
-                self.project = Some(t);
+                if self.project == Some(t.clone()) {
+                    self.project = None;
+                } else {
+                    self.project = Some(t);
+                }
             } else if t.starts_with("+") {
-                self.tags.push(t);
+                if self.tags.contains(&t) {
+                    self.tags.retain_mut(|iv| iv != &t);
+                } else {
+                    self.tags.push(t);
+                }
             }
         }
         println!("{:?}", self);
     }
 
-    pub fn build(&self) -> Command {
-        let mut task = Command::new("task");
+    pub fn get_query(&self, with_export: bool) -> Vec<String> {
         let mut output = vec![];
         let mut export_suffix = vec![];
         let mut export_prefix = vec![];
@@ -176,7 +185,7 @@ impl TaskQuery {
             export_prefix.push(p)
         }
         if self.tags.len() > 0 {
-            export_prefix.push(self.tags.join(" "))
+            export_prefix.extend(self.tags.clone())
         }
         match &self.status {
             TaskStatus::NotSet => {}
@@ -185,8 +194,20 @@ impl TaskQuery {
             }
         }
         output.extend(export_prefix);
-        output.extend(vec!["export".to_string()]);
+        if with_export {
+            output.extend(vec!["export".to_string()]);
+        }
         output.extend(export_suffix);
+        output
+    }
+
+    pub fn as_filter_text(&self) -> Vec<String> {
+        self.get_query(false)
+    }
+
+    pub fn build(&self) -> Command {
+        let mut task = Command::new("task");
+        let output = self.get_query(true);
         task.args(&output);
         task
     }

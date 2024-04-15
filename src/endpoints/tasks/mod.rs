@@ -121,18 +121,20 @@ pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, any
 
 // update a single task
 pub fn update_tasks(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
-    let t = TaskQuery::new(Params::default());
+    let mut p = Params::default();
+    p.report = Some("all".to_string());
+    let t = TaskQuery::new(p);
     let mut tasks = read_task_file(t)?;
-    let t = match tasks.get_mut(&TaskUUID(task.uuid.clone())) {
+    let mut t = match tasks.get(&TaskUUID(task.uuid.clone())) {
         None => return anyhow::bail!("Matching task not found"),
         Some(t) => t
-    };
+    }.clone();
     t.status = Some(task.status);
     let entry = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
     t.end = Some(entry.clone());
     t.modified = Some(entry);
 
-    let tasks_vec: Vec<Task> = tasks.values().cloned().collect();
+    let tasks_vec: Vec<Task> = vec![t];
 
     let data_file = PathBuf::from(TASK_DATA_FILE_EDIT);
     fs::write(&data_file, serde_json::to_string(&tasks_vec)?)?;

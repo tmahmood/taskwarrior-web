@@ -1,17 +1,16 @@
 #![feature(exit_status_error)]
 #![feature(let_chains)]
 
+use std::collections::HashMap;
+use std::fmt;
+use std::str::FromStr;
+
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde::{de, Deserialize, Deserializer};
-use std::str::FromStr;
-use std::{fmt, fs};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use serde::de::Error;
-use tracing::{debug, info, trace};
-use std::collections::HashMap;
-use chrono::Local;
-use crate::endpoints::tasks::Task;
-use crate::endpoints::tasks::task_query_builder::{TaskReport, TaskStatus};
+
+use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
@@ -58,8 +57,8 @@ impl<E> From<E> for AppError
 
 pub mod endpoints;
 
-#[derive(Debug, Deserialize)]
 #[allow(dead_code)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Params {
     query: Option<String>,
     priority: Option<String>,
@@ -68,6 +67,19 @@ pub struct Params {
     report: Option<String>,
     status: Option<String>,
     uuid: Option<String>,
+    filter_value: Option<String>
+}
+
+impl Params {
+    pub fn previous_param(&self) -> TaskQuery {
+        if let Some(fv) = self.filter_value.clone() {
+            let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
+            tq.update(self.clone());
+            tq
+        } else {
+            TaskQuery::new(Params::default())
+        }
+    }
 }
 
 impl Default for Params {
@@ -80,6 +92,7 @@ impl Default for Params {
             report: Some(TaskReport::Next.to_string()),
             status: None,
             uuid: None,
+            filter_value: None,
         }
     }
 }
@@ -99,59 +112,6 @@ impl Params {
             });
         }
         None
-    }
-
-    pub fn query(&self) -> Vec<&str> {
-        info!("{:#?}", self);
-        if let Some(user_inp) = self.f.as_ref() {
-            user_inp.split(" ").collect()
-        } else {
-            let mut current_filters = if let Some(tlist) = self.query.as_ref() {
-                if tlist == "[ALL]" {
-                    vec![]
-                } else {
-                    tlist.trim()
-                        .split(" ")
-                        .filter(|v| *v != " " && *v != "")
-                        .map(|v| v.trim())
-                        .collect()
-                }
-            } else {
-                vec![]
-            };
-            let q = self.q.as_ref();
-            debug!("{:?}", self.query);
-            if let Some(_q) = q {
-                if _q != "" {
-                    if _q.starts_with("priority:") {
-                        let had = current_filters.contains(&&**_q);
-                        current_filters.retain_mut(|iv| !iv.starts_with("priority:"));
-                        if !had {
-                            current_filters.push(_q);
-                        }
-                    } else if _q.starts_with("status:") {
-                        current_filters.retain_mut(|iv| !iv.starts_with("status:"));
-                        current_filters.push(_q);
-                    } else if _q.starts_with("project:") {
-                        if current_filters.contains(&_q.as_str()) {
-                            current_filters.retain_mut(|iv| iv != &_q);
-                        } else {
-                            current_filters.retain_mut(|iv| !iv.starts_with("project:"));
-                            current_filters.push(_q);
-                        }
-                    } else if current_filters.contains(&_q.as_str()) {
-                        current_filters.retain_mut(|iv| iv != &_q);
-                    } else {
-                        current_filters.push(_q);
-                    }
-                }
-                if !current_filters.contains(&"status:") {
-                    current_filters.push("status:pending");
-                }
-            }
-            debug!("{:?}", current_filters);
-            current_filters
-        }
     }
 }
 
