@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+    @apply font-sans;
+}
 
 .table-large {
     @apply mt-2 rounded-sm bg-neutral-700 shadow-xl w-full text-sm text-left rtl:text-right text-neutral-800 dark:text-neutral-950;

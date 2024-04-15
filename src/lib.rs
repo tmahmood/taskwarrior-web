@@ -11,6 +11,7 @@ use tracing::{debug, info, trace};
 use std::collections::HashMap;
 use chrono::Local;
 use crate::endpoints::tasks::Task;
+use crate::endpoints::tasks::task_query_builder::{TaskReport, TaskStatus};
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
@@ -57,13 +58,14 @@ impl<E> From<E> for AppError
 
 pub mod endpoints;
 
-
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 pub struct Params {
     query: Option<String>,
+    priority: Option<String>,
     q: Option<String>,
     f: Option<String>,
+    report: Option<String>,
     status: Option<String>,
     uuid: Option<String>,
 }
@@ -71,9 +73,11 @@ pub struct Params {
 impl Default for Params {
     fn default() -> Self {
         Self {
-            query: Some("status:pending".to_string()),
+            query: None,
+            priority: None,
             q: None,
             f: None,
+            report: Some(TaskReport::Next.to_string()),
             status: None,
             uuid: None,
         }
@@ -100,43 +104,54 @@ impl Params {
     pub fn query(&self) -> Vec<&str> {
         info!("{:#?}", self);
         if let Some(user_inp) = self.f.as_ref() {
-
-        }
-        let mut current_filters = if let Some(tlist) = self.query.as_ref() {
-            if tlist == "[ALL]" {
-                vec![]
-            } else {
-                tlist.trim()
-                    .split(" ")
-                    .filter(|v| *v != " " && *v != "")
-                    .map(|v| v.trim())
-                    .collect()
-            }
+            user_inp.split(" ").collect()
         } else {
-            vec![]
-        };
-        let q = self.q.as_ref();
-        debug!("{:?}", self.query);
-        if let Some(_q) = q {
-            if _q != "" {
-                if _q.starts_with("priority:") {
-                    let had = current_filters.contains(&&**_q);
-                    current_filters.retain_mut(|iv| !iv.starts_with("priority:"));
-                    if !had {
+            let mut current_filters = if let Some(tlist) = self.query.as_ref() {
+                if tlist == "[ALL]" {
+                    vec![]
+                } else {
+                    tlist.trim()
+                        .split(" ")
+                        .filter(|v| *v != " " && *v != "")
+                        .map(|v| v.trim())
+                        .collect()
+                }
+            } else {
+                vec![]
+            };
+            let q = self.q.as_ref();
+            debug!("{:?}", self.query);
+            if let Some(_q) = q {
+                if _q != "" {
+                    if _q.starts_with("priority:") {
+                        let had = current_filters.contains(&&**_q);
+                        current_filters.retain_mut(|iv| !iv.starts_with("priority:"));
+                        if !had {
+                            current_filters.push(_q);
+                        }
+                    } else if _q.starts_with("status:") {
+                        current_filters.retain_mut(|iv| !iv.starts_with("status:"));
+                        current_filters.push(_q);
+                    } else if _q.starts_with("project:") {
+                        if current_filters.contains(&_q.as_str()) {
+                            current_filters.retain_mut(|iv| iv != &_q);
+                        } else {
+                            current_filters.retain_mut(|iv| !iv.starts_with("project:"));
+                            current_filters.push(_q);
+                        }
+                    } else if current_filters.contains(&_q.as_str()) {
+                        current_filters.retain_mut(|iv| iv != &_q);
+                    } else {
                         current_filters.push(_q);
                     }
-                } else if _q.starts_with("status:") {
-                    current_filters.retain_mut(|iv| !iv.starts_with("status:"));
-                    current_filters.push(_q);
-                } else if current_filters.contains(&_q.as_str()) {
-                    current_filters.retain_mut(|iv| iv != &_q);
-                } else {
-                    current_filters.push(_q);
+                }
+                if !current_filters.contains(&"status:") {
+                    current_filters.push("status:pending");
                 }
             }
+            debug!("{:?}", current_filters);
+            current_filters
         }
-        debug!("{:?}", current_filters);
-        current_filters
     }
 }
 

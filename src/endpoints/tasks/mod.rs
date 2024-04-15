@@ -8,12 +8,25 @@ use std::fs::File;
 use std::io::Error;
 use std::str::FromStr;
 use anyhow::anyhow;
+use indexmap::IndexMap;
 use serde_json::Value;
 use tokio::io::split;
+
+pub mod task_query_builder;
+
+use task_query_builder::TaskQuery;
+use crate::{Params, TaskUpdateStatus};
 
 pub const TASK_DATA_FILE: &str = "data.json";
 pub const TASK_DATA_FILE_EDIT: &str = "data_edit.json";
 pub const TASK_OUTPUT_FILE: &str = "output.out";
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Annotation {
+    entry: String,
+    description: String
+}
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
@@ -31,11 +44,11 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scheduled: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub annotation: Option<String>,
+    pub annotations: Option<Vec<Annotation>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub due: Option<String>,
-    pub modified: String,
-    pub status: String,
+    pub modified: Option<String>,
+    pub status: Option<String>,
     pub uuid: String,
     pub urgency: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,26 +72,16 @@ pub struct Task {
 }
 
 pub fn fetch_task_from_cmd(
-    before_params: Vec<&str>,
-    report_params: Vec<&str>
-
+    task_query: &TaskQuery
 ) -> Result<PathBuf, anyhow::Error> {
     let data_file = PathBuf::from_str(TASK_DATA_FILE).unwrap();
-    let mut task = Command::new("task");
-    if before_params.len() > 0 {
-        for param in before_params.iter() {
-            task.arg(param);
-        }
-    }
-    task.arg("export");
+    let task = task_query.build();
+    trace!("{:?}", task.get_args());
+    write_to_file(task, data_file)
 
-    if report_params.len() > 0 {
-        for param in report_params.iter() {
-            task.arg(param);
-        }
-    }
+}
 
-    trace!("{:?}", before_params);
+fn write_to_file(mut task: Command, data_file: PathBuf) -> Result<PathBuf, anyhow::Error>{
     match task
         .output()
         .and_then(|v| {
@@ -86,41 +89,53 @@ pub fn fetch_task_from_cmd(
             fs::write(&data_file, v.stdout)
         }) {
         Ok(_) => Ok(data_file),
-        Err(_) => anyhow::bail!("Failed to read tasks")
+        Err(e) => {
+            error!("{}", e);
+            anyhow::bail!("Failed to read tasks")
+        }
     }
 }
 
-fn read_task_file(params: Vec<&str>) -> Result<Vec<Task>, anyhow::Error> {
-    let data_file = fetch_task_from_cmd(params, vec![])?;
+
+#[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
+pub struct TaskUUID(String);
+
+fn read_task_file(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+    let data_file = fetch_task_from_cmd(&task_query)?;
     let content = fs::read_to_string(&data_file)?;
-    match serde_json::from_str(&content) {
-        Ok(s) => Ok(s),
+    let tasks: Vec<Task> = match serde_json::from_str(&content) {
+        Ok(s) => s,
         Err(e) => anyhow::bail!(e.to_string())
+    };
+    let mut hm = IndexMap::new();
+    for task in tasks.iter() {
+        hm.insert(TaskUUID(task.uuid.clone()), task.clone());
     }
+    Ok(hm)
 }
 
 // what would happen
-pub fn list_tasks(params: Vec<&str>) -> Result<Vec<Task>, anyhow::Error> {
-    read_task_file(params)
+pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+    read_task_file(task_query)
 }
 
 // update a single task
-pub fn update_tasks(task: &mut Task) -> Result<(), anyhow::Error> {
-    let mut tasks = read_task_file(vec![])?;
-    let t = match tasks.iter_mut()
-        .find(|v| {
-            v.uuid == task.uuid
-        }) {
+pub fn update_tasks(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
+    let t = TaskQuery::new(Params::default());
+    let mut tasks = read_task_file(t)?;
+    let t = match tasks.get_mut(&TaskUUID(task.uuid.clone())) {
         None => return anyhow::bail!("Matching task not found"),
         Some(t) => t
     };
-    *t = task.clone();
+    t.status = Some(task.status);
     let entry = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
     t.end = Some(entry.clone());
-    t.modified = entry;
+    t.modified = Some(entry);
+
+    let tasks_vec: Vec<Task> = tasks.values().cloned().collect();
 
     let data_file = PathBuf::from(TASK_DATA_FILE_EDIT);
-    fs::write(&data_file, serde_json::to_string(&tasks)?)?;
+    fs::write(&data_file, serde_json::to_string(&tasks_vec)?)?;
     match data_file.canonicalize()
         .and_then(|v| {
             Command::new("task")
@@ -130,7 +145,6 @@ pub fn update_tasks(task: &mut Task) -> Result<(), anyhow::Error> {
         }) {
         Ok(o) if o.status.exit_ok().is_ok() => {
             info!("Synced with task");
-            info!("{:?}", o.stdout);
             Ok(())
         }
         Err(e) => {
@@ -156,14 +170,5 @@ pub(crate) fn execute_command(cmd: String) -> Result<PathBuf, anyhow::Error>{
         }
     }
     trace!("{:?}", params);
-    match task.output()
-        .and_then(|v| {
-            debug!("{:?}", v.status);
-            debug!("{:?}", v.stdout);
-            // write the output to file,
-            fs::write(&output_file, v.stdout)
-        }) {
-        Ok(_) => Ok(output_file),
-        Err(_) => anyhow::bail!("Failed to read tasks")
-    }
+    write_to_file(task, output_file)
 }
