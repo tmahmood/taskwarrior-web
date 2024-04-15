@@ -148,7 +148,7 @@ pub fn update_tasks(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
             Ok(())
         }
         Err(e) => {
-            error!("Failed to sync with task");
+            error!("Failed to sync with task: {}", e);
             return anyhow::bail!("Failed to sync");
         }
         Ok(o) => {
@@ -156,19 +156,4 @@ pub fn update_tasks(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
             return anyhow::bail!("Failed to sync");
         }
     }
-}
-
-pub(crate) fn execute_command(cmd: String) -> Result<PathBuf, anyhow::Error>{
-    let mut task = Command::new("task");
-    let output_file = PathBuf::from(TASK_OUTPUT_FILE);
-    let file = File::create(&output_file).unwrap();
-    let stdio = Stdio::from(file);
-    let params: Vec<&str> = cmd.split(" ").collect();
-    if params.len() > 0 {
-        for param in params.iter() {
-            task.arg(param);
-        }
-    }
-    trace!("{:?}", params);
-    write_to_file(task, output_file)
 }

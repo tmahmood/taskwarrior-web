@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
-use crate::endpoints::tasks::task_query_builder::TaskStatus::Pending;
 use crate::Params;
 
 pub enum TQUpdateTypes {

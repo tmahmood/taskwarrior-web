@@ -171,7 +171,6 @@ pub fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
 
 fn get_project_name_link() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
-        let r = String::new();
         let pname = tera::from_value::<String>(
             args.get("full_name").clone().unwrap().clone()
         ).unwrap();

@@ -25,3 +25,4 @@ dist-ssr
 /target/
 /data.json
 /output.out
+/data_edit.json
