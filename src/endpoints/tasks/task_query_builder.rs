@@ -1,3 +1,4 @@
+use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
@@ -44,7 +45,7 @@ impl From<String> for TaskReport {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub enum TaskPriority {
     High,
     Medium,
@@ -77,7 +78,7 @@ impl Display for TaskPriority {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub enum TaskStatus {
     Pending,
     Completed,
@@ -121,6 +122,7 @@ pub struct TaskQuery {
 }
 
 
+
 impl TaskQuery {
 
     pub fn new(params: Params) -> Self {
@@ -138,13 +140,25 @@ impl TaskQuery {
     pub fn update(&mut self, params: Params) {
         if let Some(rep) = params.report {
             self.report = rep.into();
+            self.status = TaskStatus::NotSet;
         }
         if let Some(status) = params.status {
-            self.status = status.into();
-            self.report = TaskReport::NotSet;
+            let s: TaskStatus = status.into();
+            if s == self.status {
+                self.status = TaskStatus::NotSet;
+                self.report = TaskReport::Next;
+            } else {
+                self.status = s;
+                self.report = TaskReport::NotSet;
+            }
         }
         if let Some(p) = params.priority {
-            self.priority = p.clone().into();
+            let p: TaskPriority = p.clone().into();
+            if self.priority == p {
+                self.priority = TaskPriority::NotSet;
+            } else {
+                self.priority = p;
+            }
         }
         if let Some(t) = params.q {
             info!(t);
