@@ -3,73 +3,79 @@
     {% set on_complete = "complete" %}
     {% set on_pending = "pending" %}
     {% set on_waiting = "waiting" %}
-    <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
-        <div class="tag-list">
-            {% for f in current_filter %}
-            <button class="tag-item tag-item-800"
-                    hx-include="[id='filtering']"
-                    hx-get="tasks?q={{ f | replace(from='+', to='%2B') }}"
-                    hx-target="#list-of-tasks">
-                {{ f }}
-            </button>
-            {% endfor %}
+    <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
+        <div class="md:flex-grow sm:row-autotag-list">
+            <div class="tag-list">
+                {% for f in current_filter %}
+                <button class="tag-item tag-item-800"
+                        hx-include="[id='filtering']"
+                        hx-get="tasks?q={{ f | replace(from='+', to='%2B') }}"
+                        hx-target="#list-of-tasks">
+                    {{ f }}
+                </button>
+                {% endfor %}
+            </div>
             <input type="hidden" id="filtering" name="filter_value" value="{{ filter_value }}">
         </div>
-    </div>
-    <div class="flex px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs">
-        <div class="md:flex-1 sm:flex-grow">
-            <button class="btn {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
+        <div class="tag-list">
+            <button class="tag-item tag-item-800 {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">Pending
+                    hx-trigger="click,keyup[key=='p'] from:body"
+                    hx-swap="innerHTML"><u>p</u>ending
             </button>
-            <button class="btn {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
+            <button class="tag-item tag-item-800 {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">Waiting
+                    hx-trigger="click,keyup[key=='w'] from:body"
+                    hx-swap="innerHTML"><u>w</u>aiting
             </button>
-            <button class="btn {{ on_complete }}" id="completed" hx-get="tasks?status=completed"
+            <button class="tag-item tag-item-800  {{ on_complete }}" id="completed" hx-get="tasks?status=completed"
                     hx-include="[id='filtering']"
-                    hx-target="#list-of-tasks" hx-swap="innerHTML">Completed
+                    hx-trigger="click,keyup[key=='c'] from:body"
+                    hx-target="#list-of-tasks" hx-swap="innerHTML"><u>C</u>ompleted
             </button>
-        </div>
-        <div class="md:flex-1 sm:flex-grow">
-            <button class="btn" id="priority-h" hx-get="tasks?priority=H"
+            <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?priority=H"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">P-H
+                    hx-trigger="click,keyup[key=='h'] from:body"
+                    hx-swap="innerHTML"><u>H</u>
             </button>
-            <button class="btn" id="priority-m" hx-get="tasks?priority=M"
+            <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?priority=M"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">P-M
+                    hx-trigger="click,keyup[key=='m'] from:body"
+                    hx-swap="innerHTML"><u>M</u>
             </button>
-            <button class="btn" id="priority-l" hx-get="tasks?priority=L"
+            <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?priority=L"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">P-L
+                    hx-trigger="click,keyup[key=='l'] from:body"
+                    hx-swap="innerHTML"><u>L</u>
             </button>
-        </div>
-        <div class="md:flex-1 sm:flex-grow">
-            <button class="btn" hx-get="tasks?report=all"
+            <button class="tag-item tag-item-800" hx-get="tasks?report=all"
                     hx-include="[id='filtering']"
                     hx-target="#list-of-tasks"
-                    hx-swap="innerHTML">All
+                    hx-trigger="click,keyup[key=='a'] from:body"
+                    hx-swap="innerHTML"><u>a</u>ll
             </button>
-            <button class="btn" hx-get="tasks?report=next"
+            <button class="tag-item tag-item-800" hx-get="tasks?report=next"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">Next
+                    hx-trigger="click,keyup[key=='n'] from:body"
+                    hx-swap="innerHTML"><u>n</u>ext
             </button>
-            <button class="btn" hx-get="tasks?report=ready"
+            <button class="tag-item tag-item-800" hx-get="tasks?report=ready"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">Ready
+                    hx-trigger="click,keyup[key=='r'] from:body"
+                    hx-swap="innerHTML"><u>r</u>eady
             </button>
-            <button class="btn" hx-get="tasks?report=new"
+            <button class="tag-item tag-item-800" hx-get="tasks?report=new"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-swap="innerHTML">New
+                    hx-trigger="click,keyup[key=='e'] from:body"
+                    hx-swap="innerHTML">n<u>e</u>w
             </button>
         </div>
     </div>
@@ -84,13 +90,13 @@
                 <th>Depends</th>
                 <th>Project</th>
                 <th>Tag</th>
+                <th class="min-w-96">Description</th>
+                <th>Urg</th>
                 <th>ACT</th>
                 <th>DUE</th>
                 <th>SCH</th>
                 <th>END</th>
                 <th>Recur</th>
-                <th>Description</th>
-                <th>Urg</th>
             </tr>
             </thead>
             <tbody class="list-view">
@@ -219,32 +225,6 @@
                     </div>
                 </td>
                 <td>
-                    {% if task.start %}
-                    {{ date_proper(date=task.start) }}
-                    {% endif %}
-                </td>
-                <td>
-                    {% if task.due and task.status != 'completed' %}
-                    {{ date_proper(date=task.due, in_future=true) }}
-                    {% endif %}
-                </td>
-
-                <td>
-                    {% if task.scheduled %}
-                    {{ date_proper(date=task.scheduled, in_future=true) }}
-                    {% endif%}
-                </td>
-
-                <td>
-                    {% if task.end %}{{ date_proper(date=task.end) }}
-                    {% else %}
-                    &nbsp;
-                    {% endif %}
-                </td>
-                <td>
-                    {% if task.recur %}{{task.recur}}{% endif %}
-                </td>
-                <td>
                     <div>
                         {% if task.annotations %}
                         <p>
@@ -261,6 +241,31 @@
                     </div>
                 </td>
                 <td>{{ task.urgency }}</td>
+                <td>
+                    {% if task.start %}
+                    {{ date_proper(date=task.start) }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if task.due and task.status != 'completed' %}
+                    {{ date_proper(date=task.due, in_future=true) }}
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if task.scheduled %}
+                    {{ date_proper(date=task.scheduled, in_future=true) }}
+                    {% endif%}
+                </td>
+                <td>
+                    {% if task.end %}{{ date_proper(date=task.end) }}
+                    {% else %}
+                    &nbsp;
+                    {% endif %}
+                </td>
+                <td>
+                    {% if task.recur %}{{task.recur}}{% endif %}
+                </td>
             </tr>
             {% endfor %}
             </tbody>

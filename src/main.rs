@@ -9,7 +9,7 @@ use tera::{Context, Tera};
 use tracing::{debug, error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use org_me::endpoints::tasks::{list_tasks, Task, update_tasks};
+use org_me::endpoints::tasks::{list_tasks, Task, update_task_status};
 use org_me::{Params, TEMPLATES};
 use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 
@@ -18,16 +18,7 @@ use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 async fn main() {
     // initialize tracing
 
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "org_me=debug,tower_http=debug".into()),
-        )
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_line_number(true)
-        )
-        .init();
+    init_tracing();
 
     // build our application with a route
     let app = Router::new()
@@ -45,6 +36,19 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
+fn init_tracing() {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "org_me=debug,tower_http=debug".into()),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_line_number(true)
+        )
+        .init();
+}
+
 
 async fn front_page() -> Html<String> {
     let tq = TaskQuery::new(Params::default());
@@ -59,11 +63,10 @@ async fn front_page() -> Html<String> {
 }
 
 async fn tasks_display(Query(params): Query<Params>) -> Html<String> {
-    get_tasks_view(params)
+    get_tasks_view(params.task_query_merge_previous_params())
 }
 
-fn get_tasks_view(params: Params) -> Html<String> {
-    let tq = params.previous_param();
+fn get_tasks_view(tq: TaskQuery) -> Html<String> {
     let tasks = match list_tasks(tq.clone()) {
         Ok(t) => { t }
         Err(e) => {
@@ -83,7 +86,7 @@ async fn change_task_status(
     Form(mut multipart): Form<Params>
 ) -> Html<String> {
     if let Some(task) = multipart.task() {
-        match update_tasks(task) {
+        match update_task_status(task) {
             Ok(_) => {
                 info!("Task was updated");
             }
@@ -92,5 +95,5 @@ async fn change_task_status(
             }
         }
     }
-    get_tasks_view(multipart)
+    get_tasks_view(multipart.task_query_previous_params())
 }

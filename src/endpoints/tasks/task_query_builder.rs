@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
 use tracing::info;
+use tracing::log::trace;
 use crate::Params;
 
 pub enum TQUpdateTypes {
@@ -119,20 +120,28 @@ pub struct TaskQuery {
     report: TaskReport,
     tags: Vec<String>,
     project: Option<String>,
+    filter: Option<String>,
+    new_entry: Option<String>,
 }
 
-
-
-impl TaskQuery {
-
-    pub fn new(params: Params) -> Self {
-        let mut tq = TaskQuery {
+impl Default for TaskQuery {
+    fn default() -> Self {
+        TaskQuery {
             status: TaskStatus::NotSet,
             priority: TaskPriority::NotSet,
             report: TaskReport::Next,
             tags: vec![],
             project: None,
-        };
+            filter: None,
+            new_entry: None,
+        }
+    }
+}
+
+impl TaskQuery {
+
+    pub fn new(params: Params) -> Self {
+        let mut tq = Self::default();
         tq.update(params);
         tq
     }
@@ -161,7 +170,6 @@ impl TaskQuery {
             }
         }
         if let Some(t) = params.q {
-            info!(t);
             if t.starts_with("project:") {
                 if self.project == Some(t.clone()) {
                     self.project = None;
@@ -176,13 +184,18 @@ impl TaskQuery {
                 }
             }
         }
-        println!("{:?}", self);
+        self.new_entry = params.task_entry;
+        self.filter = params.f;
+        trace!("{:?}", self);
     }
 
     pub fn get_query(&self, with_export: bool) -> Vec<String> {
         let mut output = vec![];
         let mut export_suffix = vec![];
         let mut export_prefix = vec![];
+        if let Some(f) = &self.filter.clone() {
+            export_prefix.push(f.clone());
+        }
         match &self.report {
             TaskReport::NotSet => {}
             (v) => {
@@ -206,6 +219,9 @@ impl TaskQuery {
             (v) => {
                 export_prefix.push(v.to_string())
             }
+        }
+        if let Some(e) = self.new_entry.clone() {
+            export_prefix.push(e);
         }
         output.extend(export_prefix);
         if with_export {

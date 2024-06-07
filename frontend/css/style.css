@@ -20,7 +20,7 @@ body {
 }
 
 .table-large td {
-    @apply px-2 py-1 border-r border-r-neutral-950 border-dotted;
+    @apply px-1 border-r border-r-neutral-950 border-dotted;
 
 }
 
@@ -43,7 +43,7 @@ body {
 
 .tag-item {
     @apply
-    py-1 px-2
+    py-0.5 px-1
     last:border-r-0
     text-xs
     ;
@@ -84,15 +84,13 @@ body {
 
 .btn {
     @apply
-    text-xs py-1 px-2 uppercase text-neutral-300
+    text-xs py-0.5 px-2 uppercase text-neutral-300
         font-mono
     hover:bg-blend-darken
     hover:opacity-95
     hover:shadow-lg
 
     rounded-md
-        shadow-sm
-        shadow-neutral-800
     opacity-60
     border
     border-opacity-30

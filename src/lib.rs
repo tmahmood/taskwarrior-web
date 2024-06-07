@@ -9,6 +9,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde::de::Error;
+use tracing::info;
 
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
@@ -60,18 +61,19 @@ pub mod endpoints;
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Params {
-    query: Option<String>,
+    filter: Option<String>,
     priority: Option<String>,
     q: Option<String>,
     f: Option<String>,
     report: Option<String>,
     status: Option<String>,
     uuid: Option<String>,
-    filter_value: Option<String>
+    filter_value: Option<String>,
+    task_entry: Option<String>
 }
 
 impl Params {
-    pub fn previous_param(&self) -> TaskQuery {
+    pub fn task_query_merge_previous_params(&self) -> TaskQuery {
         if let Some(fv) = self.filter_value.clone() {
             let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
             tq.update(self.clone());
@@ -80,30 +82,15 @@ impl Params {
             TaskQuery::new(Params::default())
         }
     }
-}
 
-impl Default for Params {
-    fn default() -> Self {
-        Self {
-            query: None,
-            priority: None,
-            q: None,
-            f: None,
-            report: Some(TaskReport::Next.to_string()),
-            status: None,
-            uuid: None,
-            filter_value: None,
+    pub fn task_query_previous_params(&self) -> TaskQuery {
+        if let Some(fv) = self.filter_value.clone() {
+            serde_json::from_str(&fv).unwrap()
+        } else {
+            TaskQuery::new(Params::default())
         }
     }
-}
 
-pub struct TaskUpdateStatus {
-    pub status: String,
-    pub uuid: String,
-}
-
-
-impl Params {
     pub fn task(&self) -> Option<TaskUpdateStatus> {
         if let Some(uuid) = self.uuid.as_ref() && let Some(status) = self.status.as_ref() {
             return Some(TaskUpdateStatus {
@@ -114,6 +101,29 @@ impl Params {
         None
     }
 }
+
+
+impl Default for Params {
+    fn default() -> Self {
+        Self {
+            filter: None,
+            priority: None,
+            q: None,
+            f: None,
+            report: Some(TaskReport::Next.to_string()),
+            status: None,
+            uuid: None,
+            filter_value: None,
+            task_entry: None,
+        }
+    }
+}
+
+pub struct TaskUpdateStatus {
+    pub status: String,
+    pub uuid: String,
+}
+
 
 /// Serde deserialization decorator to map empty Strings to None,
 pub fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
