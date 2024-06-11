@@ -21,7 +21,7 @@
                 {% for f in current_filter %}
                 <button class="tag-item tag-item-800"
                         hx-include="[id='filtering']"
-                        hx-get="tasks?q={{ f | replace(from='+', to='%2B') }}"
+                        hx-get="tasks?query={{ f | replace(from='+', to='%2B') }}"
                         hx-target="#list-of-tasks">
                     {{ f }}
                 </button>
@@ -163,7 +163,7 @@
                         <button class="tag-item tag-item-800"
                                 hx-include="[id='filtering']"
                                 hx-target="#list-of-tasks"
-                                hx-get="tasks?q=project:{{ project_name(full_name=task.project, index=loop.index) }}"
+                                hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}"
                         >
                             {{ p }}
                         </button>
@@ -175,7 +175,7 @@
                     <div class="tag-list">
                         {% if task.tags %}
                         {% for p in task.tags %}
-                        <button class="tag-item tag-item-800" hx-get="tasks?q=%2B{{ p }}"
+                        <button class="tag-item tag-item-800" hx-get="tasks?query=%2B{{ p }}"
                                 hx-target="#list-of-tasks"
                                 hx-include="[id='filtering']"
                                 hx-swap="innerHTML">

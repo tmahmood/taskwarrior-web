@@ -170,7 +170,7 @@ impl TaskQuery {
                 self.priority = p;
             }
         }
-        if let Some(t) = params.q {
+        if let Some(t) = params.query {
             if t.starts_with("project:") {
                 if self.project == Some(t.clone()) {
                     self.project = None;

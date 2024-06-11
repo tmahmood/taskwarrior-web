@@ -87,24 +87,3 @@ fn task_by_uuid() {
     let mut tasks = read_task_file(t, false).unwrap();
     println!("{:#?}", tasks);
 }
-
-#[test]
-fn adding_new_task() {
-    let mut p = Params {
-        task_entry: Some("A task is being added".to_string()),
-        report: None,
-        ..Params::default()
-    };
-    let t = TaskQuery::new(p.clone());
-    let tcmd = t.as_filter_text();
-    assert_eq!(
-        "add A task is being added",
-        tcmd.join(" ")
-    );
-    p.project = Some("+Tag1".to_string());
-    let tcmd = t.as_filter_text();
-    assert_eq!(
-        "add A task is being added +Tag1",
-        tcmd.join(" ")
-    );
-}

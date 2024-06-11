@@ -67,8 +67,7 @@ pub enum Requests {
 pub struct Params {
     filter: Option<String>,
     priority: Option<String>,
-    q: Option<String>,
-    f: Option<String>,
+    query: Option<String>,
     report: Option<String>,
     status: Option<String>,
     uuid: Option<String>,
@@ -110,8 +109,7 @@ impl Default for Params {
         Self {
             filter: None,
             priority: None,
-            q: None,
-            f: None,
+            query: None,
             report: Some(TaskReport::Next.to_string()),
             status: None,
             uuid: None,
