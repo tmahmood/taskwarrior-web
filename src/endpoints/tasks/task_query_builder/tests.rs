@@ -101,7 +101,7 @@ fn adding_new_task() {
         "add A task is being added",
         tcmd.join(" ")
     );
-    p.q = Some("+Tag1".to_string());
+    p.project = Some("+Tag1".to_string());
     let tcmd = t.as_filter_text();
     assert_eq!(
         "add A task is being added +Tag1",

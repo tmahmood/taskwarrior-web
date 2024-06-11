@@ -58,6 +58,10 @@ impl<E> From<E> for AppError
 
 pub mod endpoints;
 
+pub enum Requests {
+    Filtering(Params)
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Params {
@@ -72,34 +76,32 @@ pub struct Params {
     task_entry: Option<String>
 }
 
-impl Params {
-    pub fn task_query_merge_previous_params(&self) -> TaskQuery {
-        if let Some(fv) = self.filter_value.clone() {
-            let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
-            tq.update(self.clone());
-            tq
-        } else {
-            TaskQuery::new(Params::default())
-        }
+pub fn task_query_merge_previous_params(params: &Params) -> TaskQuery {
+    if let Some(fv) = params.filter_value.clone() {
+        let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
+        tq.update(params.clone());
+        tq
+    } else {
+        TaskQuery::new(Params::default())
     }
+}
 
-    pub fn task_query_previous_params(&self) -> TaskQuery {
-        if let Some(fv) = self.filter_value.clone() {
-            serde_json::from_str(&fv).unwrap()
-        } else {
-            TaskQuery::new(Params::default())
-        }
+pub fn task_query_previous_params(params: &Params) -> TaskQuery {
+    if let Some(fv) = params.filter_value.clone() {
+        serde_json::from_str(&fv).unwrap()
+    } else {
+        TaskQuery::new(Params::default())
     }
+}
 
-    pub fn task(&self) -> Option<TaskUpdateStatus> {
-        if let Some(uuid) = self.uuid.as_ref() && let Some(status) = self.status.as_ref() {
-            return Some(TaskUpdateStatus {
-                status: status.clone(),
-                uuid: uuid.clone(),
-            });
-        }
-        None
+pub fn task(params: &Params) -> Option<TaskUpdateStatus> {
+    if let Some(uuid) = params.uuid.as_ref() && let Some(status) = params.status.as_ref() {
+        return Some(TaskUpdateStatus {
+            status: status.clone(),
+            uuid: uuid.clone(),
+        });
     }
+    None
 }
 
 

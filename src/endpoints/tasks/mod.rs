@@ -28,15 +28,18 @@ pub struct Annotation {
 }
 
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Task {
     pub id: i64,
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
-    pub entry: String,
+    pub uuid: Option<String>,
+    pub urgency: Option<f64>,
+    pub entry: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -49,8 +52,6 @@ pub struct Task {
     pub due: Option<String>,
     pub modified: Option<String>,
     pub status: Option<String>,
-    pub uuid: String,
-    pub urgency: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub wait: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,6 +71,7 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none", rename = "UDA")]
     pub uda: Option<HashMap<String, Value>>,
 }
+
 
 pub fn fetch_task_from_cmd(
     task_query: &TaskQuery,
@@ -114,7 +116,7 @@ fn read_task_file(task_query: TaskQuery, editing: bool) -> Result<IndexMap<TaskU
     };
     let mut hm = IndexMap::new();
     for task in tasks.iter() {
-        hm.insert(TaskUUID(task.uuid.clone()), task.clone());
+        hm.insert(TaskUUID(task.uuid.as_ref().unwrap().clone()), task.clone());
     }
     Ok(hm)
 }

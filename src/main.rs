@@ -63,7 +63,7 @@ async fn front_page() -> Html<String> {
 }
 
 async fn tasks_display(Query(params): Query<Params>) -> Html<String> {
-    get_tasks_view(params.task_query_merge_previous_params())
+    get_tasks_view(org_me::task_query_merge_previous_params(&params))
 }
 
 fn get_tasks_view(tq: TaskQuery) -> Html<String> {
@@ -85,7 +85,7 @@ fn get_tasks_view(tq: TaskQuery) -> Html<String> {
 async fn change_task_status(
     Form(mut multipart): Form<Params>
 ) -> Html<String> {
-    if let Some(task) = multipart.task() {
+    if let Some(task) = org_me::task(&multipart) {
         match update_task_status(task) {
             Ok(_) => {
                 info!("Task was updated");
@@ -95,5 +95,5 @@ async fn change_task_status(
             }
         }
     }
-    get_tasks_view(multipart.task_query_previous_params())
+    get_tasks_view(org_me::task_query_previous_params(&multipart))
 }

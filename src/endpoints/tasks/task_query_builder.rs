@@ -139,7 +139,6 @@ impl Default for TaskQuery {
 }
 
 impl TaskQuery {
-
     pub fn new(params: Params) -> Self {
         let mut tq = Self::default();
         tq.update(params);
@@ -151,6 +150,7 @@ impl TaskQuery {
             self.report = rep.into();
             self.status = TaskStatus::NotSet;
         }
+
         if let Some(status) = params.status {
             let s: TaskStatus = status.into();
             if s == self.status {
@@ -161,6 +161,7 @@ impl TaskQuery {
                 self.report = TaskReport::NotSet;
             }
         }
+
         if let Some(p) = params.priority {
             let p: TaskPriority = p.clone().into();
             if self.priority == p {
@@ -185,7 +186,6 @@ impl TaskQuery {
             }
         }
         self.new_entry = params.task_entry;
-        self.filter = params.f;
         trace!("{:?}", self);
     }
 
@@ -241,7 +241,6 @@ impl TaskQuery {
         task.args(&output);
         task
     }
-
 }
 
 #[cfg(test)]

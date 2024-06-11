@@ -6,6 +6,18 @@
     <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
         <div class="md:flex-grow sm:row-autotag-list">
             <div class="tag-list">
+                <button
+                        hx-get="tasks?action=undo"
+                        hx-trigger="click,keyup[key=='u'] from:body"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-swap="innerHTML">
+                    <u>u</u>
+                </button>
+            </div>
+        </div>
+        <div class="md:flex-grow sm:row-autotag-list">
+            <div class="tag-list">
                 {% for f in current_filter %}
                 <button class="tag-item tag-item-800"
                         hx-include="[id='filtering']"
@@ -84,7 +96,6 @@
         <table id="list-of-tasks" class="table-large">
             <thead class="table-large-header">
             <tr>
-                <th></th>
                 <th>ID</th>
                 <th>Age</th>
                 <th>Depends</th>
@@ -111,75 +122,33 @@
             {% endif %}
             <tr>
                 <td>
-                    {% if task.status != "completed" %}
-                    <button
-                            hx-post="tasks" hx-target="#list-of-tasks"
+
+                    <div class="checkbox-wrapper-32">
+                        <input
+                                type="checkbox"
+                                name="checkbox-{{ task.uuid }}"
+                                id="checkbox-{{ task.uuid }}"
+                                hx-trigger="change"
+                                hx-post="tasks" hx-target="#list-of-tasks"
+                                hx-include="[id='filtering']"
+                        {% if task.status != "completed" %}
                             hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
-                            hx-include="[id='filtering']"
                             hx-swap="innerHTML"
-                    >
-                        <svg fill="#171717" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
-                             width="24px"
-                             height="24px"
-                             xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 47 47" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                            <g id="SVGRepo_iconCarrier"> <g> <path
-                                    d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"></path> </g> </g></svg>
-                    </button>
-                    {% else %}
-                    <button
-                            hx-post="tasks" hx-target="#list-of-tasks"
-                            hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "{% if filter_value %}{{ filter_value }}{% endif %}" }'
+                        {% else %}
+                            checked="checked"
+                            hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed" }'
                             hx-swap="innerHTML"
-                    >
-                        <svg
-                                fill="#000000"
-                                id="Capa_1"
-                                width="24px"
-                                height="24px"
-                                viewBox="0 0 47 47"
-                                xml:space="preserve"
-                                sodipodi:docname="check_mark.svg"
-                                inkscape:version="1.3.2 (091e20ef0f, 2023-11-25, custom)"
-                                xmlns="http://www.w3.org/2000/svg"
-                                xmlns:svg="http://www.w3.org/2000/svg"><defs id="defs1" />
-                            <sodipodi:namedview
-                                    id="namedview1"
-                                    pagecolor="#ffffff"
-                                    bordercolor="#666666"
-                                    borderopacity="1.0"
-                                    inkscape:showpageshadow="2"
-                                    inkscape:pageopacity="0.0"
-                                    inkscape:pagecheckerboard="0"
-                                    inkscape:deskcolor="#d1d1d1"
-                                    inkscape:zoom="19.521277"
-                                    inkscape:cx="31.376022"
-                                    inkscape:cy="33.066485"
-                                    inkscape:current-layer="g1"/>
-                            <g
-                                    id="SVGRepo_bgCarrier"
-                                    stroke-width="0"/>
-                            <g
-                                    id="SVGRepo_tracerCarrier"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"/>
-                            <g
-                                    id="SVGRepo_iconCarrier"> <g
-                                    id="g1"> <rect
-                                    style="fill:#afe8c6;stroke-width:3.30331;stroke-linecap:round;stroke-linejoin:round"
-                                    id="rect1"
-                                    width="37.11755"
-                                    height="37.476978"
-                                    x="6.8397193"
-                                    y="5.7590747"/>
-                                <path
-                                        d="M37.6,0H9.4C4.209,0,0,4.209,0,9.4v28.2C0,42.791,4.209,47,9.4,47h28.2c5.191,0,9.4-4.209,9.4-9.4V9.4 C47,4.209,42.791,0,37.6,0z M38.143,19.139L23.602,33.678c-0.803,0.805-1.854,1.205-2.906,1.205c-1.051,0-2.104-0.4-2.907-1.205 l-8.933-8.932c-1.604-1.604-1.604-4.208,0-5.814c1.607-1.606,4.209-1.606,5.816,0l6.023,6.023l11.633-11.633 c1.605-1.605,4.209-1.605,5.814,0C39.75,14.928,39.75,17.532,38.143,19.139z"
-                                        id="path1"
-                                        style="fill:#153b24"/> </g> </g></svg>
-                    </button>
-                    {% endif %}
+                        {% endif %}
+                        >
+                        <label for="checkbox-{{ task.uuid }}">
+                            {{ task.id }}
+                        </label>
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 10 10 L 90 90" stroke="#000" stroke-dasharray="113" stroke-dashoffset="113"></path>
+                            <path d="M 90 10 L 10 90" stroke="#000" stroke-dasharray="113" stroke-dashoffset="113"></path>
+                        </svg>
+                    </div>
                 </td>
-                <td>{{ task.id}}</td>
                 <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
                 <td>{% if task.depends %}
                     {% for uuid in task.depends %}
@@ -216,7 +185,7 @@
                         {% endif %}
                         {% if task.priority %}
                         <button class="tag-item {{ task.priority }} tag-item-800"
-                                hx-get="tasks?q=priority:{{ task.priority }}" hx-target="#list-of-tasks"
+                                hx-get="tasks?priority={{ task.priority }}" hx-target="#list-of-tasks"
                                 hx-include="[id='filtering']"
                                 hx-swap="innerHTML"
                         >{{ task.priority }}
