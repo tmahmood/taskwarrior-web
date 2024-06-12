@@ -37,13 +37,14 @@ body {
     @apply
     border-neutral-700 border
     rounded-md inline-flex
+        mr-1
     overflow-hidden text-sm drop-shadow-sm
     ;
 }
 
 .tag-item {
     @apply
-    py-0.5 px-1
+    py-0.5 px-1.5
     last:border-r-0
     text-xs
     ;
@@ -54,7 +55,7 @@ body {
     text-neutral-400
     bg-neutral-700 relative
     hover:bg-neutral-800
-    border-r border-r-neutral-600;
+    border-r border-r-neutral-700;
     ;
 }
 

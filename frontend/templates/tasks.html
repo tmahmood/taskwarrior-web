@@ -6,7 +6,7 @@
     <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
         <div class="md:flex-grow sm:row-autotag-list">
             <div class="tag-list">
-                <button
+                <button class="tag-item tag-item-800"
                         hx-get="tasks?action=undo"
                         hx-trigger="click,keyup[key=='u'] from:body"
                         hx-target="#list-of-tasks"
@@ -45,26 +45,30 @@
             <button class="tag-item tag-item-800  {{ on_complete }}" id="completed" hx-get="tasks?status=completed"
                     hx-include="[id='filtering']"
                     hx-trigger="click,keyup[key=='c'] from:body"
-                    hx-target="#list-of-tasks" hx-swap="innerHTML"><u>C</u>ompleted
+                    hx-target="#list-of-tasks" hx-swap="innerHTML"><u>c</u>ompleted
             </button>
-            <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?priority=H"
+        </div>
+        <div class="tag-list">
+            <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?query=priority:H"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
                     hx-trigger="click,keyup[key=='h'] from:body"
                     hx-swap="innerHTML"><u>H</u>
             </button>
-            <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?priority=M"
+            <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?query=priority:M"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
                     hx-trigger="click,keyup[key=='m'] from:body"
                     hx-swap="innerHTML"><u>M</u>
             </button>
-            <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?priority=L"
+            <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?query=priority:L"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
                     hx-trigger="click,keyup[key=='l'] from:body"
                     hx-swap="innerHTML"><u>L</u>
             </button>
+        </div>
+        <div class="tag-list">
             <button class="tag-item tag-item-800" hx-get="tasks?report=all"
                     hx-include="[id='filtering']"
                     hx-target="#list-of-tasks"
@@ -185,7 +189,7 @@
                         {% endif %}
                         {% if task.priority %}
                         <button class="tag-item {{ task.priority }} tag-item-800"
-                                hx-get="tasks?priority={{ task.priority }}" hx-target="#list-of-tasks"
+                                hx-get="tasks?query=priority:{{ task.priority }}" hx-target="#list-of-tasks"
                                 hx-include="[id='filtering']"
                                 hx-swap="innerHTML"
                         >{{ task.priority }}

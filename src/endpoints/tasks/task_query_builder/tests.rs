@@ -4,7 +4,7 @@ use super::*;
 #[test]
 fn modifying_existing_task_query() {
     let p = Params {
-        priority: Some("H".to_string()),
+        query: Some("priority:H".to_string()),
         report: None,
         ..Params::default()
     };
@@ -23,7 +23,7 @@ fn modifying_existing_task_query() {
 #[test]
 fn with_priority_string_with_status() {
     let p = Params {
-        priority: Some("H".to_string()),
+        query: Some("priority:H".to_string()),
         report: None,
         status: Some("pending".to_string()),
         ..Params::default()
@@ -38,7 +38,7 @@ fn with_priority_string_with_status() {
 #[test]
 fn with_priority_string_with_no_status() {
     let p = Params {
-        priority: Some("H".to_string()),
+        query: Some("priority:H".to_string()),
         report: None,
         ..Params::default()
     };

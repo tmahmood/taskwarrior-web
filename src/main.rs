@@ -82,10 +82,8 @@ fn get_tasks_view(tq: TaskQuery) -> Html<String> {
     Html(TEMPLATES.render("tasks.html", &ctx).unwrap())
 }
 
-async fn change_task_status(
-    Form(mut multipart): Form<Params>
-) -> Html<String> {
-    if let Some(task) = org_me::task(&multipart) {
+async fn change_task_status(Form(multipart): Form<Params>) -> Html<String> {
+    if let Some(task) = org_me::from_task_to_task_update(&multipart) {
         match update_task_status(task) {
             Ok(_) => {
                 info!("Task was updated");

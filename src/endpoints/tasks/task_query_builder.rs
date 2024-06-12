@@ -162,14 +162,6 @@ impl TaskQuery {
             }
         }
 
-        if let Some(p) = params.priority {
-            let p: TaskPriority = p.clone().into();
-            if self.priority == p {
-                self.priority = TaskPriority::NotSet;
-            } else {
-                self.priority = p;
-            }
-        }
         if let Some(t) = params.query {
             if t.starts_with("project:") {
                 if self.project == Some(t.clone()) {
@@ -182,6 +174,13 @@ impl TaskQuery {
                     self.tags.retain_mut(|iv| iv != &t);
                 } else {
                     self.tags.push(t);
+                }
+            } else if t.starts_with("priority:") {
+                let tp: TaskPriority = t.clone().into();
+                if self.priority == tp {
+                    self.priority = TaskPriority::NotSet;
+                } else {
+                    self.priority = tp;
                 }
             }
         }

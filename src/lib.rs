@@ -59,14 +59,16 @@ impl<E> From<E> for AppError
 pub mod endpoints;
 
 pub enum Requests {
-    Filtering(Params)
+    Filtering {
+        project: Option<String>,
+        tags: Option<Vec<String>>,
+    }
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct Params {
     filter: Option<String>,
-    priority: Option<String>,
     query: Option<String>,
     report: Option<String>,
     status: Option<String>,
@@ -74,6 +76,7 @@ pub struct Params {
     filter_value: Option<String>,
     task_entry: Option<String>
 }
+
 
 pub fn task_query_merge_previous_params(params: &Params) -> TaskQuery {
     if let Some(fv) = params.filter_value.clone() {
@@ -93,7 +96,7 @@ pub fn task_query_previous_params(params: &Params) -> TaskQuery {
     }
 }
 
-pub fn task(params: &Params) -> Option<TaskUpdateStatus> {
+pub fn from_task_to_task_update(params: &Params) -> Option<TaskUpdateStatus> {
     if let Some(uuid) = params.uuid.as_ref() && let Some(status) = params.status.as_ref() {
         return Some(TaskUpdateStatus {
             status: status.clone(),
@@ -108,7 +111,6 @@ impl Default for Params {
     fn default() -> Self {
         Self {
             filter: None,
-            priority: None,
             query: None,
             report: Some(TaskReport::Next.to_string()),
             status: None,
