@@ -1,19 +1,24 @@
-<div>
+<div class="mb-auto h-max">
+    <div id="undo_confirm"></div>
     {% set on_all = "all" %}
     {% set on_complete = "complete" %}
     {% set on_pending = "pending" %}
     {% set on_waiting = "waiting" %}
-    <div class="px-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
+    {% set mod_key = "" %}
+    <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
         <div class="md:flex-grow sm:row-autotag-list">
             <div class="tag-list">
                 <button class="tag-item tag-item-800"
-                        hx-get="tasks?action=undo"
-                        hx-trigger="click,keyup[key=='u'] from:body"
-                        hx-target="#list-of-tasks"
-                        hx-include="[id='filtering']"
+                        hx-get="tasks/undo/report"
+                        hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
+                        hx-target="#undo_confirm"
                         hx-swap="innerHTML">
                     <u>u</u>
                 </button>
+                <span>
+                    <label for="cmd-inp" class="hidden">:</label>
+                    <input type="text" id="cmd-inp" class=" pl-1 bg-neutral-400 outline-none" placeholder="commands" autofocus/>
+                </span>
             </div>
         </div>
         <div class="md:flex-grow sm:row-autotag-list">
@@ -33,18 +38,18 @@
             <button class="tag-item tag-item-800 {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='p'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='p'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>p</u>ending
             </button>
             <button class="tag-item tag-item-800 {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='w'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='w'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>w</u>aiting
             </button>
             <button class="tag-item tag-item-800  {{ on_complete }}" id="completed" hx-get="tasks?status=completed"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='c'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='c'] from:#cmd-inp"
                     hx-target="#list-of-tasks" hx-swap="innerHTML"><u>c</u>ompleted
             </button>
         </div>
@@ -52,19 +57,19 @@
             <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?query=priority:H"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='h'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='h'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>H</u>
             </button>
             <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?query=priority:M"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='m'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='m'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>M</u>
             </button>
             <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?query=priority:L"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='l'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='l'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>L</u>
             </button>
         </div>
@@ -72,32 +77,33 @@
             <button class="tag-item tag-item-800" hx-get="tasks?report=all"
                     hx-include="[id='filtering']"
                     hx-target="#list-of-tasks"
-                    hx-trigger="click,keyup[key=='a'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>a</u>ll
             </button>
             <button class="tag-item tag-item-800" hx-get="tasks?report=next"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='n'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>n</u>ext
             </button>
             <button class="tag-item tag-item-800" hx-get="tasks?report=ready"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='r'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='r'] from:#cmd-inp"
                     hx-swap="innerHTML"><u>r</u>eady
             </button>
             <button class="tag-item tag-item-800" hx-get="tasks?report=new"
                     hx-target="#list-of-tasks"
                     hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='e'] from:body"
+                    hx-trigger="click,keyup[{{mod_key}}key=='e'] from:#cmd-inp"
                     hx-swap="innerHTML">n<u>e</u>w
             </button>
         </div>
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto">
-        <table id="list-of-tasks" class="table-large">
+        <table id="list-of-tasks" class="table-large"
+               hx-on:click="document.querySelector('#cmd-inp').focus()">
             <thead class="table-large-header">
             <tr>
                 <th>ID</th>
@@ -135,21 +141,23 @@
                                 hx-trigger="change"
                                 hx-post="tasks" hx-target="#list-of-tasks"
                                 hx-include="[id='filtering']"
-                        {% if task.status != "completed" %}
-                            hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
-                            hx-swap="innerHTML"
-                        {% else %}
-                            checked="checked"
-                            hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed" }'
-                            hx-swap="innerHTML"
-                        {% endif %}
+                                {% if task.status !="completed" %}
+                                hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
+                                hx-swap="innerHTML"
+                                {% else %}
+                                checked="checked"
+                                hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed" }'
+                                hx-swap="innerHTML"
+                                {% endif %}
                         >
                         <label for="checkbox-{{ task.uuid }}">
                             {{ task.id }}
                         </label>
                         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M 10 10 L 90 90" stroke="#000" stroke-dasharray="113" stroke-dashoffset="113"></path>
-                            <path d="M 90 10 L 10 90" stroke="#000" stroke-dasharray="113" stroke-dashoffset="113"></path>
+                            <path d="M 10 10 L 90 90" stroke="#000" stroke-dasharray="113"
+                                  stroke-dashoffset="113"></path>
+                            <path d="M 90 10 L 10 90" stroke="#000" stroke-dasharray="113"
+                                  stroke-dashoffset="113"></path>
                         </svg>
                     </div>
                 </td>

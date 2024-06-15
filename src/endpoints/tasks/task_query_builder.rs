@@ -4,7 +4,7 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use tracing::log::trace;
-use crate::Params;
+use crate::TWGlobalState;
 
 pub enum TQUpdateTypes {
     Priority(String),
@@ -139,13 +139,13 @@ impl Default for TaskQuery {
 }
 
 impl TaskQuery {
-    pub fn new(params: Params) -> Self {
+    pub fn new(params: TWGlobalState) -> Self {
         let mut tq = Self::default();
         tq.update(params);
         tq
     }
 
-    pub fn update(&mut self, params: Params) {
+    pub fn update(&mut self, params: TWGlobalState) {
         if let Some(rep) = params.report {
             self.report = rep.into();
             self.status = TaskStatus::NotSet;

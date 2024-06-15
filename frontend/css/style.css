@@ -117,6 +117,15 @@ body {
     @apply bg-gray-700 text-gray-300;
 }
 
+.success {
+    @apply bg-green-600 text-green-50;
+}
+
+
+.destructive {
+    @apply bg-red-800 text-red-50;
+}
+
 .all {
     @apply bg-cyan-950 text-gray-300;
 }
@@ -224,4 +233,14 @@ body {
 .checkbox-wrapper-32 input[type="checkbox"]:checked ~ svg path {
     stroke-dashoffset: 0;
     stroke-width: calc(var(--size) / 2);
+}
+
+#toast.htmx-settling {
+    opacity: 100;
+}
+
+#toast {
+    background: #E1F0DA;
+    opacity: 0;
+    transition: opacity 3s ease-out;
 }

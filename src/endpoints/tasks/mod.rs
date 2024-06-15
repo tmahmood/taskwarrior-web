@@ -15,7 +15,7 @@ use tokio::io::split;
 pub mod task_query_builder;
 
 use task_query_builder::TaskQuery;
-use crate::{Params, TaskUpdateStatus};
+use crate::{TWGlobalState, TaskUpdateStatus};
 
 pub const TASK_DATA_FILE: &str = "data.json";
 pub const TASK_DATA_FILE_EDIT: &str = "data_edit.json";
@@ -121,6 +121,37 @@ fn read_task_file(task_query: TaskQuery, editing: bool) -> Result<IndexMap<TaskU
     Ok(hm)
 }
 
+pub fn task_undo_report() -> Result<String, anyhow::Error> {
+    match Command::new("task")
+        .arg("undo")
+        .output() {
+        Ok(o) => {
+            let s = String::from_utf8(o.stdout).unwrap();
+            Ok(s)
+        }
+        Err(e) => {
+            error!("Failed to execute command: {}", e);
+            return anyhow::bail!("Failed to get undo report");
+        }
+    }
+}
+
+pub fn task_undo() -> Result<(), anyhow::Error> {
+    match Command::new("task")
+        .arg("rc.confirmation:off")
+        .arg("undo")
+        .output() {
+        Ok(o) => {
+            info!("Task undo success");
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to execute undo: {}", e);
+            return anyhow::bail!("Failed to undo");
+        }
+    }
+}
+
 // what would happen
 pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
     read_task_file(task_query, false)
@@ -128,7 +159,7 @@ pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, any
 
 // update a single task
 pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
-    let mut p = Params::default();
+    let mut p = TWGlobalState::default();
     p.filter = Some(task.uuid.clone());
     let t = TaskQuery::new(p);
     let mut tasks = read_task_file(t, true)?;

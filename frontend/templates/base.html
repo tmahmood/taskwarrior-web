@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="/dist/style.css" />
+    <link rel="stylesheet" href="/dist/style.css"/>
     <script src="/dist/bundle.js" type="module"></script>
     <title>
         Org.Me
@@ -10,12 +10,12 @@
 <body class="bg-neutral-900">
 <div id="content" class="px-5">
     <main>
+        <div class="toast" id="toast">{% if toast_msg %}{{ toast_msg }}{% endif %}</div>
         <div id="list-of-tasks">
             {% include "tasks.html" %}
         </div>
         <div id="ledger_things"></div>
     </main>
 </div>
-<span class="toast" id="toast">{% if toast_msg %}{{ toast_msg }}{% endif %}</span>
 </body>
 </html>

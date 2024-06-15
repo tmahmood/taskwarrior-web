@@ -67,7 +67,7 @@ pub enum Requests {
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
-pub struct Params {
+pub struct TWGlobalState {
     filter: Option<String>,
     query: Option<String>,
     report: Option<String>,
@@ -78,25 +78,25 @@ pub struct Params {
 }
 
 
-pub fn task_query_merge_previous_params(params: &Params) -> TaskQuery {
-    if let Some(fv) = params.filter_value.clone() {
+pub fn task_query_merge_previous_params(state: &TWGlobalState) -> TaskQuery {
+    if let Some(fv) = state.filter_value.clone() {
         let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
-        tq.update(params.clone());
+        tq.update(state.clone());
         tq
     } else {
-        TaskQuery::new(Params::default())
+        TaskQuery::new(TWGlobalState::default())
     }
 }
 
-pub fn task_query_previous_params(params: &Params) -> TaskQuery {
+pub fn task_query_previous_params(params: &TWGlobalState) -> TaskQuery {
     if let Some(fv) = params.filter_value.clone() {
         serde_json::from_str(&fv).unwrap()
     } else {
-        TaskQuery::new(Params::default())
+        TaskQuery::new(TWGlobalState::default())
     }
 }
 
-pub fn from_task_to_task_update(params: &Params) -> Option<TaskUpdateStatus> {
+pub fn from_task_to_task_update(params: &TWGlobalState) -> Option<TaskUpdateStatus> {
     if let Some(uuid) = params.uuid.as_ref() && let Some(status) = params.status.as_ref() {
         return Some(TaskUpdateStatus {
             status: status.clone(),
@@ -107,7 +107,7 @@ pub fn from_task_to_task_update(params: &Params) -> Option<TaskUpdateStatus> {
 }
 
 
-impl Default for Params {
+impl Default for TWGlobalState {
     fn default() -> Self {
         Self {
             filter: None,

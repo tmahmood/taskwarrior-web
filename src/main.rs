@@ -9,8 +9,8 @@ use tera::{Context, Tera};
 use tracing::{debug, error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use org_me::endpoints::tasks::{list_tasks, Task, update_task_status};
-use org_me::{Params, TEMPLATES};
+use org_me::endpoints::tasks::{list_tasks, Task, task_undo, task_undo_report, update_task_status};
+use org_me::{TWGlobalState, TEMPLATES};
 use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 
 
@@ -29,6 +29,9 @@ async fn main() {
         )
         .route("/tasks", get(tasks_display))
         .route("/tasks", post(change_task_status))
+        .route("/tasks/undo/report", get(get_undo_report))
+        .route("/tasks/undo/confirmed", post(undo_last_change))
+        .route("/msg", get(display_flash_message))
         ;
 
     // run our app with hyper, listening globally on port 3000
@@ -49,9 +52,40 @@ fn init_tracing() {
         .init();
 }
 
+async fn display_flash_message(Query(msg): Query<String>) -> Html<String> {
+    let mut ctx = Context::new();
+    ctx.insert("msg", &msg);
+    Html(TEMPLATES.render("flash_msg.html", &ctx).unwrap())
+}
+
+async fn get_undo_report() -> Html<String> {
+    match task_undo_report() {
+        Ok(s) => {
+            let mut ctx = Context::new();
+            let lines = s.lines();
+            let first_line: String = lines.clone().take(1).collect();
+            let mut rest_lines: Vec<String> = lines.skip(1).map(|v| v.to_string()).collect();
+            rest_lines.pop();
+            ctx.insert("heading", &first_line);
+            ctx.insert("report", &rest_lines);
+            Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
+        }
+        Err(e) => {
+            let mut ctx = Context::new();
+            ctx.insert("heading", &e.to_string());
+            Html(TEMPLATES.render("error.html", &ctx).unwrap())
+        }
+    }
+}
+
+
+async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
+    task_undo().unwrap();
+    get_tasks_view(org_me::task_query_previous_params(&params))
+}
 
 async fn front_page() -> Html<String> {
-    let tq = TaskQuery::new(Params::default());
+    let tq = TaskQuery::new(TWGlobalState::default());
     let tasks = list_tasks(tq.clone()).unwrap();
     let task_list: Vec<Task> = tasks.values().cloned().collect();
     let mut ctx = Context::new();
@@ -62,7 +96,7 @@ async fn front_page() -> Html<String> {
     Html(TEMPLATES.render("base.html", &ctx).unwrap())
 }
 
-async fn tasks_display(Query(params): Query<Params>) -> Html<String> {
+async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
     get_tasks_view(org_me::task_query_merge_previous_params(&params))
 }
 
@@ -82,7 +116,7 @@ fn get_tasks_view(tq: TaskQuery) -> Html<String> {
     Html(TEMPLATES.render("tasks.html", &ctx).unwrap())
 }
 
-async fn change_task_status(Form(multipart): Form<Params>) -> Html<String> {
+async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String> {
     if let Some(task) = org_me::from_task_to_task_update(&multipart) {
         match update_task_status(task) {
             Ok(_) => {
