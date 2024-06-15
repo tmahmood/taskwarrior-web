@@ -1,8 +1,15 @@
 import 'htmx.org';
 import 'hyperscript.org';
 import * as _hyperscript from "hyperscript.org";
+import hotkeys from "hotkeys-js";
 
 _hyperscript.browserInit();
 export const doing_something = () => {
     console.log("Hello world");
 }
+
+hotkeys('shift+;', function (event, handler) {
+    // Prevent the default refresh event under WINDOWS system
+    event.preventDefault()
+    document.getElementById('cmd-inp').focus();
+});
