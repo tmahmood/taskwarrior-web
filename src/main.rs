@@ -4,13 +4,13 @@ use axum::{Form, Router, routing::get};
 use axum::extract::{Multipart, Query};
 use axum::response::Html;
 use axum::routing::post;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 use tracing::{debug, error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use org_me::endpoints::tasks::{list_tasks, Task, task_undo, task_undo_report, update_task_status};
-use org_me::{TWGlobalState, TEMPLATES, FlashMsg};
+use org_me::endpoints::tasks::{list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
+use org_me::{FlashMsg, NewTask, TEMPLATES, TWGlobalState};
 use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 
 
@@ -33,6 +33,7 @@ async fn main() {
         .route("/tasks/undo/confirmed", post(undo_last_change))
         .route("/msg", get(display_flash_message))
         .route("/tasks/add", get(display_task_add_window))
+        .route("/tasks/add", post(create_new_task))
         .route("/msg_clr", get(clear_flash_message))
         ;
 
@@ -94,16 +95,33 @@ async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<St
         }
     }).or(Some(TaskQuery::default())).unwrap();
     let mut ctx = Context::new();
-    info!("{:?}", tq.tags());
-    ctx.insert("tags", tq.tags());
+    ctx.insert("tags", &tq.tags().join(" "));
     ctx.insert("project", tq.project());
     Html(TEMPLATES.render("task_add.html", &ctx).unwrap())
+}
+
+async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
+    task_add(&new_task).unwrap();
+    let mut ctx = Context::new();
+    ctx.insert("has_toast", &true);
+    ctx.insert("toast_msg", "New task created");
+    ctx.insert("toast_timeout", &15);
+    let s = if let Some(tw_q) = new_task.filter_value() {
+        serde_json::from_str(tw_q).unwrap()
+    } else {
+        TaskQuery::default()
+    };
+    get_tasks_view(s, Some(ctx))
 }
 
 
 async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     task_undo().unwrap();
-    get_tasks_view(org_me::task_query_previous_params(&params), None)
+    let mut ctx = Context::new();
+    ctx.insert("has_toast", &true);
+    ctx.insert("toast_msg", "Undo successful");
+    ctx.insert("toast_timeout", &15);
+    get_tasks_view(org_me::task_query_previous_params(&params), Some(ctx))
 }
 
 async fn front_page() -> Html<String> {

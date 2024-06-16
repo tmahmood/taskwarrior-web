@@ -15,7 +15,7 @@ use tokio::io::split;
 pub mod task_query_builder;
 
 use task_query_builder::TaskQuery;
-use crate::{TWGlobalState, TaskUpdateStatus};
+use crate::{TWGlobalState, TaskUpdateStatus, NewTask};
 
 pub const TASK_DATA_FILE: &str = "data.json";
 pub const TASK_DATA_FILE_EDIT: &str = "data_edit.json";
@@ -132,6 +132,41 @@ pub fn task_undo_report() -> Result<String, anyhow::Error> {
         Err(e) => {
             error!("Failed to execute command: {}", e);
             return anyhow::bail!("Failed to get undo report");
+        }
+    }
+}
+
+pub fn task_add(task: &NewTask) -> Result<(), anyhow::Error> {
+    let mut cmd = Command::new("task");
+    cmd
+        .arg("add")
+        .arg(task.description());
+    // add the tags
+    if let Some(tags) = task.tags() && tags != "" {
+        for tag in tags.split(' ') {
+            if !tag.starts_with('+') {
+                cmd.arg(&format!("+{}", tag));
+            } else {
+                cmd.arg(&tag);
+            }
+        }
+    }
+    // add the project
+    if let Some(project) = task.project() {
+        if !project.starts_with("project:") {
+            cmd.arg(&format!("project:{}", project));
+        } else {
+            cmd.arg(&project);
+        }
+    }
+    match cmd.output() {
+        Ok(o) => {
+            info!("New task added");
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to execute new task: {}", e);
+            return anyhow::bail!("Failed to add new task");
         }
     }
 }

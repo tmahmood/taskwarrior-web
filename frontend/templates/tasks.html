@@ -1,6 +1,24 @@
+{% if has_toast %}
+<div hx-swap-oob="beforeend:#toast">
+    <div class="items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white"
+         hx-trigger="load delay:{{ toast_timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
+        <span class="text-sm font-medium hover:opacity-75">{{ toast_msg }} {{ toast_timeout }}</span>
+        <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast" hx-swap="innerHTML">
+            <span class="sr-only">Close</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                />
+            </svg>
+        </button>
+    </div>
+</div>
+{% endif %}
 <div class="mb-auto h-max">
     <div id="undo_confirm"></div>
-    <div id="add_task_form"></div>
+    <div id="task_form_div"></div>
     {% set on_all = "all" %}
     {% set on_complete = "complete" %}
     {% set on_pending = "pending" %}
@@ -26,7 +44,7 @@
                         hx-get="tasks/add"
                         hx-include="[id='filtering']"
                         hx-trigger="click,keyup[{{mod_key}}key=='A'] from:#cmd-inp"
-                        hx-target="#add_task_form"
+                        hx-target="#task_form_div"
                         hx-swap="innerHTML">
                     <u>A</u>dd
                 </button>

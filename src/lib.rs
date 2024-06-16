@@ -231,3 +231,26 @@ fn get_date_proper() -> impl tera::Function {
         Ok(tera::to_value(s).unwrap())
     })
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewTask {
+    description: String,
+    tags: Option<String>,
+    project: Option<String>,
+    filter_value: Option<String>,
+}
+
+impl NewTask {
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+    pub fn tags(&self) -> &Option<String> {
+        &self.tags
+    }
+    pub fn project(&self) -> &Option<String> {
+        &self.project
+    }
+    pub fn filter_value(&self) -> &Option<String> {
+        &self.filter_value
+    }
+}
