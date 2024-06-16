@@ -1,9 +1,7 @@
-<aside class="fixed bottom-4 end-4 z-50 flex items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white">
-    <a href="#" target="_blank" rel="noreferrer" class="text-sm font-medium hover:opacity-75">
-        {{ msg }}
-    </a>
-
-    <button class="rounded bg-white/20 p-1 hover:bg-white/10">
+<div class="items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white"
+     hx-trigger="load delay:{{ timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
+    <span class="text-sm font-medium hover:opacity-75">{{ msg }} {{ timeout }}</span>
+    <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast" hx-swap="innerHTML">
         <span class="sr-only">Close</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path
@@ -13,4 +11,4 @@
             />
         </svg>
     </button>
-</aside>
+</div>

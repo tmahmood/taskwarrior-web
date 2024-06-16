@@ -240,6 +240,27 @@ impl TaskQuery {
         task.args(&output);
         task
     }
+    pub fn status(&self) -> &TaskStatus {
+        &self.status
+    }
+    pub fn priority(&self) -> &TaskPriority {
+        &self.priority
+    }
+    pub fn report(&self) -> &TaskReport {
+        &self.report
+    }
+    pub fn tags(&self) -> &Vec<String> {
+        &self.tags
+    }
+    pub fn project(&self) -> &Option<String> {
+        &self.project
+    }
+    pub fn filter(&self) -> &Option<String> {
+        &self.filter
+    }
+    pub fn new_entry(&self) -> &Option<String> {
+        &self.new_entry
+    }
 }
 
 #[cfg(test)]

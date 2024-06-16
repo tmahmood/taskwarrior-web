@@ -235,12 +235,6 @@ body {
     stroke-width: calc(var(--size) / 2);
 }
 
-#toast.htmx-settling {
-    opacity: 100;
-}
 
 #toast {
-    background: #E1F0DA;
-    opacity: 0;
-    transition: opacity 3s ease-out;
 }

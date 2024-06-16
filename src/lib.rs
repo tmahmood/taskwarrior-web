@@ -48,8 +48,8 @@ impl IntoResponse for AppError {
 // This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
 // `Result<_, AppError>`. That way you don't need to do that manually.
 impl<E> From<E> for AppError
-    where
-        E: Into<anyhow::Error>,
+where
+    E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
         Self(err.into())
@@ -65,6 +65,24 @@ pub enum Requests {
     }
 }
 
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct FlashMsg {
+    msg: String,
+    timeout: Option<u64>,
+}
+
+impl FlashMsg {
+    pub fn msg(&self) -> &str {
+        &self.msg
+    }
+
+    pub fn timeout(&self) -> u64 {
+        self.timeout.clone().unwrap_or(15)
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct TWGlobalState {
@@ -74,7 +92,31 @@ pub struct TWGlobalState {
     status: Option<String>,
     uuid: Option<String>,
     filter_value: Option<String>,
-    task_entry: Option<String>
+    task_entry: Option<String>,
+}
+
+impl TWGlobalState {
+    pub fn filter(&self) -> &Option<String> {
+        &self.filter
+    }
+    pub fn query(&self) -> &Option<String> {
+        &self.query
+    }
+    pub fn report(&self) -> &Option<String> {
+        &self.report
+    }
+    pub fn status(&self) -> &Option<String> {
+        &self.status
+    }
+    pub fn uuid(&self) -> &Option<String> {
+        &self.uuid
+    }
+    pub fn filter_value(&self) -> &Option<String> {
+        &self.filter_value
+    }
+    pub fn task_entry(&self) -> &Option<String> {
+        &self.task_entry
+    }
 }
 
 
@@ -129,10 +171,10 @@ pub struct TaskUpdateStatus {
 
 /// Serde deserialization decorator to map empty Strings to None,
 pub fn empty_string_as_none<'de, D, T>(de: D) -> Result<Option<T>, D::Error>
-    where
-        D: Deserializer<'de>,
-        T: FromStr,
-        T::Err: fmt::Display,
+where
+    D: Deserializer<'de>,
+    T: FromStr,
+    T::Err: fmt::Display,
 {
     let opt = Option::<String>::deserialize(de)?;
     match opt.as_deref() {
@@ -175,7 +217,7 @@ fn get_date_proper() -> impl tera::Function {
         let num_hours = delta.num_hours();
         let num_minutes = delta.num_minutes();
 
-        let sign = if in_future { -1  } else { 1 };
+        let sign = if in_future { -1 } else { 1 };
 
         let mut s = if num_weeks.abs() > 0 {
             format!("{}w", sign * num_weeks)

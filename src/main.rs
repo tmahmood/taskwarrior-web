@@ -10,7 +10,7 @@ use tracing::{debug, error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use org_me::endpoints::tasks::{list_tasks, Task, task_undo, task_undo_report, update_task_status};
-use org_me::{TWGlobalState, TEMPLATES};
+use org_me::{TWGlobalState, TEMPLATES, FlashMsg};
 use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 
 
@@ -32,6 +32,8 @@ async fn main() {
         .route("/tasks/undo/report", get(get_undo_report))
         .route("/tasks/undo/confirmed", post(undo_last_change))
         .route("/msg", get(display_flash_message))
+        .route("/tasks/add", get(display_task_add_window))
+        .route("/msg_clr", get(clear_flash_message))
         ;
 
     // run our app with hyper, listening globally on port 3000
@@ -52,9 +54,14 @@ fn init_tracing() {
         .init();
 }
 
-async fn display_flash_message(Query(msg): Query<String>) -> Html<String> {
+async fn clear_flash_message() -> Html<String> {
+    Html("".to_string())
+}
+
+async fn display_flash_message(Query(msg): Query<FlashMsg>) -> Html<String> {
     let mut ctx = Context::new();
-    ctx.insert("msg", &msg);
+    ctx.insert("msg", &msg.msg());
+    ctx.insert("timeout", &msg.timeout());
     Html(TEMPLATES.render("flash_msg.html", &ctx).unwrap())
 }
 
@@ -78,10 +85,25 @@ async fn get_undo_report() -> Html<String> {
     }
 }
 
+async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<String> {
+    let tq: TaskQuery = params.filter_value().clone().and_then(|v| {
+        if v == "" {
+            Some(TaskQuery::default())
+        } else {
+            Some(serde_json::from_str(&v).unwrap_or(TaskQuery::default()))
+        }
+    }).or(Some(TaskQuery::default())).unwrap();
+    let mut ctx = Context::new();
+    info!("{:?}", tq.tags());
+    ctx.insert("tags", tq.tags());
+    ctx.insert("project", tq.project());
+    Html(TEMPLATES.render("task_add.html", &ctx).unwrap())
+}
+
 
 async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     task_undo().unwrap();
-    get_tasks_view(org_me::task_query_previous_params(&params))
+    get_tasks_view(org_me::task_query_previous_params(&params), None)
 }
 
 async fn front_page() -> Html<String> {
@@ -97,10 +119,10 @@ async fn front_page() -> Html<String> {
 }
 
 async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
-    get_tasks_view(org_me::task_query_merge_previous_params(&params))
+    get_tasks_view(org_me::task_query_merge_previous_params(&params), None)
 }
 
-fn get_tasks_view(tq: TaskQuery) -> Html<String> {
+fn get_tasks_view(tq: TaskQuery, ctx: Option<Context>) -> Html<String> {
     let tasks = match list_tasks(tq.clone()) {
         Ok(t) => { t }
         Err(e) => {
@@ -108,12 +130,16 @@ fn get_tasks_view(tq: TaskQuery) -> Html<String> {
         }
     };
     let task_list: Vec<Task> = tasks.values().cloned().collect();
-    let mut ctx = Context::new();
-    ctx.insert("tasks_db", &tasks);
-    ctx.insert("tasks", &task_list);
-    ctx.insert("current_filter", &tq.as_filter_text());
-    ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
-    Html(TEMPLATES.render("tasks.html", &ctx).unwrap())
+    let mut ctx_b = if let Some(ctx) = ctx {
+        ctx
+    } else {
+        Context::new()
+    };
+    ctx_b.insert("tasks_db", &tasks);
+    ctx_b.insert("tasks", &task_list);
+    ctx_b.insert("current_filter", &tq.as_filter_text());
+    ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
+    Html(TEMPLATES.render("tasks.html", &ctx_b).unwrap())
 }
 
 async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String> {
@@ -127,5 +153,5 @@ async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String
             }
         }
     }
-    get_tasks_view(org_me::task_query_previous_params(&multipart))
+    get_tasks_view(org_me::task_query_previous_params(&multipart), None)
 }

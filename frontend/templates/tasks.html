@@ -1,5 +1,6 @@
 <div class="mb-auto h-max">
     <div id="undo_confirm"></div>
+    <div id="add_task_form"></div>
     {% set on_all = "all" %}
     {% set on_complete = "complete" %}
     {% set on_pending = "pending" %}
@@ -8,17 +9,27 @@
     <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
         <div class="md:flex-grow sm:row-autotag-list">
             <div class="tag-list">
-                <button class="tag-item tag-item-800"
+                <span>
+                    <label for="cmd-inp" class="hidden"></label>
+                    <input type="text" id="cmd-inp" class=" pl-1 bg-neutral-600 outline-none text-xs" placeholder="Ctrl+Shift+K to focus" autofocus/>
+                </span>
+            </div>
+            <div class="tag-list">
+                <button class="tag-item tag-item-800 py-0"
                         hx-get="tasks/undo/report"
                         hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
                         hx-target="#undo_confirm"
                         hx-swap="innerHTML">
                     <u>u</u>
                 </button>
-                <span>
-                    <label for="cmd-inp" class="hidden">:</label>
-                    <input type="text" id="cmd-inp" class=" pl-1 bg-neutral-400 outline-none" placeholder="commands" autofocus/>
-                </span>
+                <button class="tag-item tag-item-800"
+                        hx-get="tasks/add"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='A'] from:#cmd-inp"
+                        hx-target="#add_task_form"
+                        hx-swap="innerHTML">
+                    <u>A</u>dd
+                </button>
             </div>
         </div>
         <div class="md:flex-grow sm:row-autotag-list">
@@ -174,8 +185,7 @@
                         <button class="tag-item tag-item-800"
                                 hx-include="[id='filtering']"
                                 hx-target="#list-of-tasks"
-                                hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}"
-                        >
+                                hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
                             {{ p }}
                         </button>
                         {% endfor %}
