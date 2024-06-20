@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use anyhow::Error;
 use axum::{Form, Router, routing::get};
 use axum::extract::{Multipart, Query};
 use axum::response::Html;
 use axum::routing::post;
+use rand::distributions::{Alphanumeric, DistString};
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 use tracing::{debug, error, info};
@@ -35,6 +36,7 @@ async fn main() {
         .route("/tasks/add", get(display_task_add_window))
         .route("/tasks/add", post(create_new_task))
         .route("/msg_clr", get(clear_flash_message))
+        .route("/tag_bar", get(get_tag_bar))
         ;
 
     // run our app with hyper, listening globally on port 3000
@@ -53,6 +55,11 @@ fn init_tracing() {
                 .with_line_number(true)
         )
         .init();
+}
+
+async fn get_tag_bar() -> Html<String> {
+    let ctx = Context::new();
+    Html(TEMPLATES.render("tag_bar.html", &ctx).unwrap())
 }
 
 async fn clear_flash_message() -> Html<String> {
@@ -141,6 +148,7 @@ async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
 }
 
 fn get_tasks_view(tq: TaskQuery, ctx: Option<Context>) -> Html<String> {
+
     let tasks = match list_tasks(tq.clone()) {
         Ok(t) => { t }
         Err(e) => {

@@ -10,7 +10,7 @@ export default {
     plugins: [
         typescript(),
         resolve(),
-        commonjs()
+        commonjs(),
     ],
     input: 'frontend/src/main.ts',
     output: {

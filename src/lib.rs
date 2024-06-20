@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use rand::distributions::{Alphanumeric, DistString};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use serde::de::Error;
 use tracing::info;
@@ -24,6 +25,9 @@ lazy_static::lazy_static! {
         };
         tera.register_function("project_name", get_project_name_link());
         tera.register_function("date_proper", get_date_proper());
+        tera.register_function("obj", obj());
+        tera.register_filter("update_unique_tags", update_unique_tags());
+        tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
         tera.autoescape_on(vec![
             ".html",
             ".sql"
@@ -195,6 +199,39 @@ fn get_project_name_link() -> impl tera::Function {
         Ok(tera::to_value(r.join(".")).unwrap())
     })
 }
+
+fn update_unique_tags() -> impl tera::Filter {
+    Box::new(move |value: &tera::Value, args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        let mut tags = tera::from_value::<Vec<String>>(value.clone())?;
+        let new_tag = tera::from_value::<String>(args.get("tag").clone().unwrap().clone())?;
+        tags.push(new_tag);
+        Ok(tera::to_value(tags)?)
+    })
+}
+
+fn obj() -> impl tera::Function {
+    Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        let hm: HashMap<String, String> = HashMap::new();
+        Ok(tera::to_value(hm)?)
+    })
+}
+
+fn update_tag_bar_key_comb() -> impl tera::Filter {
+    Box::new(move |value: &tera::Value, args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        let mut tag_key_comb = tera::from_value::<HashMap<String, String>>(value.clone())?;
+        let tag = tera::from_value::<String>(args.get("tag").clone().unwrap().clone())?;
+        loop {
+            let string = Alphanumeric.sample_string(&mut rand::thread_rng(), 2).to_lowercase();
+            if tag_key_comb.iter().find(|&(k, v)| v == &string).is_some() {
+                continue
+            }
+            tag_key_comb.insert(tag, string);
+            break
+        }
+        Ok(tera::to_value(tag_key_comb)?)
+    })
+}
+
 
 fn get_date_proper() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {

@@ -1,0 +1,25 @@
+<div class="tag-item tag-item-800"
+>
+    <button
+            id="tag-btn-back"
+            hx-get="tasks"
+            hx-trigger="click,keyup[key=='Escape'] from:#tag-inp"
+            hx-target="#list-of-tasks"
+            hx-include="[id='filtering']"
+    >back</button>
+</div>
+<span>
+    <label for="tag-inp" class="hidden"></label>
+    <input type="text" id="tag-inp"
+           class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+           placeholder="Tag Bar"
+           hx-trigger="changes delay:2s"
+           hx-target="#list-of-tasks"
+           hx-include="[id='filtering']"
+           hx-swap="innerHTML"
+           autofocus
+           onkeyup="if (this.value.length >= 2) { document.getElementById(this.value).click() }"
+           onfocus="document.querySelectorAll('.kw-layer').forEach((e) => e.classList.remove('hidden'))"
+           onblur="document.querySelectorAll('.kw-layer').forEach((e) => e.classList.add('hidden')); document.getElementById('tag-btn-back').click();"
+    />
+</span>
