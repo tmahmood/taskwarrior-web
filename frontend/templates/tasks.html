@@ -42,12 +42,13 @@
         </div>
 
         <div class="tag-list">
-                <span>
-                    <label for="cmd-inp" class="hidden"></label>
-                    <input type="text" id="cmd-inp" class="pl-1 bg-neutral-600 outline-none text-xs"
-                           placeholder="Ctrl+Shift+K to focus"
-                           autofocus/>
-                </span>
+            <span>
+                <label for="cmd-inp" class="hidden"></label>
+                <input type="text" id="cmd-inp"
+                       class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+                       placeholder="Cmd Bar, Ctrl+Shift+K"
+                       autofocus />
+            </span>
         </div>
     </div>
 
@@ -70,6 +71,12 @@
                         hx-swap="innerHTML">
                     <u>n</u>ew task
                 </button>
+                <span>
+                    <label for="tag-inp" class="hidden"></label>
+                    <input type="text" id="tag-inp" class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+                           placeholder="Tag Bar, Ctrl+Shift+T"
+                    />
+                </span>
             </div>
         </div>
 

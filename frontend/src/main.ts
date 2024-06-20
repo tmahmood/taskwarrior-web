@@ -15,6 +15,12 @@ hotkeys('ctrl+shift+K', function (event, handler) {
     document.getElementById('cmd-inp').focus();
 });
 
+hotkeys('ctrl+shift+L', function (event, handler) {
+    // Prevent the default refresh event under WINDOWS system
+    event.preventDefault()
+    document.getElementById('tag-inp').focus();
+});
+
 // hotkeys('t', function (event, handler) {
 //     // Prevent the default refresh event under WINDOWS system
 //     event.preventDefault()
