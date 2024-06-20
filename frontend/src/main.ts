@@ -15,7 +15,21 @@ hotkeys('ctrl+shift+K', function (event, handler) {
     document.getElementById('cmd-inp').focus();
 });
 
-hotkeys('t', function (event, handler) {
-    // Prevent the default refresh event under WINDOWS system
-    event.preventDefault()
-});
+// hotkeys('t', function (event, handler) {
+//     // Prevent the default refresh event under WINDOWS system
+//     event.preventDefault()
+//     let foundTags = [];
+//     document.querySelectorAll('.tg-col button').forEach(value => {
+//         let tg = value.textContent.trim();
+//         for (const foundTagsKey of foundTags) {
+//             console.log(`${tg} - ${foundTagsKey}`);
+//             if (tg === foundTagsKey) {
+//                 return;
+//             }
+//         }
+//         foundTags.push(tg)
+//         console.log(value.classList);
+//         value.classList.add('red');
+//         console.log();
+//     });
+// });

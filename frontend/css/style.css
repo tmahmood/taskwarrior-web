@@ -83,6 +83,10 @@ body {
     @apply text-neutral-700;
 }
 
+.red {
+    @apply bg-red-800;
+}
+
 .btn {
     @apply
     text-xs py-0.5 px-2 uppercase text-neutral-300

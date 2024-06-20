@@ -159,6 +159,13 @@ pub fn task_add(task: &NewTask) -> Result<(), anyhow::Error> {
             cmd.arg(&project);
         }
     }
+
+    if let Some(additional) = task.additional() {
+        for a in additional.split(' ') {
+            cmd.arg(&a);
+        }
+    }
+
     match cmd.output() {
         Ok(o) => {
             info!("New task added");

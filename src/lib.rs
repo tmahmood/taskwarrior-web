@@ -238,6 +238,7 @@ pub struct NewTask {
     tags: Option<String>,
     project: Option<String>,
     filter_value: Option<String>,
+    additional: Option<String>,
 }
 
 impl NewTask {
@@ -252,5 +253,8 @@ impl NewTask {
     }
     pub fn filter_value(&self) -> &Option<String> {
         &self.filter_value
+    }
+    pub fn additional(&self) -> &Option<String> {
+        &self.additional
     }
 }

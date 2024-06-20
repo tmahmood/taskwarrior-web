@@ -2,8 +2,9 @@
 <div hx-swap-oob="beforeend:#toast">
     <div class="items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white"
          hx-trigger="load delay:{{ toast_timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
-        <span class="text-sm font-medium hover:opacity-75">{{ toast_msg }} {{ toast_timeout }}</span>
-        <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast" hx-swap="innerHTML">
+        <span class="text-sm font-medium hover:opacity-75">{{ toast_msg }}</span>
+        <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast"
+                hx-swap="innerHTML">
             <span class="sr-only">Close</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path
@@ -19,38 +20,14 @@
 <div class="mb-auto h-max">
     <div id="undo_confirm"></div>
     <div id="task_form_div"></div>
+    <div id="tag_search_bar"></div>
     {% set on_all = "all" %}
     {% set on_complete = "complete" %}
     {% set on_pending = "pending" %}
     {% set on_waiting = "waiting" %}
     {% set mod_key = "" %}
-    <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap ">
-        <div class="md:flex-grow sm:row-autotag-list">
-            <div class="tag-list">
-                <span>
-                    <label for="cmd-inp" class="hidden"></label>
-                    <input type="text" id="cmd-inp" class=" pl-1 bg-neutral-600 outline-none text-xs" placeholder="Ctrl+Shift+K to focus" autofocus/>
-                </span>
-            </div>
-            <div class="tag-list">
-                <button class="tag-item tag-item-800 py-0"
-                        hx-get="tasks/undo/report"
-                        hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
-                        hx-target="#undo_confirm"
-                        hx-swap="innerHTML">
-                    <u>u</u>
-                </button>
-                <button class="tag-item tag-item-800"
-                        hx-get="tasks/add"
-                        hx-include="[id='filtering']"
-                        hx-trigger="click,keyup[{{mod_key}}key=='A'] from:#cmd-inp"
-                        hx-target="#task_form_div"
-                        hx-swap="innerHTML">
-                    <u>A</u>dd
-                </button>
-            </div>
-        </div>
-        <div class="md:flex-grow sm:row-autotag-list">
+    <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap">
+        <div class="md:flex-grow sm:row-autotag-list flex-wrap">
             <div class="tag-list">
                 {% for f in current_filter %}
                 <button class="tag-item tag-item-800"
@@ -63,74 +40,111 @@
             </div>
             <input type="hidden" id="filtering" name="filter_value" value="{{ filter_value }}">
         </div>
+
         <div class="tag-list">
-            <button class="tag-item tag-item-800 {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='p'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>p</u>ending
-            </button>
-            <button class="tag-item tag-item-800 {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='w'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>w</u>aiting
-            </button>
-            <button class="tag-item tag-item-800  {{ on_complete }}" id="completed" hx-get="tasks?status=completed"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='c'] from:#cmd-inp"
-                    hx-target="#list-of-tasks" hx-swap="innerHTML"><u>c</u>ompleted
-            </button>
-        </div>
-        <div class="tag-list">
-            <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?query=priority:H"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='h'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>H</u>
-            </button>
-            <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?query=priority:M"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='m'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>M</u>
-            </button>
-            <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?query=priority:L"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='l'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>L</u>
-            </button>
-        </div>
-        <div class="tag-list">
-            <button class="tag-item tag-item-800" hx-get="tasks?report=all"
-                    hx-include="[id='filtering']"
-                    hx-target="#list-of-tasks"
-                    hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>a</u>ll
-            </button>
-            <button class="tag-item tag-item-800" hx-get="tasks?report=next"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>n</u>ext
-            </button>
-            <button class="tag-item tag-item-800" hx-get="tasks?report=ready"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='r'] from:#cmd-inp"
-                    hx-swap="innerHTML"><u>r</u>eady
-            </button>
-            <button class="tag-item tag-item-800" hx-get="tasks?report=new"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[{{mod_key}}key=='e'] from:#cmd-inp"
-                    hx-swap="innerHTML">n<u>e</u>w
-            </button>
+                <span>
+                    <label for="cmd-inp" class="hidden"></label>
+                    <input type="text" id="cmd-inp" class="pl-1 bg-neutral-600 outline-none text-xs"
+                           placeholder="Ctrl+Shift+K to focus"
+                           autofocus/>
+                </span>
         </div>
     </div>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto">
+    <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
+
+        <div class="flex flex-wrap">
+            <div class="tag-list">
+                <button class="tag-item tag-item-800 py-0"
+                        hx-get="tasks/undo/report"
+                        hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
+                        hx-target="#undo_confirm"
+                        hx-swap="innerHTML">
+                    <u>u</u>ndo
+                </button>
+                <button class="tag-item tag-item-800"
+                        hx-get="tasks/add"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
+                        hx-target="#task_form_div"
+                        hx-swap="innerHTML">
+                    <u>n</u>ew task
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap flex-grow justify-end">
+            <div class="tag-list flex flex-wrap">
+                <button class="tag-item tag-item-800 {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='p'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>p</u>ending
+                </button>
+                <button class="tag-item tag-item-800 {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='w'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>w</u>aiting
+                </button>
+                <button class="tag-item tag-item-800  {{ on_complete }}" id="completed" hx-get="tasks?status=completed"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='c'] from:#cmd-inp"
+                        hx-target="#list-of-tasks" hx-swap="innerHTML"><u>c</u>ompleted
+                </button>
+                <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?query=priority:H"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='h'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>H</u>
+                </button>
+                <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?query=priority:M"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='m'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>M</u>
+                </button>
+                <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?query=priority:L"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='l'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>L</u>
+                </button>
+                <button class="tag-item tag-item-800"
+                        hx-get="tasks?report=all"
+                        hx-include="[id='filtering']"
+                        hx-target="#list-of-tasks"
+                        hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>a</u>ll
+                </button>
+                <button class="tag-item tag-item-800" hx-get="tasks?report=next"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='x'] from:#cmd-inp"
+                        hx-swap="innerHTML">ne<u>x</u>t
+                </button>
+                <button class="tag-item tag-item-800" hx-get="tasks?report=ready"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='r'] from:#cmd-inp"
+                        hx-swap="innerHTML"><u>r</u>eady
+                </button>
+                <button class="tag-item tag-item-800" hx-get="tasks?report=new"
+                        hx-target="#list-of-tasks"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='e'] from:#cmd-inp"
+                        hx-swap="innerHTML">n<u>e</u>w
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto"
+         hx-trigger="click,keyup[{{mod_key}}key=='t'] from:#cmd-inp"
+         hx-get="tag_hl"
+         hx-target="#list-of-tasks"
+         hx-include="[id='filtering']"
+    >
         <table id="list-of-tasks" class="table-large">
             <thead class="table-large-header">
             <tr>
@@ -196,7 +210,7 @@
                     {% endfor %}
                     {% endif %}
                 </td>
-                <td>
+                <td class="tg-col">
                     {% if task.project %}
                     <div class="breadcrumb tag-list">
                         {% for p in task.project | split(pat=".") %}
@@ -210,7 +224,7 @@
                     </div>
                     {% endif %}
                 </td>
-                <td>
+                <td class="tg-col">
                     <div class="tag-list">
                         {% if task.tags %}
                         {% for p in task.tags %}
