@@ -26,3 +26,4 @@ dist-ssr
 /data.json
 /output.out
 /data_edit.json
+/.env

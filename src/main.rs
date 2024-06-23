@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet};
+use std::env;
+use std::env::args;
 use anyhow::Error;
 use axum::{Form, Router, routing::get};
 use axum::extract::{Multipart, Query};
@@ -18,8 +20,13 @@ use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 #[tokio::main]
 async fn main() {
     // initialize tracing
-
     init_tracing();
+    dotenvy::dotenv().unwrap();
+
+    let addr = format!(
+        "0.0.0.0:{}",
+        env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
+    );
 
     // build our application with a route
     let app = Router::new()
@@ -40,7 +47,8 @@ async fn main() {
         ;
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    println!("running on address: {}", addr);
     axum::serve(listener, app).await.unwrap();
 }
 

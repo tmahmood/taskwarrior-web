@@ -26,6 +26,17 @@ Still work in progress. But in the current stage it is pretty usable
 
 That should be it! Now you have the server running at `localhost:3000` accessible by your browser.
 
+## Customizing the port
+By default, the program will use 3000 as port,
+you can customize through `.env` file or enviornment variable, check `env.example`
+
+variable name: `TWK_SERVER_PORT`
+
+```shell
+TWK_SERVER_PORT=9070 cargo run --release
+```
+
+
 # Using the app
 
 You can use Mouse or Keyboard to navigate.
@@ -66,3 +77,5 @@ there will be errors, as no checks, and there may not be any error messages in c
 - [ ] Following Context
 - [ ] Error handling
 - [ ] Add more tests
+- [x] Which port to run
+- [ ] Convert to desktop app using Tauri
