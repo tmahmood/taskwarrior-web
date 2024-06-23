@@ -21,7 +21,10 @@ use org_me::endpoints::tasks::task_query_builder::TaskQuery;
 async fn main() {
     // initialize tracing
     init_tracing();
-    dotenvy::dotenv().unwrap();
+    match dotenvy::dotenv() {
+        Ok(_) => {}
+        Err(_) => {}
+    };
 
     let addr = format!(
         "0.0.0.0:{}",
