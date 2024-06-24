@@ -127,7 +127,7 @@ pub fn task_undo_report() -> Result<String, anyhow::Error> {
         }
         Err(e) => {
             error!("Failed to execute command: {}", e);
-            return anyhow::bail!("Failed to get undo report");
+            anyhow::bail!("Failed to get undo report");
         }
     }
 }
@@ -163,13 +163,13 @@ pub fn task_add(task: &NewTask) -> Result<(), anyhow::Error> {
     }
 
     match cmd.output() {
-        Ok(o) => {
+        Ok(_o) => {
             info!("New task added");
             Ok(())
         }
         Err(e) => {
             error!("Failed to execute new task: {}", e);
-            return anyhow::bail!("Failed to add new task");
+            anyhow::bail!("Failed to add new task");
         }
     }
 }
@@ -179,13 +179,13 @@ pub fn task_undo() -> Result<(), anyhow::Error> {
         .arg("rc.confirmation:off")
         .arg("undo")
         .output() {
-        Ok(o) => {
+        Ok(_o) => {
             info!("Task undo success");
             Ok(())
         }
         Err(e) => {
             error!("Failed to execute undo: {}", e);
-            return anyhow::bail!("Failed to undo");
+            anyhow::bail!("Failed to undo");
         }
     }
 }
@@ -202,7 +202,7 @@ pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     let t = TaskQuery::all();
     let tasks = read_task_file(t, true)?;
     let mut t = match tasks.get(&TaskUUID(task.uuid.clone())) {
-        None => return anyhow::bail!("Matching task not found"),
+        None => anyhow::bail!("Matching task not found"),
         Some(t) => t
     }.clone();
     t.status = Some(task.status);
@@ -225,11 +225,11 @@ pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
         }
         Err(e) => {
             error!("Failed to sync with task: {}", e);
-            return anyhow::bail!("Failed to sync");
+            anyhow::bail!("Failed to sync");
         }
         Ok(o) => {
             error!("Not ok from task command {:?} {:?}", o, o.stderr);
-            return anyhow::bail!("Failed to sync");
+            anyhow::bail!("Failed to sync");
         }
     }
 }

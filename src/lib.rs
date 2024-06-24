@@ -208,7 +208,7 @@ fn update_unique_tags() -> impl tera::Filter {
 }
 
 fn obj() -> impl tera::Function {
-    Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+    Box::new(move |_args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         let hm: HashMap<String, String> = HashMap::new();
         Ok(tera::to_value(hm)?)
     })
@@ -220,7 +220,7 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
         let tag = tera::from_value::<String>(args.get("tag").clone().unwrap().clone())?;
         loop {
             let string = Alphanumeric.sample_string(&mut rand::thread_rng(), 2).to_lowercase();
-            if tag_key_comb.iter().find(|&(k, v)| v == &string).is_some() {
+            if tag_key_comb.iter().find(|&(_k, v)| v == &string).is_some() {
                 continue
             }
             tag_key_comb.insert(tag, string);
