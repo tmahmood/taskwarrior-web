@@ -16,7 +16,7 @@ jobs:
 
     steps:    
     - uses: actions/checkout@v4
-    - run: curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && mv tailwindcss-linux-x64 /usr/bin/tailwindcss && chmod +x /usr/bin/tailwindcss
+    - run: curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && sudo mv tailwindcss-linux-x64 /usr/bin/tailwindcss && sudo chmod +x /usr/bin/tailwindcss
     - run: cd frontend && npm install && cd ..
     - run: cargo build --verbose
     
