@@ -72,7 +72,7 @@ This will bring up undo confirmation dialog
 This is a work in progress application, many things will not work,
 there will be errors, as no checks, and there may not be any error messages in case of error. 
 
-- [ ] Marking a task done with keyboard shortcut
+- [x] Marking a task done with keyboard shortcut
 - [ ] Editing/Deleting/Starting tasks
 - [ ] Following Context
 - [ ] Error handling

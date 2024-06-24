@@ -47,6 +47,7 @@ async fn main() {
         .route("/tasks/add", post(create_new_task))
         .route("/msg_clr", get(clear_flash_message))
         .route("/tag_bar", get(get_tag_bar))
+        .route("/task_action_bar", get(get_task_action_bar))
         ;
 
     // run our app with hyper, listening globally on port 3000
@@ -66,6 +67,11 @@ fn init_tracing() {
                 .with_line_number(true)
         )
         .init();
+}
+
+async fn get_task_action_bar() -> Html<String> {
+    let ctx = Context::new();
+    Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
 }
 
 async fn get_tag_bar() -> Html<String> {
@@ -190,5 +196,9 @@ async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String
             }
         }
     }
-    get_tasks_view(org_me::task_query_previous_params(&multipart), None)
+    let mut ctx = Context::new();
+    ctx.insert("has_toast", &true);
+    ctx.insert("toast_msg", "Task was updated");
+    ctx.insert("toast_timeout", &15);
+    get_tasks_view(org_me::task_query_previous_params(&multipart), Some(ctx))
 }

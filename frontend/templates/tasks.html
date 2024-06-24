@@ -21,18 +21,45 @@
     <div id="undo_confirm"></div>
     <div id="task_form_div"></div>
     {% set on_all = "all" %}
+
     {% set unique_tags = [] %}
     {% set tag_bar_key_comb = obj() %}
+
+    {% set unique_id_kw = [] %}
+    {% set task_action_bar_key_comb = obj() %}
+
     {% set on_complete = "complete" %}
     {% set on_pending = "pending" %}
     {% set on_waiting = "waiting" %}
     {% set mod_key = "" %}
     <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap">
+
+        <!-- TAG BAR -->
         <div class="md:flex-grow sm:row-autotag-list flex-wrap">
             <div class="tag-list">
-                <span id="tag_search_bar" class="tag-item-800 tag-item" >
-                    <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML" hx-trigger="click,keyup[{{mod_key}}key=='t'] from:#cmd-inp"><u>t</u>ag select</button>
+                <span id="tag_search_bar" class="tag-item-800 tag-item">
+                    <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML"
+                            hx-trigger="click,keyup[{{mod_key}}key=='t'] from:#cmd-inp"><u>t</u></button>
                 </span>
+            </div>
+        </div>
+        <!-- // -->
+
+
+        <!-- TASK ACTION BAR -->
+        <div class="md:flex-grow sm:row-autotag-list flex-wrap">
+            <div class="tag-list" id="task_action_bar">
+                <span class="tag-item-800 tag-item success" id="task_action_done">
+                    <button hx-get="task_action_bar" hx-target="#task_action_done" hx-swap="outerHTML"
+                            hx-trigger="click,keyup[{{mod_key}}key=='d'] from:#cmd-inp"><u>d</u>one</button>
+                </span>
+            </div>
+        </div>
+        <!-- // -->
+
+        <!-- TAG LIST -->
+        <div class="md:flex-grow sm:row-autotag-list flex-wrap">
+            <div class="tag-list">
                 {% for f in current_filter %}
                 <button class="tag-item tag-item-800"
                         hx-include="[id='filtering']"
@@ -44,7 +71,9 @@
             </div>
             <input type="hidden" id="filtering" name="filter_value" value="{{ filter_value }}">
         </div>
+        <!-- // -->
 
+        <!-- CMD BAR -->
         <div class="tag-list">
             <span>
                 <label for="cmd-inp" class="hidden"></label>
@@ -54,6 +83,7 @@
                        autofocus/>
             </span>
         </div>
+        <!-- // -->
     </div>
 
     <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
@@ -184,16 +214,25 @@
                                 hx-post="tasks" hx-target="#list-of-tasks"
                                 hx-include="[id='filtering']"
                                 {% if task.status !="completed" %}
-                                hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
-                                hx-swap="innerHTML"
+                                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
+                                    hx-swap="innerHTML"
                                 {% else %}
-                                checked="checked"
-                                hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed" }'
-                                hx-swap="innerHTML"
+                                    checked="checked"
+                                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed" }'
+                                    hx-swap="innerHTML"
                                 {% endif %}
                         >
-                        <label for="checkbox-{{ task.uuid }}">
+                        {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw,
+                        tag=task.id | as_str)
+                        %}
+                        {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb,
+                        tag=task.id | as_str) %}
+                        {% set kw_id = task_action_bar_key_comb[task.id] %}
+                        <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}">
                             {{ task.id }}
+                            <span class="kw-id-layer hidden red">
+                                {{ kw_id }}
+                            </span>
                         </label>
                         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                             <path d="M 10 10 L 90 90" stroke="#000" stroke-dasharray="113"
@@ -214,25 +253,24 @@
                     {% if task.project %}
                     <div class="breadcrumb tag-list">
                         {% for p in task.project | split(pat=".") %}
-                        {% set ptag = ["project", p] | join(sep=":") %}
-                        {% if ptag not in unique_tags %}
-                        {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=ptag) %}
-                        {% set_global tag_bar_key_comb = tag_bar_key_comb |
-                        update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=ptag) %}
-                        {% set kw = tag_bar_key_comb[ptag] %}
-                        {% endif %}
-                        <button class="tag-item tag-item-800"
-                                hx-include="[id='filtering']"
-                                hx-target="#list-of-tasks"
-                                {% if kw %} id="{{ kw }}" {% endif %}
-                                hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
-                            {{ p }}
-                            {% if kw %}
-                            <span class="kw-layer hidden">
-                                {{ kw }}
-                            </span>
+                            {% set ptag = ["project", p] | join(sep=":") %}
+                            {% if ptag not in unique_tags %}
+                                {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=ptag) %}
+                                {% set_global tag_bar_key_comb = tag_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=ptag) %}
+                                {% set kw_pro = tag_bar_key_comb[ptag] %}
                             {% endif %}
-                        </button>
+                            <button class="tag-item tag-item-800"
+                                    hx-include="[id='filtering']"
+                                    hx-target="#list-of-tasks"
+                                    {% if kw_pro %} id="{{ kw_pro }}" {% endif %}
+                                    hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
+                                {{ p }}
+                                {% if kw_pro %}
+                                <span class="kw-layer hidden">
+                                    {{ kw_pro }}
+                                </span>
+                                {% endif %}
+                            </button>
                         {% endfor %}
                     </div>
                     {% endif %}
