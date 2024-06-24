@@ -787,28 +787,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
-name = "org_me"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "csv",
- "dotenvy",
- "indexmap",
- "lazy_static",
- "rand",
- "serde",
- "serde_json",
- "tera",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1252,6 +1230,28 @@ name = "sync_wrapper"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
+
+[[package]]
+name = "taskwarrior-web"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "csv",
+ "dotenvy",
+ "indexmap",
+ "lazy_static",
+ "rand",
+ "serde",
+ "serde_json",
+ "tera",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "tera"

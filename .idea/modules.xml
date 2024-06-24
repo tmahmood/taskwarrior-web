@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/org_me.iml" filepath="$PROJECT_DIR$/.idea/org_me.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/taskwarrior_web.iml" filepath="$PROJECT_DIR$/.idea/taskwarrior_web.iml" />
     </modules>
   </component>
 </project>

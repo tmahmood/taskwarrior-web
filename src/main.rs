@@ -12,9 +12,9 @@ use tera::{Context, Tera};
 use tracing::{debug, error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use org_me::endpoints::tasks::{list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
-use org_me::{FlashMsg, NewTask, TEMPLATES, TWGlobalState};
-use org_me::endpoints::tasks::task_query_builder::TaskQuery;
+use taskwarrior_web::endpoints::tasks::{list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
+use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TEMPLATES, TWGlobalState};
+use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 
 
 #[tokio::main]
@@ -145,7 +145,7 @@ async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     ctx.insert("has_toast", &true);
     ctx.insert("toast_msg", "Undo successful");
     ctx.insert("toast_timeout", &15);
-    get_tasks_view(org_me::task_query_previous_params(&params), Some(ctx))
+    get_tasks_view(task_query_previous_params(&params), Some(ctx))
 }
 
 async fn front_page() -> Html<String> {
@@ -161,7 +161,7 @@ async fn front_page() -> Html<String> {
 }
 
 async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
-    get_tasks_view(org_me::task_query_merge_previous_params(&params), None)
+    get_tasks_view(task_query_merge_previous_params(&params), None)
 }
 
 fn get_tasks_view(tq: TaskQuery, ctx: Option<Context>) -> Html<String> {
@@ -186,7 +186,7 @@ fn get_tasks_view(tq: TaskQuery, ctx: Option<Context>) -> Html<String> {
 }
 
 async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String> {
-    if let Some(task) = org_me::from_task_to_task_update(&multipart) {
+    if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
         match update_task_status(task) {
             Ok(_) => {
                 info!("Task was updated");
@@ -200,5 +200,5 @@ async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String
     ctx.insert("has_toast", &true);
     ctx.insert("toast_msg", "Task was updated");
     ctx.insert("toast_timeout", &15);
-    get_tasks_view(org_me::task_query_previous_params(&multipart), Some(ctx))
+    get_tasks_view(task_query_previous_params(&multipart), Some(ctx))
 }
