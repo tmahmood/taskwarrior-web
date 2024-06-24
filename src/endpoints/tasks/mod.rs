@@ -203,7 +203,7 @@ pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, any
 pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     let mut p = TWGlobalState::default();
     p.filter = Some(task.uuid.clone());
-    let t = TaskQuery::new(p);
+    let t = TaskQuery::all();
     let mut tasks = read_task_file(t, true)?;
     let mut t = match tasks.get(&TaskUUID(task.uuid.clone())) {
         None => return anyhow::bail!("Matching task not found"),

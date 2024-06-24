@@ -222,11 +222,8 @@
                                     hx-swap="innerHTML"
                                 {% endif %}
                         >
-                        {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw,
-                        tag=task.id | as_str)
-                        %}
-                        {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb,
-                        tag=task.id | as_str) %}
+                        {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw, tag=task.id | as_str) %}
+                        {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
                         {% set kw_id = task_action_bar_key_comb[task.id] %}
                         <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}">
                             {{ task.id }}

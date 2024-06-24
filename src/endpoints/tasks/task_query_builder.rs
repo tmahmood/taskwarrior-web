@@ -145,6 +145,18 @@ impl TaskQuery {
         tq
     }
 
+    pub(crate) fn all() -> Self {
+        TaskQuery {
+            status: TaskStatus::NotSet,
+            priority: TaskPriority::NotSet,
+            report: TaskReport::All,
+            tags: vec![],
+            project: None,
+            filter: None,
+            new_entry: None,
+        }
+    }
+
     pub fn update(&mut self, params: TWGlobalState) {
         if let Some(rep) = params.report {
             self.report = rep.into();

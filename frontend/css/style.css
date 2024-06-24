@@ -87,7 +87,7 @@ body {
     @apply bg-red-800;
 }
 
-.kw-layer {
+.kw-layer, .kw-id-layer {
     @apply bg-red-800 float-start px-0.5;
 }
 
