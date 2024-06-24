@@ -28,7 +28,7 @@ fn with_priority_string_with_status() {
         status: Some("pending".to_string()),
         ..TWGlobalState::default()
     };
-    let mut task_query = TaskQuery::new(p);
+    let task_query = TaskQuery::new(p);
     assert_eq!(
         &task_query.as_filter_text().join(" "),
         "priority:H status:pending"
@@ -42,7 +42,7 @@ fn with_priority_string_with_no_status() {
         report: None,
         ..TWGlobalState::default()
     };
-    let mut task_query = TaskQuery::new(p);
+    let task_query = TaskQuery::new(p);
     assert_eq!(
         &task_query.as_filter_text().join(" "),
         "priority:H next"
@@ -84,6 +84,6 @@ fn task_by_uuid() {
     let t = TaskQuery::new(p);
     println!("{:?}", t);
     println!("{:?}", t.as_filter_text());
-    let mut tasks = read_task_file(t, false).unwrap();
+    let tasks = read_task_file(t, false).unwrap();
     println!("{:#?}", tasks);
 }

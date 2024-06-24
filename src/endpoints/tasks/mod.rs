@@ -1,16 +1,12 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tracing::{debug, error, info, trace};
-use std::process::{Command, ExitStatus, Output, Stdio};
+use tracing::{error, info, trace};
+use std::process::Command;
 use std::fs;
-use std::fs::File;
-use std::io::Error;
 use std::str::FromStr;
-use anyhow::anyhow;
 use indexmap::IndexMap;
 use serde_json::Value;
-use tokio::io::split;
 
 pub mod task_query_builder;
 
@@ -204,7 +200,7 @@ pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     let mut p = TWGlobalState::default();
     p.filter = Some(task.uuid.clone());
     let t = TaskQuery::all();
-    let mut tasks = read_task_file(t, true)?;
+    let tasks = read_task_file(t, true)?;
     let mut t = match tasks.get(&TaskUUID(task.uuid.clone())) {
         None => return anyhow::bail!("Matching task not found"),
         Some(t) => t

@@ -9,8 +9,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use rand::distributions::{Alphanumeric, DistString};
 use serde::{de, Deserialize, Deserializer, Serialize};
-use serde::de::Error;
-use tracing::info;
 
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
@@ -256,7 +254,7 @@ fn get_date_proper() -> impl tera::Function {
 
         let sign = if in_future { -1 } else { 1 };
 
-        let mut s = if num_weeks.abs() > 0 {
+        let s = if num_weeks.abs() > 0 {
             format!("{}w", sign * num_weeks)
         } else if num_days.abs() > 0 {
             format!("{}d", sign * num_days)

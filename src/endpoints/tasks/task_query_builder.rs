@@ -2,7 +2,6 @@ use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
-use tracing::info;
 use tracing::log::trace;
 use crate::TWGlobalState;
 
@@ -209,13 +208,13 @@ impl TaskQuery {
         }
         match &self.report {
             TaskReport::NotSet => {}
-            (v) => {
+            v => {
                 export_suffix.push(v.to_string())
             }
         }
         match &self.priority {
             TaskPriority::NotSet => {}
-            (v) => {
+            v => {
                 export_prefix.push(v.to_string())
             }
         }
@@ -227,7 +226,7 @@ impl TaskQuery {
         }
         match &self.status {
             TaskStatus::NotSet => {}
-            (v) => {
+            v => {
                 export_prefix.push(v.to_string())
             }
         }
