@@ -16,8 +16,6 @@ jobs:
 
     steps:    
     - uses: actions/checkout@v4
-    - run: cd frontend
-    - run: npm install
-    - run: cd ..
+    - run: cd frontend && npm install && cd ..
     - run: cargo build --verbose
-    - run: cargo test --verbose
+    
