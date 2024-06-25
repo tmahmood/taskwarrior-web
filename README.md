@@ -15,6 +15,7 @@ It's completely local. No intention to have any kind of online interactions.
 
 Still work in progress. But in the current stage it is pretty usable
 
+![Application](./screenshots/full_page.png)
 
 # Building and Running
 
