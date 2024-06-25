@@ -60,6 +60,18 @@ Keyboard shortcut is `n`
 Which should bring up the new task dialog box. It will use the current tags and project to create the task
 ![New task](./screenshots/new-task.png)
 
+## Marking task as done
+Call up task search: `d`
+This should update top bar with the following:
+
+![Task search bar](./screenshots/task_search_by_id_text_box.png)
+
+And also the task mnemonics are displayed with the id, in red boxes.
+Typing the mnemonics will immediately mark the task as done
+
+![Task id highlight](./screenshots/task_search_by_id_highlight.png)
+
+
 ## Undo
 Keyboard shortcut is `u`
 
