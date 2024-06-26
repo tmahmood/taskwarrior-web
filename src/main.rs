@@ -4,7 +4,7 @@ use axum::extract::Query;
 use axum::response::Html;
 use axum::routing::post;
 use tera::Context;
-use tracing::{error, info};
+use tracing::{info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use taskwarrior_web::endpoints::tasks::{list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
@@ -120,17 +120,16 @@ async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<St
 }
 
 async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
-    task_add(&new_task).unwrap();
-    let mut ctx = Context::new();
-    ctx.insert("has_toast", &true);
-    ctx.insert("toast_msg", "New task created");
-    ctx.insert("toast_timeout", &15);
+    let fm = match task_add(&new_task) {
+        Ok(_) => FlashMsg::new("New task created", None),
+        Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None)
+    };
     let s = if let Some(tw_q) = new_task.filter_value() {
         serde_json::from_str(tw_q).unwrap()
     } else {
         TaskQuery::default()
     };
-    get_tasks_view(s, Some(ctx))
+    get_tasks_view(s, Some(fm))
 }
 
 
@@ -140,7 +139,8 @@ async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     ctx.insert("has_toast", &true);
     ctx.insert("toast_msg", "Undo successful");
     ctx.insert("toast_timeout", &15);
-    get_tasks_view(task_query_previous_params(&params), Some(ctx))
+    let fm = FlashMsg::new("Undo successful", None);
+    get_tasks_view(task_query_previous_params(&params), Some(fm))
 }
 
 async fn front_page() -> Html<String> {
@@ -159,8 +159,7 @@ async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
     get_tasks_view(task_query_merge_previous_params(&params), None)
 }
 
-fn get_tasks_view(tq: TaskQuery, ctx: Option<Context>) -> Html<String> {
-
+fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     let tasks = match list_tasks(tq.clone()) {
         Ok(t) => { t }
         Err(e) => {
@@ -168,32 +167,35 @@ fn get_tasks_view(tq: TaskQuery, ctx: Option<Context>) -> Html<String> {
         }
     };
     let task_list: Vec<Task> = tasks.values().cloned().collect();
-    let mut ctx_b = if let Some(ctx) = ctx {
-        ctx
-    } else {
-        Context::new()
-    };
+    let mut ctx_b = Context::new();
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &tq.as_filter_text());
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
+    if let Some(msg) = flash_msg {
+        ctx_b.insert("has_toast", &true);
+        ctx_b.insert("toast_msg", msg.msg());
+        ctx_b.insert("toast_timeout", &msg.timeout());
+    }
     Html(TEMPLATES.render("tasks.html", &ctx_b).unwrap())
 }
 
 async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String> {
-    if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
+    let fm = if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
         match update_task_status(task) {
             Ok(_) => {
                 info!("Task was updated");
+                FlashMsg::new("Task was updated", None)
             }
             Err(e) => {
-                error!("Task was not updated: {}", e);
+                FlashMsg::new(&format!("Failed to update task: {e}"), None)
             }
         }
-    }
-    let mut ctx = Context::new();
-    ctx.insert("has_toast", &true);
-    ctx.insert("toast_msg", "Task was updated");
-    ctx.insert("toast_timeout", &15);
-    get_tasks_view(task_query_previous_params(&multipart), Some(ctx))
+    } else {
+        FlashMsg::new("No task to update", None)
+    };
+    get_tasks_view(
+        task_query_previous_params(&multipart),
+        Some(fm)
+    )
 }

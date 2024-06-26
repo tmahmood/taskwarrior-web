@@ -83,6 +83,10 @@ impl FlashMsg {
     pub fn timeout(&self) -> u64 {
         self.timeout.clone().unwrap_or(15)
     }
+
+    pub fn new(msg: &str, timeout: Option<u64>) -> Self {
+        Self { msg: msg.to_string(), timeout }
+    }
 }
 
 #[allow(dead_code)]
@@ -221,10 +225,10 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
         loop {
             let string = Alphanumeric.sample_string(&mut rand::thread_rng(), 2).to_lowercase();
             if tag_key_comb.iter().find(|&(_k, v)| v == &string).is_some() {
-                continue
+                continue;
             }
             tag_key_comb.insert(tag, string);
-            break
+            break;
         }
         Ok(tera::to_value(tag_key_comb)?)
     })

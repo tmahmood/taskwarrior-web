@@ -67,7 +67,7 @@ It's because, `tailwindcss-cli` is missing
 By default, the program will use 3000 as port,
 you can customize through `.env` file or enviornment variable, check `env.example`
 
-variable name: `TWK_SERVER_PORT`
+variable name: `TWK_SERVER_PORT` m
 
 ```shell
 TWK_SERVER_PORT=9070 cargo run --release
