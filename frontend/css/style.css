@@ -15,8 +15,12 @@ body {
 }
 
 
-.table-large th {
+.table-large.hz th {
     @apply font-medium uppercase border-b-neutral-900 border-b-4 p-2;
+}
+
+.table-large.vt th {
+    @apply font-medium uppercase p-2;
 }
 
 .table-large td {

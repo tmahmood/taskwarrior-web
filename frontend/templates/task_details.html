@@ -1,0 +1,121 @@
+<div class="rounded-lg bg-neutral-800 p-8 shadow-2xl absolute top-1/3 left-1/4 z-50">
+    <h2 class="text-lg font-bold">Task Details</h2>
+    <div class="tag-list">
+        <button
+                class="tag-item-800 tag-item"
+                id="tag-btn-back"
+                hx-get="msg_clr"
+                hx-trigger="click,keyup[key=='Escape'] from:body"
+                hx-target="#task_details">back</button>
+    </div>
+    <table class="table-large vt">
+        <tbody>
+        <tr>
+            <th>Age</th>
+            <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
+        </tr>
+        <tr>
+            <th>Depends on</th>
+            <td>
+                {% if task.depends %}
+                    {% for uuid in task.depends %}
+                        {%if tasks_db[uuid] %}{{ tasks_db[uuid].id }}{% endif %}
+                    {% endfor %}
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Project</th>
+            <td>
+                {% if task.project %}
+                <div class="breadcrumb tag-list">
+                    {% for p in task.project | split(pat=".") %}
+                    <span class="tag-item tag-item-800">
+                {{ p }}
+            </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Tags</th>
+            <td>
+                <div class="tag-list">
+                    {% if task.tags %}
+                    {% for p in task.tags %}
+                    <span class="tag-item tag-item-800">
+                        {{ p }}
+                    </span>
+                    {% endfor %}
+                    {% endif %}
+                    {% if task.priority %}
+                    <span class="tag-item {{ task.priority }} tag-item-800">{{ task.priority }}</span>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th>Description</th>
+            <td>
+                {% if task.annotations %}
+                <p>
+                    <strong>{{ task.description }}</strong>
+                </p>
+                <ul class="pl-4">
+                    {% for annotation in task.annotations %}
+                    <li>{{ annotation.description }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                {{ task.description }}
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Urgency</th>
+            <td>{{ task.urgency }}</td>
+        </tr>
+        <tr>
+            <th>Start</th>
+            <td>
+                {% if task.start %}
+                {{ date_proper(date=task.start) }}
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>Due</th>
+            <td>
+                {% if task.due and task.status != 'completed' %}
+                {{ date_proper(date=task.due, in_future=true) }}
+                {% endif %}
+            </td>
+        </tr>
+
+        <tr>
+            <th>Schd</th>
+            <td>
+                {% if task.scheduled %}
+                {{ date_proper(date=task.scheduled, in_future=true) }}
+                {% endif%}
+            </td>
+        </tr>
+        <tr>
+            <th>End</th>
+            <td>
+                {% if task.end %}{{ date_proper(date=task.end) }}
+                {% else %}
+                &nbsp;
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <th>RECUR</th>
+            <td>
+                {% if task.recur %}{{task.recur}}{% endif %}
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use axum::{Form, Router, routing::get};
 use axum::extract::Query;
@@ -7,7 +8,7 @@ use tera::Context;
 use tracing::{info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks::{list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
+use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, TaskUUID, update_task_status};
 use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TEMPLATES, TWGlobalState};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 
@@ -40,9 +41,10 @@ async fn main() {
         .route("/msg", get(display_flash_message))
         .route("/tasks/add", get(display_task_add_window))
         .route("/tasks/add", post(create_new_task))
-        .route("/msg_clr", get(clear_flash_message))
+        .route("/msg_clr", get(just_empty))
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
+        .route("/task_details", get(display_task_details))
         ;
 
     // run our app with hyper, listening globally on port 3000
@@ -64,6 +66,17 @@ fn init_tracing() {
         .init();
 }
 
+async fn display_task_details(Query(param): Query<HashMap<String, String>>) -> Html<String> {
+    let task_id = param.get("task_id").unwrap().clone();
+    let task = get_task_details(task_id).unwrap();
+    let tq = TaskQuery::new(TWGlobalState::default());
+    let tasks = list_tasks(tq.clone()).unwrap();
+    let mut ctx = Context::new();
+    ctx.insert("tasks_db", &tasks);
+    ctx.insert("task", &task);
+    Html(TEMPLATES.render("task_details.html", &ctx).unwrap())
+}
+
 async fn get_task_action_bar() -> Html<String> {
     let ctx = Context::new();
     Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
@@ -74,7 +87,7 @@ async fn get_tag_bar() -> Html<String> {
     Html(TEMPLATES.render("tag_bar.html", &ctx).unwrap())
 }
 
-async fn clear_flash_message() -> Html<String> {
+async fn just_empty() -> Html<String> {
     Html("".to_string())
 }
 

@@ -20,6 +20,7 @@
 <div class="mb-auto h-max">
     <div id="undo_confirm"></div>
     <div id="task_form_div"></div>
+    <div id="task_details"></div>
     {% set on_all = "all" %}
 
     {% set unique_tags = [] %}
@@ -39,13 +40,11 @@
             <div class="tag-list">
                 <span id="tag_search_bar" class="tag-item-800 tag-item">
                     <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML"
-                            hx-trigger="click,keyup[{{mod_key}}key=='t'] from:#cmd-inp"><u>t</u></button>
+                            hx-trigger="click,keyup[{{mod_key}}key=='t'] from:#cmd-inp">select <u>t</u>ag</button>
                 </span>
-            </div>
-            <div class="tag-list" id="task_action_bar">
-                <span class="tag-item-800 tag-item success" id="task_action_done">
-                    <button hx-get="task_action_bar" hx-target="#task_action_done" hx-swap="outerHTML"
-                            hx-trigger="click,keyup[{{mod_key}}key=='d'] from:#cmd-inp"><u>d</u>one</button>
+                <span class="tag-item-800 tag-item" id="task_action_bar">
+                    <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
+                            hx-trigger="click,keyup[{{mod_key}}key=='s'] from:#cmd-inp"><u>s</u>elect task</button>
                 </span>
             </div>
         </div>
@@ -55,11 +54,17 @@
         <div class="md:flex-grow sm:row-autotag-list flex-wrap">
             <div class="tag-list">
                 {% for f in current_filter %}
+                {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=f) %}
+                {% set_global tag_bar_key_comb = tag_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=f) %}
+                {% set kw_tag_bar = tag_bar_key_comb[f] %}
                 <button class="tag-item tag-item-800"
                         hx-include="[id='filtering']"
                         hx-get="tasks?query={{ f | replace(from='+', to='%2B') }}"
-                        hx-target="#list-of-tasks">
+                        hx-target="#list-of-tasks"
+                        id="{{ kw_tag_bar }}"
+                >
                     {{ f }}
+                    <span class="kw-layer hidden">{{ kw_tag_bar }}</span>
                 </button>
                 {% endfor %}
             </div>
@@ -169,9 +174,10 @@
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto">
-        <table id="list-of-tasks" class="table-large">
+        <table id="list-of-tasks" class="table-large hz">
             <thead class="table-large-header">
             <tr>
+                <th></th>
                 <th>ID</th>
                 <th>Age</th>
                 <th>Depends</th>
@@ -190,15 +196,14 @@
             {% for task in tasks %}
             {% set status_color = on_all %}
             {% if task.status == 'pending' %}
-            {% set status_color = on_pending %}
+                {% set status_color = on_pending %}
             {% elif task.status == 'complete' %}
-            {% set status_color = on_complete %}
+                {% set status_color = on_complete %}
             {% elif task.status == 'waiting' %}
-            {% set status_color = on_waiting %}
+                {% set status_color = on_waiting %}
             {% endif %}
             <tr>
                 <td>
-
                     <div class="checkbox-wrapper-32">
                         <input
                                 type="checkbox"
@@ -220,7 +225,7 @@
                         {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
                         {% set kw_id = task_action_bar_key_comb[task.id] %}
                         <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}">
-                            {{ task.id }}
+                            &nbsp;
                             <span class="kw-id-layer hidden red">
                                 {{ kw_id }}
                             </span>
@@ -232,6 +237,23 @@
                                   stroke-dashoffset="113"></path>
                         </svg>
                     </div>
+                </td>
+                <td>
+                    {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw, tag=task.id | as_str) %}
+                    {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
+                    {% set kw_id_details = task_action_bar_key_comb[task.id] %}
+                    <button
+                            class="tag-item tag-item-800"
+                            hx-trigger="click"
+                            hx-get="task_details?task_id={{ task.uuid }}"
+                            hx-target="#task_details"
+                            id="{{ kw_id_details }}"
+                    >
+                        {{ task.id }}
+                        <span class="kw-id-layer hidden red">
+                                {{ kw_id_details }}
+                            </span>
+                    </button>
                 </td>
                 <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
                 <td>{% if task.depends %}
@@ -272,8 +294,7 @@
                         {% for p in task.tags %}
                         {% if p not in unique_tags %}
                         {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=p) %}
-                        {% set_global tag_bar_key_comb = tag_bar_key_comb |
-                        update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=p) %}
+                        {% set_global tag_bar_key_comb = tag_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=p) %}
                         {% set kw = tag_bar_key_comb[p] %}
                         {% endif %}
                         <button class="tag-item tag-item-800" hx-get="tasks?query=%2B{{ p }}"

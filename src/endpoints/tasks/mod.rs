@@ -233,3 +233,15 @@ pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
         }
     }
 }
+
+pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
+    let mut p = TWGlobalState::default();
+    p.filter = Some(uuid.clone());
+    let t = TaskQuery::all();
+    let tasks = read_task_file(t, true)?;
+    match tasks.get(&TaskUUID(uuid.clone())) {
+        None => anyhow::bail!("Matching task not found"),
+        Some(t) => Ok(t.clone())
+    }
+}
+
