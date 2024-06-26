@@ -87,7 +87,9 @@ You can use Mouse or Keyboard to navigate.
 Keyboard shortcut is `t`
 
 For selecting tag, once you enter tag selection mode, the `tag bar` is visible,
-tag mnemonics are displayed on the tags, in red boxes, typing the mnemonics will immediately set the tag/project
+tag mnemonics are displayed on the tags, in red boxes, typing the mnemonics will immediately set the tag/project,
+
+Note: selecting the tag/project again will remove the tag from filter.
 
 ![Search bar](./screenshots/tag-search.png)
 
