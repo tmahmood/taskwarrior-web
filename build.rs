@@ -8,12 +8,12 @@ fn main() {
         Ok(vv) => {
             vv.success()
         }
-        Err(e) => {
+        Err(_e) => {
             false
         }
     };
     if !css_build_success {
-        if let Err(e) = Command::new("./tailwindcss")
+        if let Err(_e) = Command::new("./tailwindcss")
             .args(["-i", "frontend/css/style.css", "-o", "dist/style.css", "-c", "frontend/tailwind.config.js"])
             .status() {
             panic!("Failed to process css")
