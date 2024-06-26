@@ -27,3 +27,4 @@ dist-ssr
 /output.out
 /data_edit.json
 /.env
+/tailwindcss
