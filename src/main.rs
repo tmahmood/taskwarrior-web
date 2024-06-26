@@ -8,7 +8,7 @@ use tera::Context;
 use tracing::{info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, TaskUUID, update_task_status};
+use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
 use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TEMPLATES, TWGlobalState};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 

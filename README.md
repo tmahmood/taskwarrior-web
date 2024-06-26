@@ -99,17 +99,13 @@ Keyboard shortcut is `n`
 Which should bring up the new task dialog box. It will use the current tags and project to create the task
 ![New task](./screenshots/new-task.png)
 
-## Marking task as done
-Call up task search: `d`
-This should update top bar with the following:
+## Marking task as done or displaying task details
+Call up task search: `s`
+This should update top bar with the following, and also the task mnemonics are displayed with the id, in red boxes.
+Typing the mnemonics will immediately mark the task as done,
+or display the details of the task depending on mnemonics typed
 
 ![Task search bar](./screenshots/task_search_by_id_text_box.png)
-
-And also the task mnemonics are displayed with the id, in red boxes.
-Typing the mnemonics will immediately mark the task as done
-
-![Task id highlight](./screenshots/task_search_by_id_highlight.png)
-
 
 ## Undo
 Keyboard shortcut is `u`
@@ -129,6 +125,8 @@ there will be errors, as no checks, and there may not be any error messages in c
 - [ ] Editing/Deleting/Starting tasks
 - [ ] Following Context
 - [ ] Error handling
+    - [x] Returning error message in case error occurred
+    - [ ] Retaining input in case of error
 - [ ] Add more tests
 - [x] Which port to run
 - [ ] Convert to desktop app using Tauri
