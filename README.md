@@ -4,7 +4,7 @@ This is a straightforward, but mostly working task warrior web ui with strong fo
 It's completely local. No intention to have any kind of online interactions.
 
 ## Stack
-* Rust
+* Rust [nightly, will fail to build on stable]
 * axum
 * tera
 * TailwindCSS
