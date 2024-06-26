@@ -17,8 +17,31 @@ Still work in progress. But in the current stage it is pretty usable
 
 ![Application](./screenshots/full_page.png)
 
-# Building and Running
+# Requirements
+* npm
+* rollup
+* tailwindcss-cli
 
+## Installing tailwindcss-cli and rollup
+
+download tailwindcss-cli:
+```
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+```
+
+Make sure `~/bin/` folder is in $PATH variable, and make the executable available for the current user 
+
+```shell
+mv tailwindcss-linux-x64 ~/bin/tailwindcss
+chmod +x ~/bin/tailwindcss
+```
+
+Install rollup
+```
+npm install rollup --global 
+```
+
+# Building and Running
 1. Clone the latest version from GitHub.
 2. `cd frontend`
 3. `npm install`
