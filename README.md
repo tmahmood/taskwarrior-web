@@ -18,12 +18,17 @@ Still work in progress. But in the current stage it is pretty usable
 ![Application](./screenshots/full_page.png)
 
 # Requirements
+* rust nightly
 * npm
 * rollup
 * tailwindcss-cli
 
-## Installing tailwindcss-cli and rollup
+## Installing rust nightly
 
+Should be installable through `rustup`
+https://rustup.rs/
+
+## Installing tailwindcss-cli and rollup
 ```shell
 curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
 mv tailwindcss-linux-x64 tailwindcss
