@@ -25,6 +25,13 @@ Still work in progress. But in the current stage it is pretty usable
 ## Installing tailwindcss-cli and rollup
 
 download tailwindcss-cli:
+on ArchLinux, it can be installed through any aur helpers
+```shell
+yay tailwindcss-bin
+```
+
+On other distros, you may have to download it.
+
 ```
 curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
 ```
@@ -49,6 +56,20 @@ npm install rollup --global
 5. `cargo run --release`
 
 That should be it! Now you have the server running at `localhost:3000` accessible by your browser.
+
+## Troubleshooting
+
+if you are receiving the following error in step 5
+
+```shell
+
+  thread 'main' panicked at build.rs:7:19:
+  called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+```
+
+It's because, `tailwindcss-cli` is 
 
 ## Customizing the port
 By default, the program will use 3000 as port,
