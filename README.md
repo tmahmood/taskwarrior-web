@@ -32,16 +32,12 @@ yay tailwindcss-bin
 
 On other distros, you may have to download it.
 
-```
-curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
-```
-
-Provided the `~/bin/` folder is in the $PATH variable, copy the executable file and make it executable
-
 ```shell
-mv tailwindcss-linux-x64 ~/bin/tailwindcss
-chmod +x ~/bin/tailwindcss
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+mv tailwindcss-linux-x64 tailwindcss
+chmod +x tailwindcss
 ```
+
 
 Install rollup
 ```
