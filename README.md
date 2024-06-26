@@ -29,7 +29,7 @@ download tailwindcss-cli:
 curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
 ```
 
-Make sure `~/bin/` folder is in $PATH variable, and make the executable available for the current user 
+Provided the `~/bin/` folder is in the $PATH variable, copy the executable file and make it executable
 
 ```shell
 mv tailwindcss-linux-x64 ~/bin/tailwindcss
