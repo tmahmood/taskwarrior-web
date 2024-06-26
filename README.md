@@ -24,20 +24,11 @@ Still work in progress. But in the current stage it is pretty usable
 
 ## Installing tailwindcss-cli and rollup
 
-download tailwindcss-cli:
-on ArchLinux, it can be installed through any aur helpers
-```shell
-yay tailwindcss-bin
-```
-
-On other distros, you may have to download it.
-
 ```shell
 curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
 mv tailwindcss-linux-x64 tailwindcss
 chmod +x tailwindcss
 ```
-
 
 Install rollup
 ```
@@ -65,7 +56,7 @@ if you are receiving the following error in step 5
 
 ```
 
-It's because, `tailwindcss-cli` is 
+It's because, `tailwindcss-cli` is missing
 
 ## Customizing the port
 By default, the program will use 3000 as port,
