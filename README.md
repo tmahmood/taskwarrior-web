@@ -25,7 +25,7 @@ and [RustDesk](https://github.com/rustdesk/rustdesk/)
 
 ```shell 
 docker build -t taskwarrior-web-rs . \
-&& docker run -p 3000:3000 \
+&& docker run -d -p 3000:3000 \
 -v ~/.task/:/home/builder/.task \
 -v ~/.taskrc:/home/builder/.taskrc \
 -v /usr/share/doc/task/rc/:/usr/share/doc/task/rc/:ro \
