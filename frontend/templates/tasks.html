@@ -36,17 +36,8 @@
     <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex flex-wrap">
 
         <!-- TAG BAR -->
-        <div class="md:flex-grow sm:row-autotag-list flex-wrap">
-            <div class="tag-list">
-                <span id="tag_search_bar" class="tag-item-800 tag-item">
-                    <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML"
-                            hx-trigger="click,keyup[{{mod_key}}key=='t'] from:#cmd-inp">select <u>t</u>ag</button>
-                </span>
-                <span class="tag-item-800 tag-item" id="task_action_bar">
-                    <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
-                            hx-trigger="click,keyup[{{mod_key}}key=='s'] from:#cmd-inp"><u>s</u>elect task</button>
-                </span>
-            </div>
+        <div class="md:flex-grow sm:row-autotag-list flex-wrap" id="left-action-bar">
+            {% include 'left_action_bar.html' %}
         </div>
         <!-- // -->
 
@@ -61,8 +52,7 @@
                         hx-include="[id='filtering']"
                         hx-get="tasks?query={{ f | replace(from='+', to='%2B') }}"
                         hx-target="#list-of-tasks"
-                        id="{{ kw_tag_bar }}"
-                >
+                        id="{{ kw_tag_bar }}">
                     {{ f }}
                     <span class="kw-layer hidden">{{ kw_tag_bar }}</span>
                 </button>
@@ -213,11 +203,11 @@
                                 hx-post="tasks" hx-target="#list-of-tasks"
                                 hx-include="[id='filtering']"
                                 {% if task.status !="completed" %}
-                                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}"}'
+                                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
                                     hx-swap="innerHTML"
                                 {% else %}
                                     checked="checked"
-                                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed" }'
+                                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
                                     hx-swap="innerHTML"
                                 {% endif %}
                         >

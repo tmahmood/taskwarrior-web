@@ -89,6 +89,12 @@ impl FlashMsg {
     }
 }
 
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub enum TaskActions {
+    StatusUpdate,
+    ToggleTimer
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct TWGlobalState {
@@ -99,6 +105,7 @@ pub struct TWGlobalState {
     uuid: Option<String>,
     filter_value: Option<String>,
     task_entry: Option<String>,
+    action: Option<TaskActions>
 }
 
 impl TWGlobalState {
@@ -122,6 +129,9 @@ impl TWGlobalState {
     }
     pub fn task_entry(&self) -> &Option<String> {
         &self.task_entry
+    }
+    pub fn action(&self) -> &Option<TaskActions> {
+        &self.action
     }
 }
 
@@ -154,7 +164,6 @@ pub fn from_task_to_task_update(params: &TWGlobalState) -> Option<TaskUpdateStat
     None
 }
 
-
 impl Default for TWGlobalState {
     fn default() -> Self {
         Self {
@@ -165,6 +174,7 @@ impl Default for TWGlobalState {
             uuid: None,
             filter_value: None,
             task_entry: None,
+            action: None,
         }
     }
 }

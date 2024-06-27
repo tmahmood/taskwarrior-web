@@ -8,8 +8,8 @@ use tera::Context;
 use tracing::{info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, update_task_status};
-use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TEMPLATES, TWGlobalState};
+use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active};
+use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 
 
@@ -35,7 +35,7 @@ async fn main() {
             tower_http::services::ServeDir::new("./dist"),
         )
         .route("/tasks", get(tasks_display))
-        .route("/tasks", post(change_task_status))
+        .route("/tasks", post(do_task_actions))
         .route("/tasks/undo/report", get(get_undo_report))
         .route("/tasks/undo/confirmed", post(undo_last_change))
         .route("/msg", get(display_flash_message))
@@ -45,6 +45,7 @@ async fn main() {
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
         .route("/task_details", get(display_task_details))
+        .route("/bars", get(get_bar))
         ;
 
     // run our app with hyper, listening globally on port 3000
@@ -82,10 +83,25 @@ async fn get_task_action_bar() -> Html<String> {
     Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
 }
 
+async fn get_bar(Query(param): Query<HashMap<String, String>>) -> Html<String> {
+    if let Some(bar) = param.get("bar") {
+        let ctx = Context::new();
+        if bar == "left_action_bar" {
+            Html(TEMPLATES.render("left_action_bar.html", &ctx).unwrap())
+        } else {
+            Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
+        }
+    } else {
+        Html("".to_string())
+    }
+}
+
+
 async fn get_tag_bar() -> Html<String> {
     let ctx = Context::new();
     Html(TEMPLATES.render("tag_bar.html", &ctx).unwrap())
 }
+
 
 async fn just_empty() -> Html<String> {
     Html("".to_string())
@@ -148,10 +164,6 @@ async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
 
 async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     task_undo().unwrap();
-    let mut ctx = Context::new();
-    ctx.insert("has_toast", &true);
-    ctx.insert("toast_msg", "Undo successful");
-    ctx.insert("toast_timeout", &15);
     let fm = FlashMsg::new("Undo successful", None);
     get_tasks_view(task_query_previous_params(&params), Some(fm))
 }
@@ -193,22 +205,40 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     Html(TEMPLATES.render("tasks.html", &ctx_b).unwrap())
 }
 
-async fn change_task_status(Form(multipart): Form<TWGlobalState>) -> Html<String> {
-    let fm = if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
-        match update_task_status(task) {
-            Ok(_) => {
-                info!("Task was updated");
-                FlashMsg::new("Task was updated", None)
-            }
-            Err(e) => {
-                FlashMsg::new(&format!("Failed to update task: {e}"), None)
+
+async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
+    let fm = match multipart.action().clone().unwrap() {
+        TaskActions::StatusUpdate => {
+            if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
+                match mark_task_as_done(task) {
+                    Ok(_) => {
+                        info!("Task was updated");
+                        FlashMsg::new("Task was updated", None)
+                    }
+                    Err(e) => {
+                        FlashMsg::new(&format!("Failed to update task: {e}"), None)
+                    }
+                }
+            } else {
+                FlashMsg::new("No task to update", None)
             }
         }
-    } else {
-        FlashMsg::new("No task to update", None)
+        TaskActions::ToggleTimer => {
+            let task_uuid = multipart.uuid().clone().unwrap();
+            match toggle_task_active(&task_uuid) {
+                Ok(_) => {
+                    info!("Task was updated");
+                    FlashMsg::new("Task was updated", None)
+                }
+                Err(e) => {
+                    FlashMsg::new(&format!("Failed to update task: {e}"), None)
+                }
+            }
+        }
     };
     get_tasks_view(
         task_query_previous_params(&multipart),
         Some(fm)
     )
 }
+

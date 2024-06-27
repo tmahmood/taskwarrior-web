@@ -1,12 +1,57 @@
-<div class="rounded-lg bg-neutral-800 p-8 shadow-2xl absolute top-1/3 left-1/4 z-50">
-    <h2 class="text-lg font-bold">Task Details</h2>
-    <div class="tag-list">
-        <button
-                class="tag-item-800 tag-item"
-                id="tag-btn-back"
-                hx-get="msg_clr"
-                hx-trigger="click,keyup[key=='Escape'] from:body"
-                hx-target="#task_details">back</button>
+<div class="rounded-lg bg-neutral-800 p-2 shadow-2xl absolute top-10 left-1/4 z-50">
+    <h2 class="text-lg font-bold text-neutral-200">Task Details</h2>
+    <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
+        <div class="tag-list">
+            <button
+                    class="tag-item-800 tag-item"
+                    id="tag-btn-back-details"
+                    hx-get="tasks"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    hx-trigger="click,keyup[key=='b'] from:#task-details-inp"
+            ><u>b</u>ack
+            </button>
+            <button
+                    class="tag-item-800 tag-item success"
+                    id="btn-mark-as-done"
+                    hx-post="tasks"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    {% if task.status !="completed" %}
+                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
+                    {% else %}
+                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
+                    {% endif %}
+                    hx-trigger="click,keyup[key=='d'] from:#task-details-inp"
+            ><u>d</u>one
+            </button>
+            <button
+                    class="tag-item-800 tag-item pending"
+                    id="btn-timer-toggle"
+                    hx-post="tasks"
+                    hx-target="#list-of-tasks"
+                    hx-include="[id='filtering']"
+                    {% if task.start %}
+                    hx-vals='{"uuid":"{{ task.uuid }}", "action": "ToggleTimer"}'
+                    {% else %}
+                    hx-vals='{"uuid":"{{ task.uuid }}", "action": "ToggleTimer"}'
+                    {% endif %}
+                    hx-trigger="click,keyup[key=='s'] from:#task-details-inp">
+                {% if task.start %}
+                <u>s</u>top
+                {% else %}
+                <u>s</u>tart
+                {% endif %}
+            </button>
+            <span>
+            <label for="task-details-inp" class="hidden"></label>
+            <input type="text" id="task-details-inp"
+                   class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+                   placeholder="Cmd Bar"
+                   autofocus
+            />
+        </span>
+        </div>
     </div>
     <table class="table-large vt">
         <tbody>
@@ -18,9 +63,9 @@
             <th>Depends on</th>
             <td>
                 {% if task.depends %}
-                    {% for uuid in task.depends %}
-                        {%if tasks_db[uuid] %}{{ tasks_db[uuid].id }}{% endif %}
-                    {% endfor %}
+                {% for uuid in task.depends %}
+                {%if tasks_db[uuid] %}{{ tasks_db[uuid].id }}{% endif %}
+                {% endfor %}
                 {% endif %}
             </td>
         </tr>
@@ -31,8 +76,8 @@
                 <div class="breadcrumb tag-list">
                     {% for p in task.project | split(pat=".") %}
                     <span class="tag-item tag-item-800">
-                {{ p }}
-            </span>
+                        {{ p }}
+                    </span>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -45,8 +90,8 @@
                     {% if task.tags %}
                     {% for p in task.tags %}
                     <span class="tag-item tag-item-800">
-                        {{ p }}
-                    </span>
+                            {{ p }}
+                        </span>
                     {% endfor %}
                     {% endif %}
                     {% if task.priority %}

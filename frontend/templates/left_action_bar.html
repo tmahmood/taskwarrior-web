@@ -1,0 +1,10 @@
+            <div class="tag-list">
+                <span id="tag_search_bar" class="tag-item-800 tag-item">
+                    <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML"
+                            hx-trigger="click,keyup[key=='t'] from:#cmd-inp">select <u>t</u>ag</button>
+                </span>
+                <span class="tag-item-800 tag-item" id="task_action_bar">
+                    <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
+                            hx-trigger="click,keyup[key=='s'] from:#cmd-inp"><u>s</u>elect task</button>
+                </span>
+            </div>

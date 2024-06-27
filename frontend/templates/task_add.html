@@ -77,16 +77,17 @@
     </form>
 
     <div class="mt-4 flex gap-2" id="model-add-task">
-        <button type="submit" class="btn success" id="btn-mdl-yes" form="task_add_form" hx-trigger="click,keyup[altKey&&key==d]">
-            [ALT+D]one
+        <button type="submit" class="btn success" id="btn-mdl-yes" form="task_add_form"
+                hx-trigger="click,keyup[key=='Enter']">
+            [Ent] Done
         </button>
 
         <button type="button" class="btn destructive"
                 hx-get="tasks"
-                hx-trigger="click,keyup[altKey&&key=='c'] from:body"
+                hx-trigger="click,keyup[key=='Escape'] from:body"
                 hx-include="[id='filtering']"
                 hx-target="#list-of-tasks">
-            [ALT+C]ancel
+            [Esc] Cancel
         </button>
     </div>
 

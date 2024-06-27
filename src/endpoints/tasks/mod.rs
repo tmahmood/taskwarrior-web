@@ -195,20 +195,40 @@ pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, any
     read_task_file(task_query, false)
 }
 
-// update a single task
-pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
-    let mut p = TWGlobalState::default();
-    p.filter = Some(task.uuid.clone());
-    let t = TaskQuery::all();
-    let tasks = read_task_file(t, true)?;
-    let mut t = match tasks.get(&TaskUUID(task.uuid.clone())) {
-        None => anyhow::bail!("Matching task not found"),
-        Some(t) => t
-    }.clone();
-    t.status = Some(task.status);
+// mark a task as done
+pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
+    let mut t = get_task_from_tw(&task.uuid)?;
     let entry = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-    t.end = Some(entry.clone());
-    t.modified = Some(entry);
+    t.modified = Some(entry.clone());
+    t.status = Some(task.status);
+    t.end = Some(entry);
+    execute_update(t)
+}
+
+pub fn toggle_task_active(task_uuid: &str) -> Result<(), anyhow::Error> {
+    let t = get_task_from_tw(task_uuid)?;
+    // maybe another task is running? So stop all other tasks first
+    if let Err(e) = Command::new("task")
+        .arg("+ACTIVE")
+        .arg("stop")
+        .output() {
+            error!("Failed to stop any task: {}", e);
+            anyhow::bail!("Failed to stop task");
+    }
+    // the task was not running, so let's start it
+    if t.start.is_none() {
+        if let Err(e) = Command::new("task")
+            .arg(task_uuid)
+            .arg("start")
+            .output() {
+            error!("Failed to start task: {}", e);
+            anyhow::bail!("Failed to start task");
+        }
+    }
+    Ok(())
+}
+
+fn execute_update(t: Task) -> Result<(), anyhow::Error> {
     let tasks_vec: Vec<Task> = vec![t];
     let data_file = PathBuf::from(TASK_DATA_FILE_EDIT);
     fs::write(&data_file, serde_json::to_string(&tasks_vec)?)?;
@@ -231,6 +251,17 @@ pub fn update_task_status(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
             error!("Not ok from task command {:?} {:?}", o, o.stderr);
             anyhow::bail!("Failed to sync");
         }
+    }
+}
+
+fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
+    let mut p = TWGlobalState::default();
+    p.filter = Some(task_uuid.to_string());
+    let t = TaskQuery::all();
+    let tasks = read_task_file(t, true)?;
+    match tasks.get(&TaskUUID(task_uuid.to_string())) {
+        None => anyhow::bail!("Matching task not found"),
+        Some(t) => Ok(t.clone())
     }
 }
 

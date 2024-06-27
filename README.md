@@ -34,6 +34,10 @@ docker build -t taskwarrior-web-rs . \
 
 That should do it.
 
+NOTE: If you have any hooks
+(eg. Starting time tracking using time-warrior when we start a task,
+you'll need to install the required application in in the docker, also the config files)
+
 # Manual Installation
 ## Requirements
 
@@ -105,6 +109,7 @@ You can use Mouse or Keyboard to navigate.
 * All the keyboard mnemonics are underlined.
 * The `Cmd Bar` needs to be focused (`Ctrl + Shift + K`) for the keyboard shortcuts to work
 
+
 ## Project and Tag selection
 
 Keyboard shortcut is `t`
@@ -131,6 +136,10 @@ Typing the mnemonics will immediately mark the task as done,
 or display the details of the task depending on mnemonics typed
 
 ![Task search bar](./screenshots/task_search_by_id_text_box.png)
+
+In Task Details window, you can mark task as done[d] and start/stop [s] timer.
+
+![Task details window](./screenshots/task_details.png)
 
 ## Undo
 
