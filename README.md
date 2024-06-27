@@ -24,13 +24,12 @@ Docker image is provided. A lot of thanks go to [DCsunset](https://github.com/DC
 and [RustDesk](https://github.com/rustdesk/rustdesk/)
 
 ```shell 
-docker build --tag taskwarrior-web-rs:latest .
-docker run -d --rm -p 3000:3000 \
-  --name taskwarrior-web-rs \
-  -v ~/.task:/home/builder/.task \
-  -v ~/.taskrc:/home/builder/.taskrc \
-  -v /usr/share/doc/task/rc/:/usr/share/doc/task/rc/:ro \
-  taskwarrior-web-rs:latest
+docker build -t taskwarrior-web-rs . \
+&& docker run -p 3000:3000 \
+-v ~/.task/:/home/builder/.task \
+-v ~/.taskrc:/home/builder/.taskrc \
+-v /usr/share/doc/task/rc/:/usr/share/doc/task/rc/:ro \
+--name taskwarrior-web-rs taskwarrior-web-rs 
 ```
 
 That should do it.

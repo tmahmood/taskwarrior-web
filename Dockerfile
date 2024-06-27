@@ -1,7 +1,7 @@
 FROM archlinux:latest
 
 # Install
-RUN pacman -Suy --needed --noconfirm sudo curl base-devel git npm
+RUN pacman -Suy --needed --noconfirm sudo curl base-devel git npm python
 RUN pacman -S --noconfirm task
 RUN useradd -m -G wheel builder && passwd -d builder
 RUN echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
