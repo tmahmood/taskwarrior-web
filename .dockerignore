@@ -1,0 +1,12 @@
+
+target
+frontend/node_modules
+dist
+.env
+tailwindcss
+screenshots
+.idea
+.github
+*.json
+*.out
+README.md
