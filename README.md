@@ -144,7 +144,9 @@ You only need to enter the modifications.
 
 ![Task details window](./screenshots/task_details.png)
 
-Once you start a time
+Once you start a timer it will be highlighted on the list
+![Task active](./screenshots/active_task.png)
+
 ## Undo
 
 Keyboard shortcut is `u`
