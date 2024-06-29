@@ -195,6 +195,42 @@ pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, any
     read_task_file(task_query, false)
 }
 
+pub fn run_modify_command(task_uuid: &str, cmd_text: &str) -> Result<(), anyhow::Error> {
+    let mut task_cmd = Command::new("task");
+    task_cmd.arg("modify").arg(task_uuid);
+    cmd_text.split(' ').for_each(|v| {
+        task_cmd.arg(v);
+    });
+    if let Err(e) = task_cmd.output() {
+        error!("Failed to execute command: {}", e);
+        anyhow::bail!("Failed to execute modify command");
+    }
+    Ok(())
+}
+
+pub fn run_annotate_command(task_uuid: &str, annotation: &str) -> Result<(), anyhow::Error> {
+    let mut task_cmd = Command::new("task");
+    task_cmd.arg("annotate").arg(task_uuid);
+    annotation.split(' ').for_each(|v| {
+        task_cmd.arg(v);
+    });
+    if let Err(e) = task_cmd.output() {
+        error!("Failed to execute command: {}", e);
+        anyhow::bail!("Failed to execute annotation command");
+    }
+    Ok(())
+}
+
+pub fn run_denotate_command(task_uuid: &str) -> Result<(), anyhow::Error> {
+    let mut task_cmd = Command::new("task");
+    task_cmd.arg(task_uuid).arg("denotate");
+    if let Err(e) = task_cmd.output() {
+        error!("Failed to execute command: {}", e);
+        anyhow::bail!("Failed to execute denotate command");
+    }
+    Ok(())
+}
+
 // mark a task as done
 pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     let mut t = get_task_from_tw(&task.uuid)?;
@@ -205,18 +241,19 @@ pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     execute_update(t)
 }
 
-pub fn toggle_task_active(task_uuid: &str) -> Result<(), anyhow::Error> {
+pub fn toggle_task_active(task_uuid: &str) -> Result<bool, anyhow::Error> {
     let t = get_task_from_tw(task_uuid)?;
     // maybe another task is running? So stop all other tasks first
     if let Err(e) = Command::new("task")
         .arg("+ACTIVE")
         .arg("stop")
         .output() {
-            error!("Failed to stop any task: {}", e);
-            anyhow::bail!("Failed to stop task");
+        error!("Failed to stop any task: {}", e);
+        anyhow::bail!("Failed to stop task");
     }
+    let is_running = t.start.is_none();
     // the task was not running, so let's start it
-    if t.start.is_none() {
+    if is_running {
         if let Err(e) = Command::new("task")
             .arg(task_uuid)
             .arg("start")
@@ -225,7 +262,8 @@ pub fn toggle_task_active(task_uuid: &str) -> Result<(), anyhow::Error> {
             anyhow::bail!("Failed to start task");
         }
     }
-    Ok(())
+    // the task is now running
+    Ok(is_running)
 }
 
 fn execute_update(t: Task) -> Result<(), anyhow::Error> {

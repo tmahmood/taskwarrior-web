@@ -247,6 +247,9 @@ body {
     stroke-width: calc(var(--size) / 2);
 }
 
+.active-task {
+    @apply bg-sky-950 text-sky-300;
+}
 
 #toast {
 }

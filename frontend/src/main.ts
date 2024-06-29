@@ -9,11 +9,26 @@ export const doing_something = () => {
     console.log("Hello world");
 }
 
+hotkeys.filter = function(event) {
+    // @ts-ignore
+    let tagName = event.target.tagName;
+    hotkeys.setScope(/^(INPUT|TEXTAREA|SELECT)$/.test(tagName) ? 'input' : 'other');
+    return true;
+}
+
 
 hotkeys('ctrl+shift+K', function (event, handler) {
     // Prevent the default refresh event under WINDOWS system
     event.preventDefault()
-    document.getElementById('cmd-inp').focus();
+    let ss = document.getElementById('task-details-inp');
+    console.log(ss);
+    if (ss !== null) {
+        event.preventDefault()
+        ss.focus();
+    } else {
+        document.getElementById('cmd-inp').focus();
+    }
+    return false;
 });
 
 hotkeys('ctrl+shift+L', function (event, handler) {

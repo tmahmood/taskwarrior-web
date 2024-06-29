@@ -1,31 +1,31 @@
-<div class="rounded-lg bg-white p-8 shadow-2xl absolute top-1/3 left-1/4 z-50">
-    <h2 class="text-lg font-bold">{{ heading }}</h2>
+<div class="rounded-lg bg-neutral-800 p-5 shadow-2xl absolute top-10 left-72 z-50 w-3/5 lg:h-4/5 xl:h-auto overflow-y-auto">
+    <h2 class="text-lg font-bold text-neutral-50">{{ heading }}</h2>
 
-    <p class="mt-2 text-sm text-gray-500">
+    <p class="mt-2 text-sm text-neutral-400">
         The undo command is not reversible. Are you sure you want to revert to the previous state?
-        <ul>
+        <ul class="text-neutral-500 text-sm mb-4">
             {% for line in report %}
-            <li>{{line | replace(from='\t', to='    ') }}</li>
+            <li class="mt-2">{{line | replace(from='\t', to='    ') }}</li>
             {% endfor %}
         </ul>
     </p>
 
-    <div class="mt-4 flex gap-2" id="model-undo">
-        <button type="button" class="rounded bg-green-50 px-4 py-2 text-sm font-medium text-green-600"
+    <div class="mt-4 flex gap-2 text-neutral-50" id="model-undo">
+        <button type="button" class="rounded bg-red-900 px-4 py-2 text-sm font-medium text-red-100"
                 id="btn-mdl-yes"
                 hx-include="[id='filtering']"
                 hx-target="#list-of-tasks"
-                hx-trigger="click,keyup[key=='y'] from:#model-undo"
+                hx-trigger="click,keyup[key=='Enter'] from:body"
                 hx-post="tasks/undo/confirmed">
-            [Y]es, I'm sure
+            [Enter] Yes, I'm sure
         </button>
 
-        <button type="button" class="rounded bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600"
+        <button type="button" class="rounded bg-green-700 px-4 py-2 text-sm font-medium text-green-200"
                 hx-get="tasks" autofocus
-                hx-trigger="click,keyup[key=='n'] from:#model-undo"
+                hx-trigger="click,keyup[key=='Escape'] from:body"
                 hx-include="[id='filtering']"
                 hx-target="#list-of-tasks">
-            [N]o, go back
+            [Esc] No, go back
         </button>
     </div>
 </div>

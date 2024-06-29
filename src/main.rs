@@ -5,10 +5,10 @@ use axum::extract::Query;
 use axum::response::Html;
 use axum::routing::post;
 use tera::Context;
-use tracing::{info};
+use tracing::{error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active};
+use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active, run_modify_command, run_annotate_command, run_denotate_command};
 use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 
@@ -207,15 +207,16 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
 
 
 async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
+    info!("{:?}", multipart);
     let fm = match multipart.action().clone().unwrap() {
         TaskActions::StatusUpdate => {
             if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
-                match mark_task_as_done(task) {
+                match mark_task_as_done(task.clone()) {
                     Ok(_) => {
-                        info!("Task was updated");
-                        FlashMsg::new("Task was updated", None)
+                        FlashMsg::new(&format!("Task [{}] was updated", task.uuid), None)
                     }
                     Err(e) => {
+                        error!("Failed: {}", e);
                         FlashMsg::new(&format!("Failed to update task: {e}"), None)
                     }
                 }
@@ -226,19 +227,53 @@ async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
         TaskActions::ToggleTimer => {
             let task_uuid = multipart.uuid().clone().unwrap();
             match toggle_task_active(&task_uuid) {
-                Ok(_) => {
-                    info!("Task was updated");
-                    FlashMsg::new("Task was updated", None)
+                Ok(v) => {
+                    if v {
+                        FlashMsg::new(&format!("Task {} started, any other tasks running were stopped", task_uuid), None)
+                    } else {
+                        FlashMsg::new(&format!("Task {} stopped", task_uuid), None)
+                    }
                 }
                 Err(e) => {
+                    error!("Failed: {}", e);
                     FlashMsg::new(&format!("Failed to update task: {e}"), None)
                 }
+            }
+        }
+        TaskActions::ModifyTask => {
+            let cmd = multipart.task_entry().clone().unwrap();
+            if cmd.is_empty() {
+                error!("Failed: No annotation provided");
+                FlashMsg::new("Failed to execute command, none provided", None)
+            } else {
+                match run_modify_command(multipart.uuid().as_ref().unwrap(), &cmd) {
+                    Ok(_) => FlashMsg::new("Modify command success", None),
+                    Err(e) => FlashMsg::new(&format!("Modify command failed: {}", e), None),
+                }
+            }
+        }
+        TaskActions::AnnotateTask => {
+            let cmd = multipart.task_entry().clone().unwrap();
+            if cmd.is_empty() {
+                error!("Failed: No command provided");
+                FlashMsg::new("Failed to execute command, none provided", None)
+            } else {
+                match run_annotate_command(multipart.uuid().as_ref().unwrap(), &cmd) {
+                    Ok(_) => FlashMsg::new("Annotation added", None),
+                    Err(e) => FlashMsg::new(&format!("Annotation command failed: {}", e), None),
+                }
+            }
+        }
+        TaskActions::DenotateTask => {
+            match run_denotate_command(multipart.uuid().as_ref().unwrap()) {
+                Ok(_) => FlashMsg::new("Denotated task", None),
+                Err(e) => FlashMsg::new(&format!("Denotation command failed: {}", e), None),
             }
         }
     };
     get_tasks_view(
         task_query_previous_params(&multipart),
-        Some(fm)
+        Some(fm),
     )
 }
 

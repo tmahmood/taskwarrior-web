@@ -1,6 +1,6 @@
 {% set bg_color = "bg-neutral-800" %}
-<div class="rounded-lg p-8 shadow-2xl absolute top-1/3 left-1/4 z-50 bg-neutral-800 text-neutral-300">
-    <h2 class="text-lg font-bold">Adding new task</h2>
+<div class="rounded-lg bg-neutral-800 p-5 shadow-2xl absolute top-10 left-72 z-50 w-3/5 lg:h-4/5 xl:h-auto overflow-y-auto">
+    <h2 class="text-lg  font-bold text-neutral-50">Adding new task</h2>
 
     <form class="mt-2 text-sm" id="task_add_form"
 
@@ -77,12 +77,12 @@
     </form>
 
     <div class="mt-4 flex gap-2" id="model-add-task">
-        <button type="submit" class="btn success" id="btn-mdl-yes" form="task_add_form"
+        <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-medium text-green-200" id="btn-mdl-yes" form="task_add_form"
                 hx-trigger="click,keyup[key=='Enter']">
             [Ent] Done
         </button>
 
-        <button type="button" class="btn destructive"
+        <button type="button" class="rounded bg-red-900 px-4 py-2 text-sm font-medium text-red-100"
                 hx-get="tasks"
                 hx-trigger="click,keyup[key=='Escape'] from:body"
                 hx-include="[id='filtering']"

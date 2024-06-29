@@ -138,9 +138,13 @@ or display the details of the task depending on mnemonics typed
 ![Task search bar](./screenshots/task_search_by_id_text_box.png)
 
 In Task Details window, you can mark task as done[d] and start/stop [s] timer.
+Also, denotate task using [n]
+You can use task command to modify the task.
+You only need to enter the modifications.
 
 ![Task details window](./screenshots/task_details.png)
 
+Once you start a time
 ## Undo
 
 Keyboard shortcut is `u`
@@ -153,10 +157,14 @@ This will bring up undo confirmation dialog
 This is a work in progress application, many things will not work,
 there will be errors, as no checks, and there may not be any error messages in case of error.
 
-- [ ] Usability improvements on long task list
+- [ ] Usability improvements on a long task list
 - [x] Marking a task done with keyboard shortcut
 - [x] Bug fix, not unmarking completed task
-- [ ] Editing/Deleting/Starting tasks
+- [ ] Modification
+  - [x] Editing
+  - [ ] Deleting
+  - [x] Starting tasks
+  - [x] Annotation/Denotation
 - [ ] Following Context
 - [ ] Error handling
     - [x] Returning error message in case error occurred

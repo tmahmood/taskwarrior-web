@@ -23,6 +23,7 @@ lazy_static::lazy_static! {
         };
         tera.register_function("project_name", get_project_name_link());
         tera.register_function("date_proper", get_date_proper());
+        tera.register_function("date", get_date());
         tera.register_function("obj", obj());
         tera.register_filter("update_unique_tags", update_unique_tags());
         tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
@@ -92,7 +93,10 @@ impl FlashMsg {
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub enum TaskActions {
     StatusUpdate,
-    ToggleTimer
+    ToggleTimer,
+    ModifyTask,
+    AnnotateTask,
+    DenotateTask
 }
 
 #[allow(dead_code)]
@@ -179,6 +183,7 @@ impl Default for TWGlobalState {
     }
 }
 
+#[derive(Clone)]
 pub struct TaskUpdateStatus {
     pub status: String,
     pub uuid: String,
@@ -278,6 +283,18 @@ fn get_date_proper() -> impl tera::Function {
             format!("{}m", sign * num_minutes)
         };
         Ok(tera::to_value(s).unwrap())
+    })
+}
+
+fn get_date() -> impl tera::Function {
+    Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        // we are working with utc time
+        let time = chrono::prelude::NaiveDateTime::parse_from_str(
+            args.get("date").unwrap().as_str().unwrap(),
+            "%Y%m%dT%H%M%SZ",
+        ).unwrap().and_utc();
+
+        Ok(tera::to_value(time.format("%Y-%b-%d %H:%m").to_string()).unwrap())
     })
 }
 

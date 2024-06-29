@@ -1,0 +1,20 @@
+{% macro desc(task) %}
+<div>
+    {% if task.annotations %}
+    <p>
+        <strong>{{ task.description }}</strong>
+    </p>
+    <ul class="pl-4 text-sm">
+        {% for annotation in task.annotations %}
+        <li class="list-outside">
+            [{{date(date=annotation.entry) }}] {{ annotation.description }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>
+        {{ task.description }}
+    </p>
+    {% endif %}
+</div>
+{% endmacro desc %}

@@ -1,3 +1,4 @@
+{% import "desc.html" as desc %}
 {% if has_toast %}
 <div hx-swap-oob="beforeend:#toast">
     <div class="items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white"
@@ -192,7 +193,7 @@
             {% elif task.status == 'waiting' %}
                 {% set status_color = on_waiting %}
             {% endif %}
-            <tr>
+            <tr {%if task.start %} class="active-task" {% endif %}>
                 <td>
                     <div class="checkbox-wrapper-32">
                         <input
@@ -214,9 +215,9 @@
                         {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw, tag=task.id | as_str) %}
                         {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
                         {% set kw_id = task_action_bar_key_comb[task.id] %}
-                        <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}">
+                        <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}" class="static">
                             &nbsp;
-                            <span class="kw-id-layer hidden red">
+                            <span class="kw-id-layer hidden red absolute top-1 left-1">
                                 {{ kw_id }}
                             </span>
                         </label>
@@ -233,14 +234,15 @@
                     {% set_global task_action_bar_key_comb = task_action_bar_key_comb | update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
                     {% set kw_id_details = task_action_bar_key_comb[task.id] %}
                     <button
-                            class="tag-item tag-item-800"
+                            class="tag-item tag-item-800 static"
                             hx-trigger="click"
                             hx-get="task_details?task_id={{ task.uuid }}"
                             hx-target="#task_details"
                             id="{{ kw_id_details }}"
                     >
                         {{ task.id }}
-                        <span class="kw-id-layer hidden red">
+
+                        <span class="kw-id-layer hidden red absolute top-2 left-5">
                                 {{ kw_id_details }}
                             </span>
                     </button>
@@ -312,20 +314,7 @@
                     </div>
                 </td>
                 <td>
-                    <div>
-                        {% if task.annotations %}
-                        <p>
-                            <strong>{{ task.description }}</strong>
-                        </p>
-                        <ul class="pl-4">
-                            {% for annotation in task.annotations %}
-                            <li>{{ annotation.description }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        {{ task.description }}
-                        {% endif %}
-                    </div>
+                    {{ desc::desc(task=task) }}
                 </td>
                 <td>{{ task.urgency }}</td>
                 <td>
