@@ -1,6 +1,7 @@
-# Task Warrior Web UI focusing on Keyboard navigation
+# What is this?
 
-This is a straightforward, but mostly working task warrior web ui with strong focus on keyboard navigation.
+A Minimalistic Web UI for Task Warrior focusing on Keyboard navigation.
+
 It's completely local. No intention to have any kind of online interactions.
 
 ## Stack
@@ -14,7 +15,7 @@ It's completely local. No intention to have any kind of online interactions.
 * rollup
 * Task Warrior (obviously :) )
 
-Still work in progress. But in the current stage it is pretty usable
+Still work in progress. But in the current stage it is pretty usable. You can see the list at the bottom, for what I intend to add, and what's been done.
 
 ![Application](./screenshots/full_page.png)
 
@@ -160,11 +161,14 @@ This is a work in progress application, many things will not work,
 there will be errors, as no checks, and there may not be any error messages in case of error.
 
 - [ ] Usability improvements on a long task list
+  - [ ] Hiding empty columns
+  - [ ] Temporary highlight last modified column, if visible
 - [x] Marking a task done with keyboard shortcut
 - [x] Bug fix, not unmarking completed task
 - [ ] Modification
   - [x] Editing
   - [ ] Deleting
+  - [ ] Stopping active task from List
   - [x] Starting tasks
   - [x] Annotation/Denotation
 - [ ] Following Context
@@ -174,3 +178,9 @@ there will be errors, as no checks, and there may not be any error messages in c
 - [ ] Add more tests
 - [x] Which port to run
 - [ ] Convert to desktop app using Tauri
+- [ ] Reporting
+    - [ ] Project wise progress
+    - [ ] Burndown reports
+- [ ] Column customization
+- [ ] Color customization
+- [ ] Time warrior integration, and time reporting
