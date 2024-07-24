@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use chrono::{DateTime, TimeDelta};
 use rand::distributions::{Alphanumeric, DistString};
 use serde::{de, Deserialize, Deserializer, Serialize};
 
@@ -23,6 +24,7 @@ lazy_static::lazy_static! {
         };
         tera.register_function("project_name", get_project_name_link());
         tera.register_function("date_proper", get_date_proper());
+        tera.register_function("timer_value", get_timer());
         tera.register_function("date", get_date());
         tera.register_function("obj", obj());
         tera.register_filter("update_unique_tags", update_unique_tags());
@@ -249,27 +251,36 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
     })
 }
 
+pub struct DeltaNow {
+    pub now: DateTime<chrono::Utc>,
+    pub delta: TimeDelta,
+    pub time: DateTime<chrono::Utc>
+}
+
+impl DeltaNow {
+    pub fn new(time: &str) -> Self {
+        let time = chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y%m%dT%H%M%SZ").unwrap().and_utc();
+        let now = chrono::prelude::Utc::now();
+        let delta = now - time;
+        Self { now, delta, time }
+    }
+}
+
 
 fn get_date_proper() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         // we are working with utc time
-        let time = chrono::prelude::NaiveDateTime::parse_from_str(
-            args.get("date").unwrap().as_str().unwrap(),
-            "%Y%m%dT%H%M%SZ",
-        ).unwrap().and_utc();
+        let DeltaNow { now, delta , time: _time} = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
+
+        let num_weeks = delta.num_weeks();
+        let num_days = delta.num_days();
+        let num_hours = delta.num_hours();
+        let num_minutes = delta.num_minutes();
 
         let in_future = args.get("in_future")
             .cloned()
             .unwrap_or(tera::Value::Bool(false))
             .as_bool().unwrap();
-
-        let now = chrono::prelude::Utc::now();
-
-        let delta = now - time;
-        let num_weeks = delta.num_weeks();
-        let num_days = delta.num_days();
-        let num_hours = delta.num_hours();
-        let num_minutes = delta.num_minutes();
 
         let sign = if in_future { -1 } else { 1 };
 
@@ -289,11 +300,7 @@ fn get_date_proper() -> impl tera::Function {
 fn get_date() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         // we are working with utc time
-        let time = chrono::prelude::NaiveDateTime::parse_from_str(
-            args.get("date").unwrap().as_str().unwrap(),
-            "%Y%m%dT%H%M%SZ",
-        ).unwrap().and_utc();
-
+        let DeltaNow {time, ..} = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
         Ok(tera::to_value(time.format("%Y-%b-%d %H:%m").to_string()).unwrap())
     })
 }
@@ -323,4 +330,21 @@ impl NewTask {
     pub fn additional(&self) -> &Option<String> {
         &self.additional
     }
+}
+
+fn get_timer() -> impl tera::Function {
+    Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        // we are working with utc time
+        let DeltaNow { now, delta , time: _time} = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
+        let num_seconds = delta.num_seconds();
+
+        let s = if delta.num_hours() > 0 {
+            format!("{:>02}:{:>02}", delta.num_hours(), delta.num_minutes() - (delta.num_hours() * 60))
+        } else if delta.num_minutes() > 0 {
+            format!("{:>02}:{:>02}", delta.num_minutes(), num_seconds % 60)
+        } else {
+            format!("{}s", num_seconds)
+        };
+        Ok(tera::to_value(s).unwrap())
+    })
 }

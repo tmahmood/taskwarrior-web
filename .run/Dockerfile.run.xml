@@ -1,0 +1,42 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Dockerfile" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+    <deployment type="dockerfile">
+      <settings>
+        <option name="imageTag" value="taskwarrior-web-rs" />
+        <option name="containerName" value="taskwarrior-web-rs" />
+        <option name="portBindings">
+          <list>
+            <DockerPortBindingImpl>
+              <option name="containerPort" value="3000" />
+              <option name="hostPort" value="3001" />
+            </DockerPortBindingImpl>
+          </list>
+        </option>
+        <option name="showCommandPreview" value="true" />
+        <option name="sourceFilePath" value="Dockerfile" />
+        <option name="volumeBindings">
+          <list>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../../../../../builder/.task" />
+              <option name="hostPath" value="~/.task" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../../../../../builder/.taskrc" />
+              <option name="hostPath" value="~/.taskrc" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="/usr/share/doc/task/rc" />
+              <option name="hostPath" value="/usr/share/doc/task/rc" />
+              <option name="readOnly" value="true" />
+            </DockerVolumeBindingImpl>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="$PROJECT_DIR$/../../../../../../../builder/.timewarrior" />
+              <option name="hostPath" value="~/.timewarrior" />
+            </DockerVolumeBindingImpl>
+          </list>
+        </option>
+      </settings>
+    </deployment>
+    <method v="2" />
+  </configuration>
+</component>

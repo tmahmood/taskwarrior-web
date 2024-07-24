@@ -31,11 +31,6 @@ hotkeys('ctrl+shift+K', function (event, handler) {
     return false;
 });
 
-hotkeys('ctrl+shift+L', function (event, handler) {
-    // Prevent the default refresh event under WINDOWS system
-    event.preventDefault()
-    document.getElementById('tag-inp').focus();
-});
 
 // hotkeys('t', function (event, handler) {
 //     // Prevent the default refresh event under WINDOWS system
@@ -58,6 +53,12 @@ hotkeys('ctrl+shift+L', function (event, handler) {
 
 
 document.addEventListener("DOMContentLoaded", function() {
-
-
+    // let n = setInterval(
+    //     ()=> {
+    //         if (!document.getElementById('active-timer')) {
+    //             clearInterval(n);
+    //             return
+    //         }
+    //     }
+    // )
 });

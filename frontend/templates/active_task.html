@@ -1,0 +1,8 @@
+<span hx-get="tasks/active" hx-trigger="every 60s" hx-swap="outerHTML" hx-target="this">
+{% if active_task %}
+<div class="pl-2.5 pr-6 py-1.5 bg-green-700 text-green-200 shadow-xl rounded-sm mt-2 flex flex-wrap text-xl" id="active-timer">
+    <span class="flex-grow">{{ active_task.description }}</span>
+    <span class="flex-shrink bg-emerald-500 drop-shadow-2xl px-3">{{ timer_value(date=active_task.start) }}</span>
+</div>
+{% endif %}
+</span>

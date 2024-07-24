@@ -18,7 +18,7 @@
     </div>
 </div>
 {% endif %}
-<div class="mb-auto h-max">
+<span class="mb-auto h-max">
     <div id="undo_confirm"></div>
     <div id="task_form_div"></div>
     <div id="task_details"></div>
@@ -77,7 +77,6 @@
     </div>
 
     <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
-
         <div class="flex flex-wrap">
             <div class="tag-list">
                 <button class="tag-item tag-item-800 py-0"
@@ -163,6 +162,8 @@
             </div>
         </div>
     </div>
+
+    <span hx-get="tasks/active" hx-trigger="every 60s" hx-swap="outerHTML" hx-target="this"></span>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto">
         <table id="list-of-tasks" class="table-large hz">

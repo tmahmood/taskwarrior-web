@@ -72,16 +72,16 @@ pub struct Task {
 pub fn fetch_task_from_cmd(
     task_query: &TaskQuery,
     editing: bool,
-) -> Result<PathBuf, anyhow::Error> {
-    let data_file =
-        if editing {
-            PathBuf::from_str(TASK_DATA_FILE_EDIT).unwrap()
-        } else {
-            PathBuf::from_str(TASK_DATA_FILE).unwrap()
-        };
-    let task = task_query.build();
+) -> Result<String, anyhow::Error> {
+    let mut task = task_query.build();
     trace!("{:?}", task.get_args());
-    write_to_file(task, data_file)
+    return match task.output() {
+        Ok(v) => Ok(String::from_utf8(v.stdout.to_vec())?),
+        Err(e) => {
+            error!("{}", e);
+            anyhow::bail!("Failed to read tasks")
+        }
+    }
 }
 
 fn write_to_file(mut task: Command, data_file: PathBuf) -> Result<PathBuf, anyhow::Error> {
@@ -103,9 +103,8 @@ fn write_to_file(mut task: Command, data_file: PathBuf) -> Result<PathBuf, anyho
 #[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct TaskUUID(String);
 
-fn read_task_file(task_query: TaskQuery, editing: bool) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
-    let data_file = fetch_task_from_cmd(&task_query, editing)?;
-    let content = fs::read_to_string(&data_file)?;
+fn read_task_file(task_query: &TaskQuery, editing: bool) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+    let content = fetch_task_from_cmd(&task_query, editing)?;
     let tasks: Vec<Task> = match serde_json::from_str(&content) {
         Ok(s) => s,
         Err(e) => anyhow::bail!(e.to_string())
@@ -191,7 +190,7 @@ pub fn task_undo() -> Result<(), anyhow::Error> {
 }
 
 // what would happen
-pub fn list_tasks(task_query: TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+pub fn list_tasks(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
     read_task_file(task_query, false)
 }
 
@@ -239,6 +238,28 @@ pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     t.status = Some(task.status);
     t.end = Some(entry);
     execute_update(t)
+}
+
+pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
+    // maybe another task is running? So stop all other tasks first
+    match Command::new("task")
+        .arg("+ACTIVE")
+        .arg("export")
+        .output() {
+        Err(e) => {
+            error!("No active task found: {}", e);
+            anyhow::bail!("No active task found");
+        }
+        Ok(v) => {
+            let n = String::from_utf8(v.stdout).unwrap();
+            let res: Vec<Task> = serde_json::from_str(&n)?;
+            if res.len() == 0 {
+                Ok(None)
+            } else {
+                Ok(res.first().cloned())
+            }
+        }
+    }
 }
 
 pub fn toggle_task_active(task_uuid: &str) -> Result<bool, anyhow::Error> {
@@ -296,7 +317,7 @@ fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
     let mut p = TWGlobalState::default();
     p.filter = Some(task_uuid.to_string());
     let t = TaskQuery::all();
-    let tasks = read_task_file(t, true)?;
+    let tasks = read_task_file(&t, true)?;
     match tasks.get(&TaskUUID(task_uuid.to_string())) {
         None => anyhow::bail!("Matching task not found"),
         Some(t) => Ok(t.clone())
@@ -304,10 +325,12 @@ fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
 }
 
 pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
+    info!("uuid: {}", uuid);
     let mut p = TWGlobalState::default();
     p.filter = Some(uuid.clone());
-    let t = TaskQuery::all();
-    let tasks = read_task_file(t, true)?;
+    let mut t = TaskQuery::empty();
+    t.set_filter(&uuid);
+    let tasks = read_task_file(&t, true)?;
     match tasks.get(&TaskUUID(uuid.clone())) {
         None => anyhow::bail!("Matching task not found"),
         Some(t) => Ok(t.clone())

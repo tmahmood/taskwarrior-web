@@ -144,11 +144,23 @@ impl TaskQuery {
         tq
     }
 
-    pub(crate) fn all() -> Self {
+    pub fn all() -> Self {
         TaskQuery {
             status: TaskStatus::NotSet,
             priority: TaskPriority::NotSet,
             report: TaskReport::All,
+            tags: vec![],
+            project: None,
+            filter: None,
+            new_entry: None,
+        }
+    }
+
+    pub fn empty() -> Self {
+        TaskQuery {
+            status: TaskStatus::NotSet,
+            priority: TaskPriority::NotSet,
+            report: TaskReport::NotSet,
             tags: vec![],
             project: None,
             filter: None,
@@ -197,6 +209,10 @@ impl TaskQuery {
         }
         self.new_entry = params.task_entry;
         trace!("{:?}", self);
+    }
+
+    pub fn set_filter(&mut self, filter: &str) {
+        self.filter = Some(filter.to_string())
     }
 
     pub fn get_query(&self, with_export: bool) -> Vec<String> {

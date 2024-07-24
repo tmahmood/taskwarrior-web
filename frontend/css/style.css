@@ -2,12 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+    font-family: loadedCustomFont;
+    src:url("font/pragmasevka-nf-regular.ttf");
+}
+
 body {
-    @apply font-sans;
+    font-family: 'Maple Mono NF', sans-serif;
 }
 
 .table-large {
-    @apply mt-2 rounded-sm bg-neutral-700 shadow-xl w-full text-sm text-left rtl:text-right text-neutral-800 dark:text-neutral-950;
+    @apply mt-2 rounded-sm bg-neutral-700 shadow-xl w-full text-left rtl:text-right text-neutral-800 dark:text-neutral-950;
 }
 
 .table-large-header {
@@ -33,6 +38,10 @@ body {
     font-medium even:bg-neutral-600 ;
 }
 
+.table-large tr.active-task {
+    @apply bg-green-700 text-green-200;
+}
+
 .table-small {
     @apply text-xs p-2;
 }
@@ -42,7 +51,7 @@ body {
     border-neutral-700 border
     rounded-md inline-flex
         mr-1
-    overflow-hidden text-sm drop-shadow-sm
+    overflow-hidden drop-shadow-sm
     ;
 }
 
@@ -247,9 +256,6 @@ body {
     stroke-width: calc(var(--size) / 2);
 }
 
-.active-task {
-    @apply bg-sky-950 text-sky-300;
-}
 
 #toast {
 }

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::env;
+use anyhow::Error;
 use axum::{Form, Router, routing::get};
 use axum::extract::Query;
 use axum::response::Html;
@@ -8,8 +9,8 @@ use tera::Context;
 use tracing::{error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active, run_modify_command, run_annotate_command, run_denotate_command};
-use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
+use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active, run_modify_command, run_annotate_command, run_denotate_command, fetch_active_task};
+use taskwarrior_web::{DeltaNow, FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 
 
@@ -40,6 +41,7 @@ async fn main() {
         .route("/tasks/undo/confirmed", post(undo_last_change))
         .route("/msg", get(display_flash_message))
         .route("/tasks/add", get(display_task_add_window))
+        .route("/tasks/active", get(get_active_task))
         .route("/tasks/add", post(create_new_task))
         .route("/msg_clr", get(just_empty))
         .route("/tag_bar", get(get_tag_bar))
@@ -71,11 +73,21 @@ async fn display_task_details(Query(param): Query<HashMap<String, String>>) -> H
     let task_id = param.get("task_id").unwrap().clone();
     let task = get_task_details(task_id).unwrap();
     let tq = TaskQuery::new(TWGlobalState::default());
-    let tasks = list_tasks(tq.clone()).unwrap();
+    let tasks = list_tasks(&tq).unwrap();
     let mut ctx = Context::new();
     ctx.insert("tasks_db", &tasks);
     ctx.insert("task", &task);
     Html(TEMPLATES.render("task_details.html", &ctx).unwrap())
+}
+
+async fn get_active_task() -> Html<String> {
+    let mut ctx = Context::new();
+    if let Ok(v) = fetch_active_task() {
+        if let Some(v) = v {
+            ctx.insert("active_task", &v);
+        }
+    }
+    Html(TEMPLATES.render("active_task.html", &ctx).unwrap())
 }
 
 async fn get_task_action_bar() -> Html<String> {
@@ -148,20 +160,6 @@ async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<St
     Html(TEMPLATES.render("task_add.html", &ctx).unwrap())
 }
 
-async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
-    let fm = match task_add(&new_task) {
-        Ok(_) => FlashMsg::new("New task created", None),
-        Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None)
-    };
-    let s = if let Some(tw_q) = new_task.filter_value() {
-        serde_json::from_str(tw_q).unwrap()
-    } else {
-        TaskQuery::default()
-    };
-    get_tasks_view(s, Some(fm))
-}
-
-
 async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     task_undo().unwrap();
     let fm = FlashMsg::new("Undo successful", None);
@@ -170,13 +168,17 @@ async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
 
 async fn front_page() -> Html<String> {
     let tq = TaskQuery::new(TWGlobalState::default());
-    let tasks = list_tasks(tq.clone()).unwrap();
+    let tasks = list_tasks(&tq).unwrap();
     let task_list: Vec<Task> = tasks.values().cloned().collect();
     let mut ctx = Context::new();
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
     ctx.insert("current_filter", &tq.as_filter_text());
     ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
+    let t = tasks.iter().find(|(_, task)| task.start.is_some());
+    if let Some((_, v)) = t {
+        ctx.insert("active_task", v);
+    }
     Html(TEMPLATES.render("base.html", &ctx).unwrap())
 }
 
@@ -185,7 +187,7 @@ async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
 }
 
 fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
-    let tasks = match list_tasks(tq.clone()) {
+    let tasks = match list_tasks(&tq) {
         Ok(t) => { t }
         Err(e) => {
             return Html(e.to_string());
@@ -202,7 +204,24 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
         ctx_b.insert("toast_msg", msg.msg());
         ctx_b.insert("toast_timeout", &msg.timeout());
     }
+    let t = tasks.iter().find(|(_, task)| task.start.is_some());
+    if let Some((_, v)) = t {
+        ctx_b.insert("active_task", v);
+    }
     Html(TEMPLATES.render("tasks.html", &ctx_b).unwrap())
+}
+
+async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
+    let fm = match task_add(&new_task) {
+        Ok(_) => FlashMsg::new("New task created", None),
+        Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None)
+    };
+    let s = if let Some(tw_q) = new_task.filter_value() {
+        serde_json::from_str(tw_q).unwrap()
+    } else {
+        TaskQuery::default()
+    };
+    get_tasks_view(s, Some(fm))
 }
 
 
@@ -212,9 +231,7 @@ async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
         TaskActions::StatusUpdate => {
             if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
                 match mark_task_as_done(task.clone()) {
-                    Ok(_) => {
-                        FlashMsg::new(&format!("Task [{}] was updated", task.uuid), None)
-                    }
+                    Ok(_) => FlashMsg::new(&format!("Task [{}] was updated", task.uuid), None),
                     Err(e) => {
                         error!("Failed: {}", e);
                         FlashMsg::new(&format!("Failed to update task: {e}"), None)
