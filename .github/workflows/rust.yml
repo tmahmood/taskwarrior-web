@@ -22,10 +22,11 @@ jobs:
       with:
         toolchain: nightly
     - run: cargo build --release
+    - run: cp target/release/taskwarrior-web taskwarrior-web
     - uses: actions/upload-artifact@master
       with:
         name: tw-web
         path: |
-          target/release/taskwarrior-web
+          taskwarrior-web
           dist
    
