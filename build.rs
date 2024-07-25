@@ -1,4 +1,3 @@
-use std::fs;
 use std::process::Command;
 
 fn main() {
@@ -24,13 +23,5 @@ fn main() {
         .args(["-c", "frontend/rollup.config.js"])
         .status().unwrap().success() {
         panic!("Failed to process css")
-    }
-    // adding custom font
-    if let Ok(false) = fs::exists("dist/font") {
-        if !Command::new("cp")
-            .args(["-r", "frontend/font", "dist/font"])
-            .status().unwrap().success() {
-            panic!("Failed to copy fonts")
-        }
     }
 }
