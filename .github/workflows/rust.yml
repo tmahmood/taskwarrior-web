@@ -35,13 +35,13 @@ jobs:
         run: |
             cargo build --release
             cp target/release/taskwarrior-web taskwarrior-web
-            tar czf tw-web-$RELEASE_NAME.tar.gz dist taskwarrior-web
+            tar czf tw-web-${{ env.RELEASE_NAME }}.tar.gz dist taskwarrior-web
       - name: Release
         env:
-            TAG_NAME: latest-tag-${{ env.BUILD_DATE }}
-            RELEASE_NAME: latest-release-${{ env.BUILD_DATE }}
+            TAG_NAME: Tag-${{ env.BUILD_DATE }}
+            RELEASE_NAME: Release-${{ env.BUILD_DATE }}
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
-          files: tw-web-$RELEASE_NAME.tar.gz
+          files: tw-web-${{ env.RELEASE_NAME }}.tar.gz
