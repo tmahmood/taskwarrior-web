@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-    font-family: loadedCustomFont;
-    src:url("font/pragmasevka-nf-regular.ttf");
-}
-
 body {
     font-family: 'Maple Mono NF', sans-serif;
 }

@@ -3,6 +3,7 @@
 A Minimalistic Web UI for Task Warrior focusing on Keyboard navigation.
 
 It's completely local. No intention to have any kind of online interactions.
+Font in the screenshot is (Maple Mono NF)[https://github.com/subframe7536/maple-font]
 
 ## Stack
 
