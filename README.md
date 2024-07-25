@@ -168,7 +168,7 @@ there will be errors, as no checks, and there may not be any error messages in c
 - [ ] Modification
   - [x] Editing
   - [ ] Deleting
-  - [ ] Stopping active task from List
+  - [x] Stopping active task from List
   - [x] Starting tasks
   - [x] Annotation/Denotation
 - [ ] Following Context
