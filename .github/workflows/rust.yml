@@ -19,26 +19,26 @@ jobs:
       - name: Test with environment variables
         run: echo $TAG_NAME - $RELEASE_NAME
         env:
-          TAG_NAME: latest-${{ steps.date.outputs.date }}
-          RELEASE_NAME: latest-release-${{ steps.date.outputs.date }}
-    - uses: actions/checkout@v4
-    - run: curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && mv tailwindcss-linux-x64 tailwindcss && chmod +x tailwindcss
-    - run: cd frontend && npm install && npm install rollup --global && cd ..
-    - uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: nightly
-    - run: |
-        cargo build --release
-        cp target/release/taskwarrior-web taskwarrior-web
-        tar czf tw-web-$RELEASE_NAME.tar.gz dist taskwarrior-web
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      with:
-      - name: Publish Release
-        uses: softprops/action-gh-release@v2
+          TAG_NAME: nightly-tag-${{ steps.date.outputs.date }}
+          RELEASE_NAME: latest-release-${{ steps.date.outplatestte }}
+      - uses: actions/checkout@v4
+      - run: curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && mv tailwindcss-linux-x64 tailwindcss && chmod +x tailwindcss
+      - run: cd frontend && npm install && npm install rollup --global && cd ..
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: tw-web-$RELEASE_NAME.tar.gz
+          toolchain: nightly
+      - run: |
+          cargo build --release
+          cp target/release/taskwarrior-web taskwarrior-web
+          tar czf tw-web-$RELEASE_NAME.tar.gz dist taskwarrior-web
+      - name: Release
+          - name: Release
+        with:
+        - name: Publish Release
+          uses: softprops/action-gh-release@v2
+          with:
+            prerelease: true
+            tag_name: ${{ env.TAG_NAME }}
+            files: tw-web-$RELEASE_NAME.tar.gz
 
-   
+          uses: softprops/action-gh-release@v2
