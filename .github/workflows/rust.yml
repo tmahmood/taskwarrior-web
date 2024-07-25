@@ -16,8 +16,9 @@ jobs:
       - name: Get current date
         id: date
         run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
-      - name: Setting up
+      - name: Checkout
         uses: actions/checkout@v4
+      - name: Tools
         run: |
           curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && mv tailwindcss-linux-x64 tailwindcss && chmod +x tailwindcss
           cd frontend && npm install && npm install rollup --global && cd ..
