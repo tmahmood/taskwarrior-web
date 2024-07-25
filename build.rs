@@ -24,4 +24,10 @@ fn main() {
         .status().unwrap().success() {
         panic!("Failed to process css")
     }
+    // adding templates
+    if !Command::new("cp")
+        .args(["-r", "frontend/templates", "dist/templates"])
+        .status().unwrap().success() {
+        panic!("Failed to copy fonts")
+    }
 }

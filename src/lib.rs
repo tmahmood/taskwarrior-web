@@ -15,7 +15,7 @@ use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
-        let mut tera = match tera::Tera::new("frontend/templates/**/*") {
+        let mut tera = match tera::Tera::new("dist/templates/**/*") {
             Ok(t) => t,
             Err(e) => {
                 println!("Parsing error(s): {}", e);
