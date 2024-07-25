@@ -26,6 +26,6 @@ jobs:
       with:
         name: tw-web
         path: |
-        target/release/taskwarrior-web
-        dist
+          target/release/taskwarrior-web
+          dist
    
