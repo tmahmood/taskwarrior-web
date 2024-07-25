@@ -98,7 +98,7 @@ pub enum TaskActions {
     ToggleTimer,
     ModifyTask,
     AnnotateTask,
-    DenotateTask
+    DenotateTask,
 }
 
 #[allow(dead_code)]
@@ -111,7 +111,7 @@ pub struct TWGlobalState {
     uuid: Option<String>,
     filter_value: Option<String>,
     task_entry: Option<String>,
-    action: Option<TaskActions>
+    action: Option<TaskActions>,
 }
 
 impl TWGlobalState {
@@ -254,7 +254,7 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
 pub struct DeltaNow {
     pub now: DateTime<chrono::Utc>,
     pub delta: TimeDelta,
-    pub time: DateTime<chrono::Utc>
+    pub time: DateTime<chrono::Utc>,
 }
 
 impl DeltaNow {
@@ -270,7 +270,7 @@ impl DeltaNow {
 fn get_date_proper() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         // we are working with utc time
-        let DeltaNow { now, delta , time: _time} = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
+        let DeltaNow { now: _, delta, time: _time } = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
 
         let num_weeks = delta.num_weeks();
         let num_days = delta.num_days();
@@ -300,7 +300,7 @@ fn get_date_proper() -> impl tera::Function {
 fn get_date() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         // we are working with utc time
-        let DeltaNow {time, ..} = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
+        let DeltaNow { time, .. } = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
         Ok(tera::to_value(time.format("%Y-%b-%d %H:%m").to_string()).unwrap())
     })
 }
@@ -335,13 +335,13 @@ impl NewTask {
 fn get_timer() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         // we are working with utc time
-        let DeltaNow { now, delta , time: _time} = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
+        let DeltaNow { delta, .. } = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
         let num_seconds = delta.num_seconds();
 
         let s = if delta.num_hours() > 0 {
             format!("{:>02}:{:>02}", delta.num_hours(), delta.num_minutes() - (delta.num_hours() * 60))
         } else if delta.num_minutes() > 0 {
-            format!("{:>02}:{:>02}", delta.num_minutes(), num_seconds % 60)
+            format!("{:>02}:{:>02}:{:>02}", delta.num_hours(), delta.num_minutes(), num_seconds % 60)
         } else {
             format!("{}s", num_seconds)
         };

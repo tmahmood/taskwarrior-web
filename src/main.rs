@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::env;
-use anyhow::Error;
 use axum::{Form, Router, routing::get};
 use axum::extract::Query;
 use axum::response::Html;
@@ -10,7 +9,7 @@ use tracing::{error, info};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active, run_modify_command, run_annotate_command, run_denotate_command, fetch_active_task};
-use taskwarrior_web::{DeltaNow, FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
+use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 
 

@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use tracing::{error, info, trace};
 use std::process::Command;
 use std::fs;
-use std::str::FromStr;
 use indexmap::IndexMap;
 use serde_json::Value;
 
@@ -69,10 +68,7 @@ pub struct Task {
 }
 
 
-pub fn fetch_task_from_cmd(
-    task_query: &TaskQuery,
-    editing: bool,
-) -> Result<String, anyhow::Error> {
+pub fn fetch_task_from_cmd(task_query: &TaskQuery) -> Result<String, anyhow::Error> {
     let mut task = task_query.build();
     trace!("{:?}", task.get_args());
     return match task.output() {
@@ -84,27 +80,11 @@ pub fn fetch_task_from_cmd(
     }
 }
 
-fn write_to_file(mut task: Command, data_file: PathBuf) -> Result<PathBuf, anyhow::Error> {
-    match task
-        .output()
-        .and_then(|v| {
-            // write the output to file,
-            fs::write(&data_file, v.stdout)
-        }) {
-        Ok(_) => Ok(data_file),
-        Err(e) => {
-            error!("{}", e);
-            anyhow::bail!("Failed to read tasks")
-        }
-    }
-}
-
-
 #[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct TaskUUID(String);
 
-fn read_task_file(task_query: &TaskQuery, editing: bool) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
-    let content = fetch_task_from_cmd(&task_query, editing)?;
+fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+    let content = fetch_task_from_cmd(&task_query)?;
     let tasks: Vec<Task> = match serde_json::from_str(&content) {
         Ok(s) => s,
         Err(e) => anyhow::bail!(e.to_string())
@@ -191,7 +171,7 @@ pub fn task_undo() -> Result<(), anyhow::Error> {
 
 // what would happen
 pub fn list_tasks(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
-    read_task_file(task_query, false)
+    read_task_file(task_query)
 }
 
 pub fn run_modify_command(task_uuid: &str, cmd_text: &str) -> Result<(), anyhow::Error> {
@@ -317,7 +297,7 @@ fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
     let mut p = TWGlobalState::default();
     p.filter = Some(task_uuid.to_string());
     let t = TaskQuery::all();
-    let tasks = read_task_file(&t, true)?;
+    let tasks = read_task_file(&t)?;
     match tasks.get(&TaskUUID(task_uuid.to_string())) {
         None => anyhow::bail!("Matching task not found"),
         Some(t) => Ok(t.clone())
@@ -330,7 +310,7 @@ pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
     p.filter = Some(uuid.clone());
     let mut t = TaskQuery::empty();
     t.set_filter(&uuid);
-    let tasks = read_task_file(&t, true)?;
+    let tasks = read_task_file(&t)?;
     match tasks.get(&TaskUUID(uuid.clone())) {
         None => anyhow::bail!("Matching task not found"),
         Some(t) => Ok(t.clone())

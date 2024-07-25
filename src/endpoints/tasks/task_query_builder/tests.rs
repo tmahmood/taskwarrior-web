@@ -84,6 +84,6 @@ fn task_by_uuid() {
     let t = TaskQuery::new(p);
     println!("{:?}", t);
     println!("{:?}", t.as_filter_text());
-    let tasks = read_task_file(t, false).unwrap();
+    let tasks = read_task_file(t).unwrap();
     println!("{:#?}", tasks);
 }

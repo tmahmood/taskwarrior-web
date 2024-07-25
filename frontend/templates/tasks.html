@@ -163,7 +163,7 @@
         </div>
     </div>
 
-    <span hx-get="tasks/active" hx-trigger="every 60s" hx-swap="outerHTML" hx-target="this"></span>
+    <span hx-get="tasks/active" hx-trigger="load" hx-swap="outerHTML" hx-target="this"></span>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg overflow-y-auto">
         <table id="list-of-tasks" class="table-large hz">

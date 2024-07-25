@@ -9,7 +9,7 @@ export const doing_something = () => {
     console.log("Hello world");
 }
 
-hotkeys.filter = function(event) {
+hotkeys.filter = function (event) {
     // @ts-ignore
     let tagName = event.target.tagName;
     hotkeys.setScope(/^(INPUT|TEXTAREA|SELECT)$/.test(tagName) ? 'input' : 'other');
@@ -52,13 +52,37 @@ hotkeys('ctrl+shift+K', function (event, handler) {
 // });
 
 
-document.addEventListener("DOMContentLoaded", function() {
-    // let n = setInterval(
-    //     ()=> {
-    //         if (!document.getElementById('active-timer')) {
-    //             clearInterval(n);
-    //             return
-    //         }
-    //     }
-    // )
+document.addEventListener("DOMContentLoaded", function () {
+    let n = setInterval(
+        () => {
+            let which_one = 1;
+            let dd = document.getElementById('active-timer');
+            if (dd === undefined || dd === null) {
+                return
+            }
+            let s = dd.children[which_one].textContent.split(":");
+            let second = parseInt(s.pop());
+            let minute = parseInt(s.pop());
+            if (isNaN(minute)) {
+                minute = 0;
+            }
+            let hour = parseInt(s.pop());
+            if (isNaN(hour)) {
+                hour = 0;
+            }
+            second += 1;
+            if (second >= 60) {
+                second = 0;
+                minute += 1;
+                if (minute > 60) {
+                    hour += 1;
+                }
+            }
+            let final_time =
+                hour.toString().padStart(2, "0") + ":" +
+                minute.toString().padStart(2, "0") + ":" +
+                second.toString().padStart(2, "0")
+            dd.children[which_one].textContent = final_time;
+        }, 1000
+    )
 });
