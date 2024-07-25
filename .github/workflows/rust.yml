@@ -32,7 +32,6 @@ jobs:
           cp target/release/taskwarrior-web taskwarrior-web
           tar czf tw-web-$RELEASE_NAME.tar.gz dist taskwarrior-web
       - name: Release
-          - name: Release
         with:
         - name: Publish Release
           uses: softprops/action-gh-release@v2
