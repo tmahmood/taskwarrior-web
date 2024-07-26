@@ -20,6 +20,10 @@ Still work in progress. But in the current stage it is pretty usable. You can se
 
 ![Application](./screenshots/full_page.png)
 
+# Using Release Binary
+
+Latest release binaries are now available. Check the release tags on the sidebar
+
 # Using Docker
 
 Docker image is provided. A lot of thanks go to [DCsunset](https://github.com/DCsunset/taskwarrior-webui)
@@ -161,27 +165,4 @@ This will bring up undo confirmation dialog
 This is a work in progress application, many things will not work,
 there will be errors, as no checks, and there may not be any error messages in case of error.
 
-- [ ] Usability improvements on a long task list
-  - [ ] Hiding empty columns
-  - [ ] Temporary highlight last modified column, if visible
-- [x] Marking a task done with keyboard shortcut
-- [x] Bug fix, not unmarking completed task
-- [ ] Modification
-  - [x] Editing
-  - [ ] Deleting
-  - [x] Stopping active task from List
-  - [x] Starting tasks
-  - [x] Annotation/Denotation
-- [ ] Following Context
-- [ ] Error handling
-    - [x] Returning error message in case error occurred
-    - [ ] Retaining input in case of error
-- [ ] Add more tests
-- [x] Which port to run
-- [ ] Convert to desktop app using Tauri
-- [ ] Reporting
-    - [ ] Project wise progress
-    - [ ] Burndown reports
-- [ ] Column customization
-- [ ] Color customization
-- [ ] Time warrior integration, and time reporting
+![Change Log](CHANGELOG.md)
