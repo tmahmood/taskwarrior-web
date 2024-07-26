@@ -23,8 +23,8 @@ jobs:
         run: echo "BUILD_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
       - name: Set env
         run: |
-          echo "TAG_NAME=${{ env.BUILD_DATE }}"
-          echo "RELEASE_NAME=${{ env.BUILD_DATE }}"
+          echo "TAG_NAME=${{ env.BUILD_DATE }}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=${{ env.BUILD_DATE }}" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
       - name: Tools
