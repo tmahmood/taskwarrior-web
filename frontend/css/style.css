@@ -31,13 +31,15 @@ body {
 .table-large tr {
     @apply
     font-medium even:bg-neutral-600
-
-
     ;
 }
 
 .table-large tr.active-task {
     @apply bg-green-700 text-green-200;
+}
+
+.table-large td .is_due {
+    @apply text-amber-50 font-bold bg-yellow-900 rounded-sm px-1;
 }
 
 .table-small {

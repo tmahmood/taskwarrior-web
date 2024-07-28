@@ -188,13 +188,13 @@
             {% for task in tasks %}
             {% set status_color = on_all %}
             {% if task.status == 'pending' %}
-                {% set status_color = on_pending %}
+            {% set status_color = on_pending %}
             {% elif task.status == 'complete' %}
-                {% set status_color = on_complete %}
+            {% set status_color = on_complete %}
             {% elif task.status == 'waiting' %}
-                {% set status_color = on_waiting %}
+            {% set status_color = on_waiting %}
             {% endif %}
-            <tr {%if task.start %} class="active-task" {% endif %}>
+            <tr class="{%if task.start %} active-task {% endif %}">
                 <td>
                     <div class="checkbox-wrapper-32">
                         <input
@@ -325,7 +325,9 @@
                 </td>
                 <td>
                     {% if task.due and task.status != 'completed' %}
-                    {{ date_proper(date=task.due, in_future=true) }}
+                    <span class="is_due">
+                        {{ date_proper(date=task.due, in_future=true) }}
+                    </span>
                     {% endif %}
                 </td>
 

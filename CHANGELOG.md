@@ -1,3 +1,6 @@
+## Mon 29, 2024 03:05
+- [x] Highlighting due column of a task if due
+
 ## Mon 29, 2024
 - [x] [BUG] Mnemonic tag in the last row in task selection mode getting cut
 

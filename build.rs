@@ -26,8 +26,8 @@ fn main() {
     }
     // adding templates
     if !Command::new("cp")
-        .args(["-r", "frontend/templates", "dist/templates"])
+        .args(["-r", "frontend/templates", "dist/"])
         .status().unwrap().success() {
-        panic!("Failed to copy fonts")
+        panic!("Failed to copy template files")
     }
 }
