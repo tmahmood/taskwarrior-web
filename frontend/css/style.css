@@ -30,7 +30,10 @@ body {
 
 .table-large tr {
     @apply
-    font-medium even:bg-neutral-600 ;
+    font-medium even:bg-neutral-600
+
+
+    ;
 }
 
 .table-large tr.active-task {

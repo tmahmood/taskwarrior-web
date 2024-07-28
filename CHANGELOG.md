@@ -1,27 +1,15 @@
-## Fri 26, 2024
+## Mon 29, 2024
+- [x] [BUG] Mnemonic tag in the last row in task selection mode getting cut
 
+## Fri 26 and older
 - [x] Now using GitHub action to create release builds
-- [ ] Usability improvements on a long task list
-    - [ ] Hiding empty columns
-    - [ ] Temporary highlight last modified column, if visible
 - [x] Marking a task done with keyboard shortcut
 - [x] Bug fix, not unmarking completed task
-- [ ] Modification
-    - [x] Editing
-    - [ ] Deleting
-    - [x] Stopping active task from List
-    - [x] Starting tasks
-    - [x] Annotation/Denotation
-- [ ] Following Context
-- [ ] Error handling
-    - [x] Returning error message in case error occurred
-    - [ ] Retaining input in case of error
-- [ ] Add more tests
+- [x] Modification
+  - [x] Editing
+  - [x] Stopping active task from List
+  - [x] Starting tasks
+  - [x] Annotation/Denotation
+- [x] Error handling
+  - [x] Returning error message in case error occurred
 - [x] Which port to run
-- [ ] Convert to desktop app using Tauri
-- [ ] Reporting
-    - [ ] Project wise progress
-    - [ ] Burndown reports
-- [ ] Column customization
-- [ ] Color customization
-- [ ] Time warrior integration, and time reporting

@@ -165,4 +165,33 @@ This will bring up undo confirmation dialog
 This is a work in progress application, many things will not work,
 there will be errors, as no checks, and there may not be any error messages in case of error.
 
+## Planned
+- [ ] Usability improvements on a long task list
+    - [ ] Hiding empty columns
+    - [ ] Temporary highlight last modified column, if visible
+- [ ] Make the mnemonics same for tags on refresh
+- [ ] Modification
+    - [ ] Deleting
+- [ ] Following Context
+- [ ] Error handling
+    - [ ] Retaining input in case of error
+    - [ ] Finetune error handling
+- [ ] Add more tests
+- [ ] Convert to desktop app using Tauri
+- [ ] Reporting
+    - [ ] Project wise progress
+    - [ ] Burndown reports
+- [ ] Column customization
+- [ ] Color customization
+- [ ] Time warrior integration, and time reporting
+- [ ] Searching by tag name
+
+## Issues
+- [ ] Not able to select and copy tags, maybe add a copy button
+- [ ] Must keep filtering on refresh
+- [ ] Keyboard shortcut applied when there is a shortcut key and I use a mnemonic
+- [ ] When marking task as done stop if active
+
+
+
 ![Change Log](CHANGELOG.md)
