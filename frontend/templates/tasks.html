@@ -1,20 +1,20 @@
 {% import "desc.html" as desc %}
 {% if has_toast %}
 <div hx-swap-oob="beforeend:#toast">
-    <div class="items-center justify-items-center gap-4 rounded-b-lg px-5 py-3 text-neutral-300 fixed h-16 top-16 left-0 w-full z-50 bg-neutral-700 border-t-4 border-t-neutral-800 shadow-xl shadow-black"
+    <div class="items-center justify-items-center gap-4 px-5 py-3 text-neutral-300 fixed h-18 top-0 left-0 w-full z-50 bg-cyan-700 shadow-xl shadow-black"
          hx-trigger="load delay:{{ toast_timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
-        <span class="text-sm font-medium hover:opacity-75">{{ toast_msg }}</span>
-        <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast"
-                hx-swap="innerHTML">
-            <span class="sr-only">Close</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                        fillRule="evenodd"
-                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                />
-            </svg>
-        </button>
+
+        <div class="flex flex-row">
+            <span class="text-sm font-medium hover:opacity-75 flex-grow">{{ toast_msg }}</span>
+            <span>
+                <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast"
+                        hx-trigger="click,keyup[key=='Escape'] from:#cmd-inp"
+                        autofocus
+                        hx-swap="innerHTML">
+                    <span>[Esc]</span>
+                </button>
+            </span>
+        </div>
     </div>
 </div>
 {% endif %}
@@ -35,7 +35,8 @@
     {% set on_waiting = "waiting" %}
     {% set mod_key = "" %}
     <div class="fixed top-0 left-0 h-16 z-40 w-full bg-neutral-800 pb-2 shadow-lg shadow-black">
-        <div class="pl-2 pr-2 py-1.5 bg-neutral-700 border-b-2 border-b-neutral-800 rounded-sm text-xs flex flex-wrap" id="main-action-bar">
+        <div class="pl-2 pr-2 py-1.5 bg-neutral-700 border-b-2 border-b-neutral-800 rounded-sm text-xs flex flex-wrap"
+             id="main-action-bar">
 
             <!-- TAG BAR -->
             <div class="md:flex-grow sm:row-autotag-list flex-wrap" id="left-action-bar">
