@@ -36,9 +36,7 @@ hotkeys.filter = function (event) {
 //     }
 // });
 
-hotkeys('ctrl+shift+K', function (event, handler) {
-    // Prevent the default refresh event under WINDOWS system
-    event.preventDefault()
+function focus_text_input(event) {
     let ss = document.getElementById('task-details-inp');
     if (ss !== null) {
         event.preventDefault()
@@ -46,8 +44,22 @@ hotkeys('ctrl+shift+K', function (event, handler) {
     } else {
         document.getElementById('cmd-inp').focus();
     }
+}
+
+hotkeys('ctrl+shift+K', function (event, handler) {
+    // Prevent the default refresh event under WINDOWS system
+    event.preventDefault()
+    focus_text_input(event);
     return false;
 });
+
+document.addEventListener('click', function (event) {
+    let element = document.getElementsByTagName('html')[0];
+    if (event.target !== element) {
+        return;
+    }
+    focus_text_input(event);
+})
 
 document.addEventListener("DOMContentLoaded", function () {
     let n = setInterval(

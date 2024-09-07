@@ -6,6 +6,7 @@
 - [2125]
   - [x] Fixed the way toast is displayed,
   - [x] Escape key to close the toast
+  - [x] Clicking on empty space focuses Cmd Bar
 
 ## Mon 29, 2024 03:05
 - [x] Highlighting due column of a task if due
