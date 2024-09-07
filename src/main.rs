@@ -197,6 +197,7 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &tq.as_filter_text());
+    info!("{:?}", tq.as_filter_text());
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     if let Some(msg) = flash_msg {
         ctx_b.insert("has_toast", &true);

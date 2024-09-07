@@ -1,3 +1,8 @@
+## Sat 07, 2024 14:12
+- [x] Top headers are now sticky, so when displaying a long list of tasks and executing any action do not jump to top
+- [x] Notification is more visible
+- [x] UI is a little bit polished, and cleaner, small tweaks in spacing
+
 ## Mon 29, 2024 03:05
 - [x] Highlighting due column of a task if due
 

@@ -1,8 +1,8 @@
-<div class="items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white"
+<div class="items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white z-50"
      hx-trigger="load delay:{{ timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
     <span class="text-sm font-medium hover:opacity-75">{{ msg }} {{ timeout }}</span>
     <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast" hx-swap="innerHTML">
-        <span class="sr-only">Close</span>
+        <span class="sr-only">Close ,,,</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path
                     fillRule="evenodd"

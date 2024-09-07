@@ -16,12 +16,30 @@ hotkeys.filter = function (event) {
     return true;
 }
 
+// function isElementInViewport(el: HTMLElement) {
+//     let rect = el.getBoundingClientRect();
+//     return (
+//         rect.top >= 0 &&
+//         rect.left >= 0 &&
+//         rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /* or $(window).height() */
+//         rect.right <= (window.innerWidth || document.documentElement.clientWidth) /* or $(window).width() */
+//     );
+// }
+//
+//
+// document.addEventListener('scroll', function (event) {
+//     let topBar = document.getElementById('main-action-bar');
+//     if (!isElementInViewport(topBar)) {
+//         topBar.classList.add('fixed', 'top-0', 'z-100');
+//     } else {
+//         topBar.classList.remove('fixed', 'top-0', 'z-100');
+//     }
+// });
 
 hotkeys('ctrl+shift+K', function (event, handler) {
     // Prevent the default refresh event under WINDOWS system
     event.preventDefault()
     let ss = document.getElementById('task-details-inp');
-    console.log(ss);
     if (ss !== null) {
         event.preventDefault()
         ss.focus();
@@ -30,27 +48,6 @@ hotkeys('ctrl+shift+K', function (event, handler) {
     }
     return false;
 });
-
-
-// hotkeys('t', function (event, handler) {
-//     // Prevent the default refresh event under WINDOWS system
-//     event.preventDefault()
-//     let foundTags = [];
-//     document.querySelectorAll('.tg-col button').forEach(value => {
-//         let tg = value.textContent.trim();
-//         for (const foundTagsKey of foundTags) {
-//             console.log(`${tg} - ${foundTagsKey}`);
-//             if (tg === foundTagsKey) {
-//                 return;
-//             }
-//         }
-//         foundTags.push(tg)
-//         console.log(value.classList);
-//         value.classList.add('red');
-//         console.log();
-//     });
-// });
-
 
 document.addEventListener("DOMContentLoaded", function () {
     let n = setInterval(
@@ -78,11 +75,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     hour += 1;
                 }
             }
-            let final_time =
-                hour.toString().padStart(2, "0") + ":" +
-                minute.toString().padStart(2, "0") + ":" +
-                second.toString().padStart(2, "0")
-            dd.children[which_one].textContent = final_time;
+            dd.children[which_one].textContent = hour.toString()
+                    // @ts-ignore
+                    .padStart(2, "0") + ":" +
+                minute.toString()
+                    // @ts-ignore
+                    .padStart(2, "0") + ":" +
+                second.toString()
+                    // @ts-ignore
+                    .padStart(2, "0");
         }, 1000
     )
 });

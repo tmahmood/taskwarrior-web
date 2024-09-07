@@ -167,20 +167,20 @@ there will be errors, as no checks, and there may not be any error messages in c
 
 ## Planned
 - [ ] Usability improvements on a long task list
-    - [ ] Hiding empty columns
-    - [ ] Temporary highlight last modified column, if visible
+  - [ ] Hiding empty columns
+  - [ ] Temporary highlight last modified column, if visible
 - [ ] Make the mnemonics same for tags on refresh
 - [ ] Modification
-    - [ ] Deleting
+  - [ ] Deleting
 - [ ] Following Context
 - [ ] Error handling
-    - [ ] Retaining input in case of error
-    - [ ] Finetune error handling
+  - [ ] Retaining input in case of error
+  - [ ] Finetune error handling
 - [ ] Add more tests
 - [ ] Convert to desktop app using Tauri
 - [ ] Reporting
-    - [ ] Project wise progress
-    - [ ] Burndown reports
+  - [ ] Project wise progress
+  - [ ] Burndown reports
 - [ ] Column customization
 - [ ] Color customization
 - [ ] Time warrior integration, and time reporting
