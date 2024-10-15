@@ -7,7 +7,7 @@ body {
 }
 
 .table-large {
-    @apply mt-2 rounded-sm bg-neutral-700 shadow-xl w-full text-left rtl:text-right text-neutral-800 dark:text-neutral-950;
+    @apply rounded-sm bg-neutral-700 shadow-xl w-full text-left rtl:text-right text-neutral-800 dark:text-neutral-950;
 }
 
 .table-large-header {
@@ -70,6 +70,16 @@ body {
     hover:bg-neutral-800
     border-r border-r-neutral-700;
     ;
+}
+
+
+.tag-item-900 {
+    @apply
+    text-neutral-400
+    bg-neutral-900 relative
+    hover:bg-neutral-800
+    border-r border-r-neutral-700;
+;
 }
 
 .tag-item-800 {

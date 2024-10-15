@@ -5,7 +5,7 @@ use axum::extract::Query;
 use axum::response::Html;
 use axum::routing::post;
 use tera::Context;
-use tracing::{error, info};
+use tracing::{error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active, run_modify_command, run_annotate_command, run_denotate_command, fetch_active_task};
@@ -174,6 +174,8 @@ async fn front_page() -> Html<String> {
     ctx.insert("tasks", &task_list);
     ctx.insert("current_filter", &tq.as_filter_text());
     ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
+    let n = env::var("DISPLAY_TIME_OF_THE_DAY").unwrap_or("0".to_string()).parse::<i32>().unwrap_or(0);
+    ctx.insert("display_time_of_the_day", &n);
     let t = tasks.iter().find(|(_, task)| task.start.is_some());
     if let Some((_, v)) = t {
         ctx.insert("active_task", v);
@@ -186,6 +188,10 @@ async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
 }
 
 fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
+
+    dotenvy::dotenv().unwrap();
+
+
     let tasks = match list_tasks(&tq) {
         Ok(t) => { t }
         Err(e) => {
@@ -194,11 +200,26 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     };
     let task_list: Vec<Task> = tasks.values().cloned().collect();
     let mut ctx_b = Context::new();
+    let current_filter = tq.as_filter_text();
+    let mut filter_ar = vec![];
+    for filter in current_filter.iter() {
+        if filter.starts_with("project:") {
+            let mut stack = vec![];
+            for part in filter.split(":").nth(1).unwrap().split(".") {
+                stack.push(part);
+                filter_ar.push(format!("project:{}", stack.join(".")))
+            }
+        } else {
+            filter_ar.push(filter.to_string());
+        }
+    }
+    trace!("{:?}", current_filter);
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
-    ctx_b.insert("current_filter", &tq.as_filter_text());
-    info!("{:?}", tq.as_filter_text());
+    ctx_b.insert("current_filter", &filter_ar);
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
+    let n = env::var("DISPLAY_TIME_OF_THE_DAY").unwrap_or("0".to_string()).parse::<i32>().unwrap_or(0);
+    ctx_b.insert("display_time_of_the_day", &n);
     if let Some(msg) = flash_msg {
         ctx_b.insert("has_toast", &true);
         ctx_b.insert("toast_msg", msg.msg());

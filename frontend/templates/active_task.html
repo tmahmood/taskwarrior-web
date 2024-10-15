@@ -1,19 +1,19 @@
-<span hx-get="tasks/active" hx-trigger="every 60s" hx-swap="outerHTML" hx-target="this">
-{% if active_task %}
-<div class="pl-2.5 pr-6 py-1.5 bg-green-700 text-green-200 shadow-xl rounded-sm mt-2 flex flex-wrap " id="active-timer">
-    <span class="flex-grow">{{ active_task.description }}</span>
-    <span class="flex-shrink bg-emerald-500 drop-shadow-2xl px-3">
+<div hx-get="tasks/active" hx-trigger="every 60s" hx-swap="outerHTML" hx-target="this">
+    {% if active_task %}
+    <div class="pl-2.5 pr-6 py-1.5 bg-green-700 text-green-200 shadow-xl rounded-sm flex flex-wrap " id="active-timer">
+        <span class="flex-grow">{{ active_task.description }}</span>
+        <span class="flex-shrink bg-emerald-500 drop-shadow-2xl px-3">
         {{ timer_value(date=active_task.start) }}
     </span>
-    <button class="tag-item tag-item-800"
-            hx-post="tasks"
-            hx-target="#list-of-tasks"
-            hx-swap="innerHTML"
-            hx-include="[id='filtering']"
-            hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer"}'
-            hx-trigger="click,keyup[key=='o'] from:#cmd-inp">
-        St<u>o</u>p
-    </button>
+        <button class="tag-item tag-item-800"
+                hx-post="tasks"
+                hx-target="#list-of-tasks"
+                hx-swap="innerHTML"
+                hx-include="[id='filtering']"
+                hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer"}'
+                hx-trigger="click,keyup[key=='o'] from:#cmd-inp">
+            St<u>o</u>p
+        </button>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
-</span>

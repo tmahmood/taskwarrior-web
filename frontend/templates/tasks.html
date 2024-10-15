@@ -52,12 +52,12 @@
                     {% set_global tag_bar_key_comb = tag_bar_key_comb |
                     update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=f) %}
                     {% set kw_tag_bar = tag_bar_key_comb[f] %}
-                    <button class="tag-item tag-item-800"
+                    <button class="tag-item {% if f is starting_with('project:') %}tag-item-900{% else %}tag-item-800 {% endif %}"
                             hx-include="[id='filtering']"
                             hx-get="tasks?query={{ f | replace(from='+', to='%2B') }}"
                             hx-target="#list-of-tasks"
                             id="{{ kw_tag_bar }}">
-                        {{ f }}
+                        {{ remove_project_tag(task=f) }}
                         <span class="kw-layer hidden">{{ kw_tag_bar }}</span>
                     </button>
                     {% endfor %}
@@ -167,6 +167,15 @@
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-16 pt-0 pb-2 bg-neutral-600 mb-5">
+        {% if display_time_of_the_day == 1 %}
+        <div class="justify-start items-center h-4" id="time_of_the_day">
+            <div class="flex-1 w-full rounded-sm text-lime-50 text-xs">
+                <div class="[min-width:4px] mt-1 bg-lime-600 shadow-inner shadow-lime-950 rounded-sm fill-lime-50 px-2 content-end">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <span hx-get="tasks/active" hx-trigger="load" hx-swap="outerHTML" hx-target="this"></span>
 
         <table id="list-of-tasks" class="table-large hz">

@@ -27,6 +27,7 @@ lazy_static::lazy_static! {
         tera.register_function("timer_value", get_timer());
         tera.register_function("date", get_date());
         tera.register_function("obj", obj());
+        tera.register_function("remove_project_tag", remove_project_from_tag());
         tera.register_filter("update_unique_tags", update_unique_tags());
         tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
         tera.autoescape_on(vec![
@@ -204,6 +205,16 @@ where
         None | Some("") => Ok(None),
         Some(s) => FromStr::from_str(s).map_err(de::Error::custom).map(Some),
     }
+}
+
+fn remove_project_from_tag() -> impl tera::Function {
+    Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+        let mut pname = tera::from_value::<String>(
+            args.get("task").clone().unwrap().clone()
+        ).unwrap();
+        pname = pname.replace("project:", "").split(".").last().unwrap().to_string();
+        Ok(tera::to_value(pname).unwrap())
+    })
 }
 
 fn get_project_name_link() -> impl tera::Function {

@@ -100,11 +100,16 @@ It's because, `tailwindcss-cli` is missing
 By default, the program will use 3000 as port,
 you can customize through `.env` file or enviornment variable, check `env.example`
 
-variable name: `TWK_SERVER_PORT` m
+variable name: `TWK_SERVER_PORT` 
 
-```shell
-TWK_SERVER_PORT=9070 cargo run --release
-```
+### Displaying `time of the day` widget
+
+By default the "time of the day" widget is not visible, to display it put 
+
+`DISPLAY_TIME_OF_THE_DAY=1`
+
+in the `.env` file
+
 
 # Using the app
 
@@ -168,7 +173,7 @@ there will be errors, as no checks, and there may not be any error messages in c
 ## Planned
 - [ ] Usability improvements on a long task list
   - [ ] Hiding empty columns
-  - [ ] Temporary highlight last modified column, if visible
+  - [ ] Temporary highlight last modified row, if visible
 - [ ] Make the mnemonics same for tags on refresh
 - [ ] Modification
   - [ ] Deleting

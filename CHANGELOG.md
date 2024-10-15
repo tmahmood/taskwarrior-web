@@ -1,3 +1,8 @@
+## Tue 15, 2024
+
+- [x] Added time of the day widget
+- [x] Project is now split by `.` in the tag bar
+
 ## Sat 07, 2024
 - [1412]
   - [x] Top headers are now sticky, so when displaying a long list of tasks and executing any action do not jump to top

@@ -98,4 +98,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     .padStart(2, "0");
         }, 1000
     )
+    let day_progress = setInterval(
+        () => {
+            const dd = document.getElementById('time_of_the_day');
+            if (dd === undefined || dd === null) {
+                return
+            }
+            // <progress id="time_of_the_day" class="fill-amber-200 bg-blue-900 w-full shadow-inner shadow-blue-950" max="100" value=""></progress>
+            const now = new Date();
+            const total_minutes_passed = now.getMinutes() + (now.getHours() * 60);
+            const total_minutes_in_day = 24 * 60;
+            const hours_left = 24 - now.getHours();
+            dd.style.width = total_minutes_passed * 100 / total_minutes_in_day + "%";
+            dd.children[0].children[0].innerHTML =  hours_left + "h";
+        }, 1000
+    )
 });
