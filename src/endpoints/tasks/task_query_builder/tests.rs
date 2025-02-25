@@ -1,5 +1,5 @@
-use crate::endpoints::tasks::read_task_file;
 use super::*;
+use crate::endpoints::tasks::{read_task_file, task_show};
 
 #[test]
 fn modifying_existing_task_query() {
@@ -43,10 +43,7 @@ fn with_priority_string_with_no_status() {
         ..TWGlobalState::default()
     };
     let task_query = TaskQuery::new(p);
-    assert_eq!(
-        &task_query.as_filter_text().join(" "),
-        "priority:H next"
-    )
+    assert_eq!(&task_query.as_filter_text().join(" "), "priority:H next")
 }
 
 #[test]
@@ -56,10 +53,7 @@ fn with_empty_search_param() {
         ..TWGlobalState::default()
     };
     let task_query = TaskQuery::new(p);
-    assert_eq!(
-        &task_query.as_filter_text().join(" "),
-        "next"
-    )
+    assert_eq!(&task_query.as_filter_text().join(" "), "next")
 }
 
 #[test]
@@ -70,10 +64,7 @@ fn when_containing_status() {
         ..TWGlobalState::default()
     };
     let query = TaskQuery::new(p).as_filter_text();
-    assert_eq!(
-        &query.join(" "),
-        "status:completed"
-    )
+    assert_eq!(&query.join(" "), "status:completed")
 }
 
 #[test]
@@ -84,6 +75,13 @@ fn task_by_uuid() {
     let t = TaskQuery::new(p);
     println!("{:?}", t);
     println!("{:?}", t.as_filter_text());
-    let tasks = read_task_file(t).unwrap();
+    let tasks = read_task_file(&t).unwrap();
     println!("{:#?}", tasks);
+}
+
+#[test]
+fn task_get_settings() {
+    let ss = task_show().unwrap();
+    println!("{:#?}", ss);
+    assert_eq!(ss["report.next.columns"], "id,effort,areas,start.age,entry.age,depends,priority,project,tags,recur,scheduled.countdown,due.relative,until.remaining,description,urgency");
 }

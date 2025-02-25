@@ -1,16 +1,16 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use tracing::{error, info, trace};
-use std::process::Command;
-use std::fs;
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+use tracing::{error, info, trace};
 
 pub mod task_query_builder;
 
+use crate::{NewTask, TWGlobalState, TaskUpdateStatus};
 use task_query_builder::TaskQuery;
-use crate::{TWGlobalState, TaskUpdateStatus, NewTask};
 
 pub const TASK_DATA_FILE: &str = "data.json";
 pub const TASK_DATA_FILE_EDIT: &str = "data_edit.json";
@@ -21,7 +21,6 @@ pub struct Annotation {
     entry: String,
     description: String,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Task {
@@ -67,7 +66,6 @@ pub struct Task {
     pub uda: Option<HashMap<String, Value>>,
 }
 
-
 pub fn fetch_task_from_cmd(task_query: &TaskQuery) -> Result<String, anyhow::Error> {
     let mut task = task_query.build();
     trace!("{:?}", task.get_args());
@@ -77,7 +75,7 @@ pub fn fetch_task_from_cmd(task_query: &TaskQuery) -> Result<String, anyhow::Err
             error!("{}", e);
             anyhow::bail!("Failed to read tasks")
         }
-    }
+    };
 }
 
 #[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
@@ -87,7 +85,7 @@ fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, an
     let content = fetch_task_from_cmd(&task_query)?;
     let tasks: Vec<Task> = match serde_json::from_str(&content) {
         Ok(s) => s,
-        Err(e) => anyhow::bail!(e.to_string())
+        Err(e) => anyhow::bail!(e.to_string()),
     };
     let mut hm = IndexMap::new();
     for task in tasks.iter() {
@@ -97,9 +95,7 @@ fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, an
 }
 
 pub fn task_undo_report() -> Result<String, anyhow::Error> {
-    match Command::new("task")
-        .arg("undo")
-        .output() {
+    match Command::new("task").arg("undo").output() {
         Ok(o) => {
             let s = String::from_utf8(o.stdout).unwrap();
             Ok(s)
@@ -113,11 +109,11 @@ pub fn task_undo_report() -> Result<String, anyhow::Error> {
 
 pub fn task_add(task: &NewTask) -> Result<(), anyhow::Error> {
     let mut cmd = Command::new("task");
-    cmd
-        .arg("add")
-        .arg(task.description());
+    cmd.arg("add").arg(task.description());
     // add the tags
-    if let Some(tags) = task.tags() && tags != "" {
+    if let Some(tags) = task.tags()
+        && tags != ""
+    {
         for tag in tags.split(' ') {
             if !tag.starts_with('+') {
                 cmd.arg(&format!("+{}", tag));
@@ -157,7 +153,8 @@ pub fn task_undo() -> Result<(), anyhow::Error> {
     match Command::new("task")
         .arg("rc.confirmation:off")
         .arg("undo")
-        .output() {
+        .output()
+    {
         Ok(_o) => {
             info!("Task undo success");
             Ok(())
@@ -222,10 +219,7 @@ pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
 
 pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
     // maybe another task is running? So stop all other tasks first
-    match Command::new("task")
-        .arg("+ACTIVE")
-        .arg("export")
-        .output() {
+    match Command::new("task").arg("+ACTIVE").arg("export").output() {
         Err(e) => {
             error!("No active task found: {}", e);
             anyhow::bail!("No active task found");
@@ -245,20 +239,14 @@ pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
 pub fn toggle_task_active(task_uuid: &str) -> Result<bool, anyhow::Error> {
     let t = get_task_from_tw(task_uuid)?;
     // maybe another task is running? So stop all other tasks first
-    if let Err(e) = Command::new("task")
-        .arg("+ACTIVE")
-        .arg("stop")
-        .output() {
+    if let Err(e) = Command::new("task").arg("+ACTIVE").arg("stop").output() {
         error!("Failed to stop any task: {}", e);
         anyhow::bail!("Failed to stop task");
     }
     let is_running = t.start.is_none();
     // the task was not running, so let's start it
     if is_running {
-        if let Err(e) = Command::new("task")
-            .arg(task_uuid)
-            .arg("start")
-            .output() {
+        if let Err(e) = Command::new("task").arg(task_uuid).arg("start").output() {
             error!("Failed to start task: {}", e);
             anyhow::bail!("Failed to start task");
         }
@@ -271,13 +259,12 @@ fn execute_update(t: Task) -> Result<(), anyhow::Error> {
     let tasks_vec: Vec<Task> = vec![t];
     let data_file = PathBuf::from(TASK_DATA_FILE_EDIT);
     fs::write(&data_file, serde_json::to_string(&tasks_vec)?)?;
-    match data_file.canonicalize()
-        .and_then(|v| {
-            Command::new("task")
-                .arg("import")
-                .arg(v.to_str().unwrap())
-                .output()
-        }) {
+    match data_file.canonicalize().and_then(|v| {
+        Command::new("task")
+            .arg("import")
+            .arg(v.to_str().unwrap())
+            .output()
+    }) {
         Ok(o) if o.status.exit_ok().is_ok() => {
             info!("Synced with task");
             Ok(())
@@ -300,7 +287,7 @@ fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
     let tasks = read_task_file(&t)?;
     match tasks.get(&TaskUUID(task_uuid.to_string())) {
         None => anyhow::bail!("Matching task not found"),
-        Some(t) => Ok(t.clone())
+        Some(t) => Ok(t.clone()),
     }
 }
 
@@ -313,7 +300,37 @@ pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
     let tasks = read_task_file(&t)?;
     match tasks.get(&TaskUUID(uuid.clone())) {
         None => anyhow::bail!("Matching task not found"),
-        Some(t) => Ok(t.clone())
+        Some(t) => Ok(t.clone()),
     }
 }
 
+/// Parse task settings
+pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
+    let mut settings = IndexMap::<String, String>::default();
+    let rr = Command::new("task")
+        .arg("show")
+        .output()?
+        .stdout;
+    String::from_utf8(rr)?.lines().for_each(|line| {
+        let mut ss = line.split_once(": ");
+        if let Some((key, val)) = ss {
+            settings.insert(
+                key.trim().to_string(),
+                val.trim().to_string(),
+            );
+        } else {
+            println!("FAIL: {}", line);
+            ss = line.split_once(" ");
+            if let Some((key, val)) = ss {
+                settings.insert(
+                    key.trim().to_string(),
+                    val.trim().to_string(),
+                );
+            } else {
+                println!("TOTAL FAIL: {}", line);
+
+            }
+        }
+    });
+    Ok(settings)
+}
