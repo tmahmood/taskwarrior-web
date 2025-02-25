@@ -34,8 +34,8 @@
     {% set on_pending = "pending" %}
     {% set on_waiting = "waiting" %}
     {% set mod_key = "" %}
-    <div class="fixed top-0 left-0 h-16 z-40 w-full bg-neutral-800 pb-2 shadow-lg shadow-black">
-        <div class="pl-2 pr-2 py-1.5 bg-neutral-700 border-b-2 border-b-neutral-800 rounded-sm text-xs flex flex-wrap"
+    <div class="fixed top-0 left-0 h-16 z-40 w-full pb-2 shadow-lg shadow-black bg-base-100">
+        <div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex flex-wrap bg-base-100"
              id="main-action-bar">
 
             <!-- TAG BAR -->
@@ -46,13 +46,13 @@
 
             <!-- TAG LIST -->
             <div class="md:flex-grow sm:row-autotag-list flex-wrap">
-                <div class="tag-list">
+                <div class="join">
                     {% for f in current_filter %}
                     {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=f) %}
                     {% set_global tag_bar_key_comb = tag_bar_key_comb |
                     update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=f) %}
                     {% set kw_tag_bar = tag_bar_key_comb[f] %}
-                    <button class="tag-item {% if f is starting_with('project:') %}tag-item-900{% else %}tag-item-800 {% endif %}"
+                    <button class="btn btn-xs join-item {% if f is starting_with('project:') %}btn-neutral{% else %}btn-secondary {% endif %}"
                             hx-include="[id='filtering']"
                             hx-get="tasks?query={{ f | replace(from='+', to='%2B') }}"
                             hx-target="#list-of-tasks"
@@ -71,91 +71,72 @@
             <span>
                 <label for="cmd-inp" class="hidden"></label>
                 <input type="text" id="cmd-inp"
-                       class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+                       class="pl-1 outline-none text-xs border-neutral-600 border-2"
                        placeholder="Cmd Bar, Ctrl+Shift+K"
                        autofocus/>
             </span>
             </div>
             <!-- // -->
         </div>
-        <div class="pl-2 pr-2 py-1.5 bg-neutral-700 text-xs flex">
-            <div class="flex flex-wrap">
-                <div class="tag-list">
-                    <button class="tag-item tag-item-800 py-0"
-                            hx-get="tasks/undo/report"
-                            hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
-                            hx-target="#undo_confirm"
-                            hx-swap="innerHTML">
-                        <u>u</u>ndo
-                    </button>
-                    <button class="tag-item tag-item-800"
-                            hx-get="tasks/add"
-                            hx-include="[id='filtering']"
-                            hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
-                            hx-target="#task_form_div"
-                            hx-swap="innerHTML">
-                        <u>n</u>ew task
-                    </button>
-                </div>
-            </div>
+        <div class="pl-2 pr-2 py-1.5 text-xs flex">
             <div class="flex flex-wrap flex-grow justify-end">
-                <div class="tag-list flex flex-wrap">
-                    <button class="tag-item tag-item-800 {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
+                <div class="join flex flex-wrap">
+                    <button class="btn btn-xs join-item {{ on_pending }}" id="pending" hx-get="tasks?status=pending"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='p'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>p</u>ending
                     </button>
-                    <button class="tag-item tag-item-800 {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
+                    <button class="btn btn-xs join-item {{ on_waiting }}" id="waiting" hx-get="tasks?status=waiting"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='w'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>w</u>aiting
                     </button>
-                    <button class="tag-item tag-item-800  {{ on_complete }}" id="completed"
+                    <button class="btn btn-xs join-item  {{ on_complete }}" id="completed"
                             hx-get="tasks?status=completed"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='c'] from:#cmd-inp"
                             hx-target="#list-of-tasks" hx-swap="innerHTML"><u>c</u>ompleted
                     </button>
-                    <button class="tag-item tag-item-800" id="priority-h" hx-get="tasks?query=priority:H"
+                    <button class="btn btn-xs join-item" id="priority-h" hx-get="tasks?query=priority:H"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='h'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>H</u>
                     </button>
-                    <button class="tag-item tag-item-800" id="priority-m" hx-get="tasks?query=priority:M"
+                    <button class="btn btn-xs join-item" id="priority-m" hx-get="tasks?query=priority:M"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='m'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>M</u>
                     </button>
-                    <button class="tag-item tag-item-800" id="priority-l" hx-get="tasks?query=priority:L"
+                    <button class="btn btn-xs join-item" id="priority-l" hx-get="tasks?query=priority:L"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='l'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>L</u>
                     </button>
-                    <button class="tag-item tag-item-800"
+                    <button class="btn btn-xs join-item"
                             hx-get="tasks?report=all"
                             hx-include="[id='filtering']"
                             hx-target="#list-of-tasks"
                             hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>a</u>ll
                     </button>
-                    <button class="tag-item tag-item-800" hx-get="tasks?report=next"
+                    <button class="btn btn-xs join-item" hx-get="tasks?report=next"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='x'] from:#cmd-inp"
                             hx-swap="innerHTML">ne<u>x</u>t
                     </button>
-                    <button class="tag-item tag-item-800" hx-get="tasks?report=ready"
+                    <button class="btn btn-xs join-item" hx-get="tasks?report=ready"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='r'] from:#cmd-inp"
                             hx-swap="innerHTML"><u>r</u>eady
                     </button>
-                    <button class="tag-item tag-item-800" hx-get="tasks?report=new"
+                    <button class="btn btn-xs join-item" hx-get="tasks?report=new"
                             hx-target="#list-of-tasks"
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='e'] from:#cmd-inp"
@@ -166,7 +147,7 @@
         </div>
     </div>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-16 pt-0 pb-2 bg-neutral-600 mb-5">
+    <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-16 pt-0 pb-2 mb-5">
         {% if display_time_of_the_day == 1 %}
         <div class="justify-start items-center h-4" id="time_of_the_day">
             <div class="flex-1 w-full rounded-sm text-lime-50 text-xs">
@@ -177,196 +158,199 @@
         {% endif %}
 
         <span hx-get="tasks/active" hx-trigger="load" hx-swap="outerHTML" hx-target="this"></span>
-
-        <table id="list-of-tasks" class="table-large hz">
-            <thead class="table-large-header">
-            <tr>
-                <th></th>
-                <th>ID</th>
-                <th>Age</th>
-                <th>Depends</th>
-                <th>Project</th>
-                <th>Tag</th>
-                <th class="min-w-96">Description</th>
-                <th>Urg</th>
-                <th>ACT</th>
-                <th>DUE</th>
-                <th>SCH</th>
-                <th>END</th>
-                <th>Recur</th>
-            </tr>
-            </thead>
-            <tbody class="list-view">
-            {% for task in tasks %}
-            {% set status_color = on_all %}
-            {% if task.status == 'pending' %}
-            {% set status_color = on_pending %}
-            {% elif task.status == 'complete' %}
-            {% set status_color = on_complete %}
-            {% elif task.status == 'waiting' %}
-            {% set status_color = on_waiting %}
-            {% endif %}
-            <tr class="{%if task.start %} active-task {% endif %}">
-                <td>
-                    <div class="checkbox-wrapper-32">
-                        <input
-                                type="checkbox"
-                                name="checkbox-{{ task.uuid }}"
-                                id="checkbox-{{ task.uuid }}"
-                                hx-trigger="change"
-                                hx-post="tasks" hx-target="#list-of-tasks"
-                                hx-include="[id='filtering']"
-                                {% if task.status !="completed" %}
-                                hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
-                                hx-swap="innerHTML"
-                                {% else %}
-                                checked="checked"
-                                hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
-                                hx-swap="innerHTML"
-                                {% endif %}
-                        >
-                        {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw,
-                        tag=task.id | as_str) %}
-                        {% set_global task_action_bar_key_comb = task_action_bar_key_comb |
-                        update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
-                        {% set kw_id = task_action_bar_key_comb[task.id] %}
-                        <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}" class="static">
-                            &nbsp;
-                            <span class="kw-id-layer hidden red absolute top-1 left-1">
+        <div class="h-[90%] overflow-x-auto">
+            <table id="list-of-tasks" class="table table-zebra table-xs table-pin-rows">
+                <thead>
+                <tr>
+                    <th></th>
+                    <th>ID</th>
+                    <th>Age</th>
+                    <th>Depends</th>
+                    <th>Project</th>
+                    <th>Tag</th>
+                    <th class="min-w-96">Description</th>
+                    <th>Urg</th>
+                    <th>ACT</th>
+                    <th>DUE</th>
+                    <th>SCH</th>
+                    <th>END</th>
+                    <th>Recur</th>
+                </tr>
+                </thead>
+                <tbody class="list-view">
+                {% for task in tasks %}
+                {% set status_color = on_all %}
+                {% if task.status == 'pending' %}
+                {% set status_color = on_pending %}
+                {% elif task.status == 'complete' %}
+                {% set status_color = on_complete %}
+                {% elif task.status == 'waiting' %}
+                {% set status_color = on_waiting %}
+                {% endif %}
+                <tr class="{%if task.start %} active-task {% endif %}">
+                    <td>
+                        <div class="checkbox-wrapper-32">
+                            <input
+                                    type="checkbox"
+                                    name="checkbox-{{ task.uuid }}"
+                                    id="checkbox-{{ task.uuid }}"
+                                    hx-trigger="change"
+                                    hx-post="tasks" hx-target="#list-of-tasks"
+                                    hx-include="[id='filtering']"
+                                    {% if task.status !="completed" %}
+                                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
+                                    hx-swap="innerHTML"
+                                    {% else %}
+                                    checked="checked"
+                                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
+                                    hx-swap="innerHTML"
+                                    {% endif %}
+                            >
+                            {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw,
+                            tag=task.id | as_str) %}
+                            {% set_global task_action_bar_key_comb = task_action_bar_key_comb |
+                            update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
+                            {% set kw_id = task_action_bar_key_comb[task.id] %}
+                            <label for="checkbox-{{ task.uuid }}" id="{{ kw_id }}" class="static">
+                                &nbsp;
+                                <span class="kw-id-layer hidden bg-red-600 absolute top-1 left-1">
                                 {{ kw_id }}
                             </span>
-                        </label>
-                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M 10 10 L 90 90" stroke="#000" stroke-dasharray="113"
-                                  stroke-dashoffset="113"></path>
-                            <path d="M 90 10 L 10 90" stroke="#000" stroke-dasharray="113"
-                                  stroke-dashoffset="113"></path>
-                        </svg>
-                    </div>
-                </td>
-                <td>
-                    {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw, tag=task.id
-                    | as_str) %}
-                    {% set_global task_action_bar_key_comb = task_action_bar_key_comb |
-                    update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
-                    {% set kw_id_details = task_action_bar_key_comb[task.id] %}
-                    <button
-                            class="tag-item tag-item-800 static"
-                            hx-trigger="click"
-                            hx-get="task_details?task_id={{ task.uuid }}"
-                            hx-target="#task_details"
-                            id="{{ kw_id_details }}"
-                    >
-                        {{ task.id }}
-
-                        <span class="kw-id-layer hidden red absolute left-5">
+                            </label>
+                            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M 10 10 L 90 90" stroke="#000" stroke-dasharray="113"
+                                      stroke-dashoffset="113"></path>
+                                <path d="M 90 10 L 10 90" stroke="#000" stroke-dasharray="113"
+                                      stroke-dashoffset="113"></path>
+                            </svg>
+                        </div>
+                    </td>
+                    <td>
+                        {% set_global unique_id_kw = unique_id_kw | update_unique_tags(unique_tags=unique_id_kw,
+                        tag=task.id
+                        | as_str) %}
+                        {% set_global task_action_bar_key_comb = task_action_bar_key_comb |
+                        update_tag_bar_key_comb(tag_bar_key_comb=task_action_bar_key_comb, tag=task.id | as_str) %}
+                        {% set kw_id_details = task_action_bar_key_comb[task.id] %}
+                        <button
+                                class="btn btn-secondary static btn-xs"
+                                hx-trigger="click"
+                                hx-get="task_details?task_id={{ task.uuid }}"
+                                hx-target="#task_details"
+                                id="{{ kw_id_details }}"
+                        >
+                            {{ task.id }}
+                            <span class="kw-id-layer hidden bg-red-800 absolute left-5">
                                 {{ kw_id_details }}
                             </span>
-                    </button>
-                </td>
-                <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
-                <td>{% if task.depends %}
-                    {% for uuid in task.depends %}
-                    {%if tasks_db[uuid] %}{{ tasks_db[uuid].id }}{% endif %}
-                    {% endfor %}
-                    {% endif %}
-                </td>
-                <td class="tg-col">
-                    {% if task.project %}
-                    <div class="breadcrumb tag-list">
-                        {% for p in task.project | split(pat=".") %}
-                        {% set ptag = ["project", p] | join(sep=":") %}
-                        {% if ptag not in unique_tags %}
-                        {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=ptag)
-                        %}
-                        {% set_global tag_bar_key_comb = tag_bar_key_comb |
-                        update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=ptag) %}
-                        {% set kw_pro = tag_bar_key_comb[ptag] %}
+                        </button>
+                    </td>
+                    <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
+                    <td>{% if task.depends %}
+                        {% for uuid in task.depends %}
+                        {%if tasks_db[uuid] %}{{ tasks_db[uuid].id }}{% endif %}
+                        {% endfor %}
                         {% endif %}
-                        <button class="tag-item tag-item-800"
-                                hx-include="[id='filtering']"
-                                hx-target="#list-of-tasks"
-                                {% if kw_pro %} id="{{ kw_pro }}" {% endif %}
-                                hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
-                            {{ p }}
-                            {% if kw_pro %}
-                            <span class="kw-layer hidden">
+                    </td>
+                    <td class="tg-col">
+                        {% if task.project %}
+                        <div class="breadcrumb tag-list">
+                            {% for p in task.project | split(pat=".") %}
+                            {% set ptag = ["project", p] | join(sep=":") %}
+                            {% if ptag not in unique_tags %}
+                            {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags,
+                            tag=ptag)
+                            %}
+                            {% set_global tag_bar_key_comb = tag_bar_key_comb |
+                            update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=ptag) %}
+                            {% set kw_pro = tag_bar_key_comb[ptag] %}
+                            {% endif %}
+                            <button class="tag-item tag-item-800"
+                                    hx-include="[id='filtering']"
+                                    hx-target="#list-of-tasks"
+                                    {% if kw_pro %} id="{{ kw_pro }}" {% endif %}
+                                    hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
+                                {{ p }}
+                                {% if kw_pro %}
+                                <span class="kw-layer hidden">
                                     {{ kw_pro }}
                                 </span>
-                            {% endif %}
-                        </button>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </td>
-                <td class="tg-col">
-                    <div class="tag-list">
-                        {% if task.tags %}
-                        {% for p in task.tags %}
-                        {% if p not in unique_tags %}
-                        {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=p) %}
-                        {% set_global tag_bar_key_comb = tag_bar_key_comb |
-                        update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=p) %}
-                        {% set kw = tag_bar_key_comb[p] %}
+                                {% endif %}
+                            </button>
+                            {% endfor %}
+                        </div>
                         {% endif %}
-                        <button class="tag-item tag-item-800" hx-get="tasks?query=%2B{{ p }}"
-                                hx-target="#list-of-tasks"
-                                hx-include="[id='filtering']"
-                                {% if kw %} id="{{ kw }}" {% endif %}
-                                hx-swap="innerHTML">
-                            {{ p }}
-                            {% if kw %}
-                            <span class="kw-layer hidden">
+                    </td>
+                    <td class="tg-col">
+                        <div class="tag-list">
+                            {% if task.tags %}
+                            {% for p in task.tags %}
+                            {% if p not in unique_tags %}
+                            {% set_global unique_tags = unique_tags | update_unique_tags(unique_tags=unique_tags, tag=p)
+                            %}
+                            {% set_global tag_bar_key_comb = tag_bar_key_comb |
+                            update_tag_bar_key_comb(tag_bar_key_comb=tag_bar_key_comb, tag=p) %}
+                            {% set kw = tag_bar_key_comb[p] %}
+                            {% endif %}
+                            <button class="tag-item tag-item-800" hx-get="tasks?query=%2B{{ p }}"
+                                    hx-target="#list-of-tasks"
+                                    hx-include="[id='filtering']"
+                                    {% if kw %} id="{{ kw }}" {% endif %}
+                                    hx-swap="innerHTML">
+                                {{ p }}
+                                {% if kw %}
+                                <span class="kw-layer hidden">
                                 {{ kw }}
                             </span>
+                                {% endif %}
+                            </button>
+                            {% endfor %}
                             {% endif %}
-                        </button>
-                        {% endfor %}
+                            {% if task.priority %}
+                            <button class="tag-item {{ task.priority }} tag-item-800"
+                                    hx-get="tasks?query=priority:{{ task.priority }}" hx-target="#list-of-tasks"
+                                    hx-include="[id='filtering']"
+                                    hx-swap="innerHTML"
+                            >{{ task.priority }}
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {{ desc::desc(task=task) }}
+                    </td>
+                    <td>{{ task.urgency }}</td>
+                    <td>
+                        {% if task.start %}
+                        {{ date_proper(date=task.start) }}
                         {% endif %}
-                        {% if task.priority %}
-                        <button class="tag-item {{ task.priority }} tag-item-800"
-                                hx-get="tasks?query=priority:{{ task.priority }}" hx-target="#list-of-tasks"
-                                hx-include="[id='filtering']"
-                                hx-swap="innerHTML"
-                        >{{ task.priority }}
-                        </button>
-                        {% endif %}
-                    </div>
-                </td>
-                <td>
-                    {{ desc::desc(task=task) }}
-                </td>
-                <td>{{ task.urgency }}</td>
-                <td>
-                    {% if task.start %}
-                    {{ date_proper(date=task.start) }}
-                    {% endif %}
-                </td>
-                <td>
-                    {% if task.due and task.status != 'completed' %}
-                    <span class="is_due">
+                    </td>
+                    <td>
+                        {% if task.due and task.status != 'completed' %}
+                        <span class="is_due">
                         {{ date_proper(date=task.due, in_future=true) }}
                     </span>
-                    {% endif %}
-                </td>
+                        {% endif %}
+                    </td>
 
-                <td>
-                    {% if task.scheduled %}
-                    {{ date_proper(date=task.scheduled, in_future=true) }}
-                    {% endif%}
-                </td>
-                <td>
-                    {% if task.end %}{{ date_proper(date=task.end) }}
-                    {% else %}
-                    &nbsp;
-                    {% endif %}
-                </td>
-                <td>
-                    {% if task.recur %}{{task.recur}}{% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                    <td>
+                        {% if task.scheduled %}
+                        {{ date_proper(date=task.scheduled, in_future=true) }}
+                        {% endif%}
+                    </td>
+                    <td>
+                        {% if task.end %}{{ date_proper(date=task.end) }}
+                        {% else %}
+                        &nbsp;
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.recur %}{{task.recur}}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

@@ -1,10 +1,23 @@
-            <div class="tag-list">
-                <span id="tag_search_bar" class="tag-item-800 tag-item">
-                    <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML"
-                            hx-trigger="click,keyup[key=='t'] from:#cmd-inp">select <u>t</u>ag</button>
-                </span>
-                <span class="tag-item-800 tag-item" id="task_action_bar">
-                    <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
-                            hx-trigger="click,keyup[key=='s'] from:#cmd-inp"><u>s</u>elect task</button>
-                </span>
+            <div class="join">
+                <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML" class="btn btn-info btn-xs join-item"
+                        hx-trigger="click,keyup[key=='t'] from:#cmd-inp"><span class="underline">t</span>ag</button>
+                <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML" class="btn btn-xs btn-primary join-item"
+                        hx-trigger="click,keyup[key=='s'] from:#cmd-inp">task</button>
+            </div>
+            <div class="join">
+                <button class="btn btn-xs btn-warning join-item"
+                        hx-get="tasks/undo/report"
+                        hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
+                        hx-target="#undo_confirm"
+                        hx-swap="innerHTML">
+                    <u>u</u>ndo
+                </button>
+                <button class="btn btn-xs btn-success join-item"
+                        hx-get="tasks/add"
+                        hx-include="[id='filtering']"
+                        hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
+                        hx-target="#task_form_div"
+                        hx-swap="innerHTML">
+                    <b class="underline m-0">n</b>ew task
+                </button>
             </div>

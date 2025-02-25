@@ -4,19 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^25.0.8",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-typescript": "^11.1.6",
+    "@rollup/plugin-commonjs": "^28.0.2",
     "@rollup/plugin-inject": "^5.0.5",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.4",
-    "@tailwindcss/forms": "^0.5.7",
-    "tslib": "^2.6.3",
-    "typescript": "^5.4.5"
-  },
-  "dependencies": {
-    "hotkeys-js": "^3.13.7",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "tailwindcss": "^4.0.9",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3",
+    "daisyui": "^5.0.0-beta.8",
+    "hotkeys-js": "^3.13.9",
     "htmx.org": "2.0.0-beta4",
-    "hyperscript.org": "^0.9.12"
+    "hyperscript.org": "^0.9.14",
+    "postcss": "^8.5.3"
   }
 }
