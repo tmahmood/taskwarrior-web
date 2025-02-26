@@ -5,14 +5,14 @@
         <span class="flex-shrink bg-emerald-500 drop-shadow-2xl px-3">
         {{ timer_value(date=active_task.start) }}
     </span>
-        <button class="tag-item tag-item-800"
+        <button class="btn btn-accent"
                 hx-post="tasks"
                 hx-target="#list-of-tasks"
                 hx-swap="innerHTML"
                 hx-include="[id='filtering']"
                 hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer"}'
                 hx-trigger="click,keyup[key=='o'] from:#cmd-inp">
-            St<u>o</u>p
+            <span>St<span class="shortcut_key">o</span>p</span>
         </button>
     </div>
     {% endif %}
