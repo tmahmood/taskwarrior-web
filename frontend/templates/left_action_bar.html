@@ -1,18 +1,19 @@
 <div class="join">
     <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML" class="btn btn-neutral btn-xs join-item"
-            hx-trigger="click,keyup[key=='t'] from:#cmd-inp"><span class="underline">t</span>ag
+            hx-trigger="click,keyup[key=='t'] from:#cmd-inp">tag
     </button>
     <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
             class="btn btn-xs btn-neutral join-item"
             hx-trigger="click,keyup[key=='s'] from:#cmd-inp">task
     </button>
-    <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
+</div>
+<div class="join">
     <button class="btn btn-xs btn-neutral join-item"
             hx-get="tasks/undo/report"
             hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
             hx-target="#undo_confirm"
             hx-swap="innerHTML">
-        <u>u</u>ndo
+        undo
     </button>
     <button class="btn btn-xs btn-neutral join-item"
             hx-get="tasks/add"
@@ -20,6 +21,6 @@
             hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
             hx-target="#task_form_div"
             hx-swap="innerHTML">
-        <b class="underline m-0">n</b>ew task
+        new task
     </button>
 </div>

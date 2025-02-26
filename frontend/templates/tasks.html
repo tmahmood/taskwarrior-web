@@ -1,7 +1,7 @@
 {% import "desc.html" as desc %}
 {% if has_toast %}
 <div hx-swap-oob="beforeend:#toast">
-    <div class="items-center justify-items-center gap-4 px-5 py-3 text-neutral-300 fixed h-18 top-0 left-0 w-full z-50 bg-cyan-700 shadow-xl shadow-black"
+    <div class="items-center justify-items-center gap-4 px-5 py-3 text-neutral-300 fixed h-18 top-0 left-0 w-full z-50 bg-cyan-700 shadow-xs shadow-black"
          hx-trigger="load delay:{{ toast_timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
 
         <div class="flex flex-row">
@@ -23,15 +23,11 @@
     <div id="task_form_div"></div>
     <div id="task_details"></div>
     {% set on_all = "all" %}
-    {% set unique_tags = [] %}
-    {% set tag_bar_key_comb = obj() %}
-    {% set unique_id_kw = [] %}
-    {% set task_action_bar_key_comb = obj() %}
     {% set on_complete = "btn-success" %}
     {% set on_pending = "btn-warning" %}
     {% set on_waiting = "btn-accent" %}
     {% set mod_key = "" %}
-    <div class="fixed top-0 left-0 h-16 z-40 w-full pb-2 shadow-lg shadow-black bg-base-100">
+    <div class="fixed top-0 left-0 h-[18] z-40 w-full pb-2 shadow-sm shadow-black bg-base-100">
         <div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex flex-wrap bg-base-100"
              id="main-action-bar">
             <!-- TAG BAR -->
@@ -85,6 +81,13 @@
                             hx-trigger="click,keyup[{{mod_key}}key=='c'] from:#cmd-inp"
                             hx-target="#list-of-tasks" hx-swap="innerHTML">completed
                     </button>
+                    <button class="btn btn-xs join-item btn-neutral"
+                            hx-get="tasks?report=all"
+                            hx-include="[id='filtering']"
+                            hx-target="#list-of-tasks"
+                            hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
+                            hx-swap="innerHTML">all
+                    </button>
                 </div>
                 <div class="join flex-1/3">
                     <button class="btn btn-xs join-item btn-primary" hx-get="tasks?report=next"
@@ -124,13 +127,6 @@
                             hx-include="[id='filtering']"
                             hx-trigger="click,keyup[{{mod_key}}key=='l'] from:#cmd-inp"
                             hx-swap="innerHTML">L
-                    </button>
-                    <button class="btn btn-xs join-item btn-neutral"
-                            hx-get="tasks?report=all"
-                            hx-include="[id='filtering']"
-                            hx-target="#list-of-tasks"
-                            hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
-                            hx-swap="innerHTML">all
                     </button>
                 </div>
             </div>
