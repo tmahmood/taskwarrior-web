@@ -334,3 +334,13 @@ pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
     });
     Ok(settings)
 }
+
+pub const TAG_KEYWORDS: [&str; 4] = ["next", "new", "completed", "new"];
+
+pub fn is_tag_keyword(tag: &str) -> bool {
+    TAG_KEYWORDS.contains(&tag)
+}
+
+pub fn is_a_tag(tag: &str) -> bool {
+    is_tag_keyword(tag) || tag.starts_with("+")
+}

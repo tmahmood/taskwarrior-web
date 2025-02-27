@@ -8,9 +8,9 @@ use std::str::FromStr;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, TimeDelta};
-use rand::distributions::{Alphanumeric, DistString};
+use rand::distr::{Alphanumeric, SampleString};
 use serde::{de, Deserialize, Deserializer, Serialize};
-
+use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
 lazy_static::lazy_static! {
@@ -30,6 +30,8 @@ lazy_static::lazy_static! {
         tera.register_function("remove_project_tag", remove_project_from_tag());
         tera.register_filter("update_unique_tags", update_unique_tags());
         tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
+        tera.register_tester("keyword_tag", is_tag_keyword_tests());
+        tera.register_tester("user_tag", is_tag_tests());
         tera.autoescape_on(vec![
             ".html",
             ".sql"
@@ -207,6 +209,7 @@ where
     }
 }
 
+
 fn remove_project_from_tag() -> impl tera::Function {
     Box::new(move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
         let mut pname = tera::from_value::<String>(
@@ -227,6 +230,22 @@ fn get_project_name_link() -> impl tera::Function {
         ).unwrap();
         let r: Vec<&str> = pname.split(".").take(index).collect();
         Ok(tera::to_value(r.join(".")).unwrap())
+    })
+}
+
+fn is_tag_keyword_tests() -> impl tera::Test {
+    Box::new(move |val: Option<&tera::Value>, values: &[tera::Value]| -> tera::Result<bool>{
+        let v_str = val.as_ref().unwrap().to_string();
+        println!("keyword: {} {}", v_str, is_tag_keyword(&v_str));
+        Ok(is_tag_keyword(&v_str))
+    })
+}
+
+fn is_tag_tests() -> impl tera::Test {
+    Box::new(move |val: Option<&tera::Value>, values: &[tera::Value]| -> tera::Result<bool>{
+        let v_str = val.as_ref().unwrap().to_string();
+        println!("user_tag: {} {} {}", v_str, is_a_tag(&v_str), v_str.starts_with("+"));
+        Ok(is_a_tag(&v_str))
     })
 }
 
@@ -251,7 +270,7 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
         let mut tag_key_comb = tera::from_value::<HashMap<String, String>>(value.clone())?;
         let tag = tera::from_value::<String>(args.get("tag").clone().unwrap().clone())?;
         loop {
-            let string = Alphanumeric.sample_string(&mut rand::thread_rng(), 2).to_lowercase();
+            let string = Alphanumeric.sample_string(&mut rand::rng(), 2).to_lowercase();
             if tag_key_comb.iter().find(|&(_k, v)| v == &string).is_some() {
                 continue;
             }

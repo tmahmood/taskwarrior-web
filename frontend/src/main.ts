@@ -16,25 +16,17 @@ hotkeys.filter = function (event) {
     return true;
 }
 
-// function isElementInViewport(el: HTMLElement) {
-//     let rect = el.getBoundingClientRect();
-//     return (
-//         rect.top >= 0 &&
-//         rect.left >= 0 &&
-//         rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /* or $(window).height() */
-//         rect.right <= (window.innerWidth || document.documentElement.clientWidth) /* or $(window).width() */
-//     );
-// }
-//
-//
-// document.addEventListener('scroll', function (event) {
-//     let topBar = document.getElementById('main-action-bar');
-//     if (!isElementInViewport(topBar)) {
-//         topBar.classList.add('fixed', 'top-0', 'z-100');
-//     } else {
-//         topBar.classList.remove('fixed', 'top-0', 'z-100');
-//     }
-// });
+function makeId(length: number) {
+    let result = '';
+    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        counter += 1;
+    }
+    return result;
+}
 
 function focus_text_input(event) {
     let ss = document.getElementById('task-details-inp');
@@ -45,6 +37,36 @@ function focus_text_input(event) {
         document.getElementById('cmd-inp').focus();
     }
 }
+
+hotkeys('esc', function (event, handler) {
+    // Prevent the default refresh event under WINDOWS system
+    if(event.target != document.getElementById('tag-inp')) {
+        console.log("not processing")
+        return
+    }
+    event.preventDefault()
+    let tag_selector = document.getElementById('cmd-inp')
+    document.querySelector('#tags_map_drawer').classList.toggle('hidden')
+    if (tag_selector.checkVisibility()) {
+        tag_selector.focus();
+    }
+    return false;
+});
+
+hotkeys('t', function (event, handler) {
+    // Prevent the default refresh event under WINDOWS system
+    if(event.target != document.getElementById('cmd-inp')) {
+        console.log("not processing")
+        return
+    }
+    event.preventDefault()
+    let tag_selector = document.getElementById('tag-inp')
+    document.querySelector('#tags_map_drawer').classList.toggle('hidden')
+    if (tag_selector.checkVisibility()) {
+        tag_selector.focus();
+    }
+    return false;
+});
 
 hotkeys('ctrl+shift+K', function (event, handler) {
     // Prevent the default refresh event under WINDOWS system
@@ -110,7 +132,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const total_minutes_in_day = 24 * 60;
             const hours_left = 24 - now.getHours();
             dd.style.width = total_minutes_passed * 100 / total_minutes_in_day + "%";
-            dd.children[0].children[0].innerHTML =  hours_left + "h";
+            dd.children[0].children[0].innerHTML = hours_left + "h";
         }, 1000
     )
 });

@@ -1,17 +1,23 @@
-use std::collections::HashMap;
-use std::env;
-use axum::{Form, Router, routing::get};
 use axum::extract::Query;
 use axum::response::Html;
 use axum::routing::post;
+use axum::{routing::get, Form, Router};
+use indexmap::IndexMap;
+use rand::distr::{Alphanumeric, SampleString};
+use std::collections::{HashMap, HashSet};
+use std::env;
+use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
+use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TAG_KEYWORDS};
+use taskwarrior_web::{
+    task_query_merge_previous_params, task_query_previous_params, FlashMsg, NewTask, TWGlobalState,
+    TaskActions, TEMPLATES,
+};
 use tera::Context;
+use tower::ServiceExt;
 use tracing::{error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks::{get_task_details, list_tasks, Task, task_add, task_undo, task_undo_report, mark_task_as_done, toggle_task_active, run_modify_command, run_annotate_command, run_denotate_command, fetch_active_task};
-use taskwarrior_web::{FlashMsg, NewTask, task_query_merge_previous_params, task_query_previous_params, TaskActions, TEMPLATES, TWGlobalState};
-use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
-
+use taskwarrior_web::endpoints::tasks;
 
 #[tokio::main]
 async fn main() {
@@ -30,10 +36,7 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .route("/", get(front_page))
-        .nest_service(
-            "/dist",
-            tower_http::services::ServeDir::new("./dist"),
-        )
+        .nest_service("/dist", tower_http::services::ServeDir::new("./dist"))
         .route("/tasks", get(tasks_display))
         .route("/tasks", post(do_task_actions))
         .route("/tasks/undo/report", get(get_undo_report))
@@ -46,8 +49,7 @@ async fn main() {
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
         .route("/task_details", get(display_task_details))
-        .route("/bars", get(get_bar))
-        ;
+        .route("/bars", get(get_bar));
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -61,10 +63,7 @@ fn init_tracing() {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "org_me=debug,tower_http=debug".into()),
         )
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_line_number(true)
-        )
+        .with(tracing_subscriber::fmt::layer().with_line_number(true))
         .init();
 }
 
@@ -107,12 +106,10 @@ async fn get_bar(Query(param): Query<HashMap<String, String>>) -> Html<String> {
     }
 }
 
-
 async fn get_tag_bar() -> Html<String> {
     let ctx = Context::new();
     Html(TEMPLATES.render("tag_bar.html", &ctx).unwrap())
 }
-
 
 async fn just_empty() -> Html<String> {
     Html("".to_string())
@@ -146,13 +143,18 @@ async fn get_undo_report() -> Html<String> {
 }
 
 async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<String> {
-    let tq: TaskQuery = params.filter_value().clone().and_then(|v| {
-        if v == "" {
-            Some(TaskQuery::default())
-        } else {
-            Some(serde_json::from_str(&v).unwrap_or(TaskQuery::default()))
-        }
-    }).or(Some(TaskQuery::default())).unwrap();
+    let tq: TaskQuery = params
+        .filter_value()
+        .clone()
+        .and_then(|v| {
+            if v == "" {
+                Some(TaskQuery::default())
+            } else {
+                Some(serde_json::from_str(&v).unwrap_or(TaskQuery::default()))
+            }
+        })
+        .or(Some(TaskQuery::default()))
+        .unwrap();
     let mut ctx = Context::new();
     ctx.insert("tags", &tq.tags().join(" "));
     ctx.insert("project", tq.project());
@@ -165,18 +167,122 @@ async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     get_tasks_view(task_query_previous_params(&params), Some(fm))
 }
 
+fn make_shortcut(name: &str, shortcuts: &mut HashSet<String>) -> String {
+    let alpha = Alphanumeric::default();
+    let mut len = 2;
+    let mut tries = 0;
+    loop {
+        let shortcut = alpha.sample_string(&mut rand::rng(), 2).to_lowercase();
+        if !shortcuts.contains(&shortcut) {
+            shortcuts.insert(shortcut.clone());
+            return shortcut;
+        }
+        tries += 1;
+        if tries > 700 {
+            len += 1;
+            if len > 3 {
+                panic!("too many shortcuts! this should not happen");
+            }
+            tries = 0;
+        }
+    }
+}
+
+struct TaskViewDataRetType {
+    tasks: IndexMap<TaskUUID, Task>,
+    tag_map: HashMap<String, String>,
+    shortcuts: HashSet<String>,
+    task_list: Vec<Task>,
+}
+
+fn get_tasks_view_data(
+    mut tasks: IndexMap<TaskUUID, Task>,
+    filters: &Vec<String>,
+) -> TaskViewDataRetType {
+    let mut tag_map: HashMap<String, String> = HashMap::new();
+    let mut shortcuts = HashSet::new();
+    let task_list: Vec<Task> = tasks
+        .values_mut()
+        .map(|task| {
+            if let Some(tags) = &mut task.tags {
+                tags.iter_mut().for_each(|v| {
+                    if !tasks::is_tag_keyword(v) {
+                        *v = format!("+{}", v);
+                    }
+                    let shortcut = make_shortcut(&v, &mut shortcuts);
+                    tag_map.insert(v.clone(), shortcut);
+                });
+            }
+            if let Some(project) = &task.project {
+                // the project is not in the map, so all of it can be added
+                if let None = tag_map.get(project) {
+                    let parts: Vec<_> = project.split('.').collect();
+                    let mut total_parts = vec![];
+                    for part in parts {
+                        total_parts.push(part);
+                        let s = total_parts.join(".");
+                        let shortcut = make_shortcut(&s, &mut shortcuts);
+                        tag_map.insert(s, shortcut);
+                    }
+                }
+            }
+            task.clone()
+        })
+        .collect();
+    for filter in filters {
+        if !tag_map.contains_key(filter) {
+            if tasks::is_tag_keyword(filter) {
+
+            }
+            else if tasks::is_a_tag(filter) {
+                let ky = format!("@{}", filter);
+                let shortcut = make_shortcut(&ky, &mut shortcuts);
+                tag_map.insert(ky, shortcut);
+            } else {
+                let parts: Vec<_> = filter.split('.').collect();
+                let mut total_parts = vec![];
+                for part in parts {
+                    total_parts.push(part);
+                    let ky = format!("@{}", filter);
+                    let s = total_parts.join(".");
+                    let shortcut = make_shortcut(&ky, &mut shortcuts);
+                    tag_map.insert(ky, shortcut);
+                }
+            }
+        }
+    }
+
+    TaskViewDataRetType {
+        tasks,
+        task_list,
+        shortcuts,
+        tag_map,
+    }
+}
+
 async fn front_page() -> Html<String> {
     let tq = TaskQuery::new(TWGlobalState::default());
     let tasks = list_tasks(&tq).unwrap();
-    let task_list: Vec<Task> = tasks.values().cloned().collect();
+    let filters = tq.as_filter_text();
+    let TaskViewDataRetType {
+        tasks,
+        tag_map,
+        shortcuts,
+        task_list,
+    } = get_tasks_view_data(tasks, &filters);
     let mut ctx = Context::new();
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
     ctx.insert("current_filter", &tq.as_filter_text());
     ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
-    let n = env::var("DISPLAY_TIME_OF_THE_DAY").unwrap_or("0".to_string()).parse::<i32>().unwrap_or(0);
+    ctx.insert("tags_map", &tag_map);
+    let n = env::var("DISPLAY_TIME_OF_THE_DAY")
+        .unwrap_or("0".to_string())
+        .parse::<i32>()
+        .unwrap_or(0);
     ctx.insert("display_time_of_the_day", &n);
     let t = tasks.iter().find(|(_, task)| task.start.is_some());
+    println!("{:?} {:?}", tag_map, shortcuts);
     if let Some((_, v)) = t {
         ctx.insert("active_task", v);
     }
@@ -188,19 +294,20 @@ async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
 }
 
 fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
-
     dotenvy::dotenv().unwrap();
-
-
     let tasks = match list_tasks(&tq) {
-        Ok(t) => { t }
+        Ok(t) => t,
         Err(e) => {
             return Html(e.to_string());
         }
     };
-    let task_list: Vec<Task> = tasks.values().cloned().collect();
-    let mut ctx_b = Context::new();
     let current_filter = tq.as_filter_text();
+    let TaskViewDataRetType {
+        tasks,
+        tag_map,
+        shortcuts,
+        task_list,
+    } = get_tasks_view_data(tasks, &current_filter);
     let mut filter_ar = vec![];
     for filter in current_filter.iter() {
         if filter.starts_with("project:") {
@@ -214,11 +321,16 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
         }
     }
     trace!("{:?}", current_filter);
+    let mut ctx_b = Context::new();
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &filter_ar);
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
-    let n = env::var("DISPLAY_TIME_OF_THE_DAY").unwrap_or("0".to_string()).parse::<i32>().unwrap_or(0);
+    ctx_b.insert("tags_map", &tag_map);
+    let n = env::var("DISPLAY_TIME_OF_THE_DAY")
+        .unwrap_or("0".to_string())
+        .parse::<i32>()
+        .unwrap_or(0);
     ctx_b.insert("display_time_of_the_day", &n);
     if let Some(msg) = flash_msg {
         ctx_b.insert("has_toast", &true);
@@ -235,7 +347,7 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
 async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
     let fm = match task_add(&new_task) {
         Ok(_) => FlashMsg::new("New task created", None),
-        Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None)
+        Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None),
     };
     let s = if let Some(tw_q) = new_task.filter_value() {
         serde_json::from_str(tw_q).unwrap()
@@ -244,7 +356,6 @@ async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
     };
     get_tasks_view(s, Some(fm))
 }
-
 
 async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
     info!("{:?}", multipart);
@@ -267,7 +378,13 @@ async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
             match toggle_task_active(&task_uuid) {
                 Ok(v) => {
                     if v {
-                        FlashMsg::new(&format!("Task {} started, any other tasks running were stopped", task_uuid), None)
+                        FlashMsg::new(
+                            &format!(
+                                "Task {} started, any other tasks running were stopped",
+                                task_uuid
+                            ),
+                            None,
+                        )
                     } else {
                         FlashMsg::new(&format!("Task {} stopped", task_uuid), None)
                     }
@@ -309,9 +426,5 @@ async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
             }
         }
     };
-    get_tasks_view(
-        task_query_previous_params(&multipart),
-        Some(fm),
-    )
+    get_tasks_view(task_query_previous_params(&multipart), Some(fm))
 }
-

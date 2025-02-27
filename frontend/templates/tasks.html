@@ -3,7 +3,6 @@
 <div hx-swap-oob="beforeend:#toast">
     <div class="items-center justify-items-center gap-4 px-5 py-3 text-neutral-300 fixed h-18 top-0 left-0 w-full z-50 bg-cyan-700 shadow-xs shadow-black"
          hx-trigger="load delay:{{ toast_timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
-
         <div class="flex flex-row">
             <span class="text-sm font-medium hover:opacity-75 flex-grow">{{ toast_msg }}</span>
             <span>
@@ -22,6 +21,7 @@
     <div id="undo_confirm"></div>
     <div id="task_form_div"></div>
     <div id="task_details"></div>
+    <!-- Open the modal using ID.showModal() method -->
     {% set on_all = "all" %}
     {% set on_complete = "btn-success" %}
     {% set on_pending = "btn-warning" %}
@@ -155,88 +155,162 @@
         </div>
         {% endif %}
 
-        <ul class="list bg-base-100 rounded-box shadow-md">
-            {% for task in tasks %}
-            <li class="list-row">
-                <div>
-                    <input type="checkbox"
-                           class="checkbox checkbox-sm"
-                           name="checkbox-{{ task.uuid }}"
-                           id="checkbox-ls-{{ task.uuid }}"
-                           hx-trigger="change"
-                           hx-post="tasks" hx-target="#list-of-tasks"
-                           hx-include="[id='filtering']"
-                           {% if task.status !="completed" %}
-                           hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
-                           hx-swap="innerHTML"
-                           {% else %}
-                           checked="checked"
-                           hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
-                           hx-swap="innerHTML"
-                           {% endif %}>
-                </div>
-                <div>
-                    <div class="flex gap-4 ">
-                        <div class="shrink">
-                            <button
-                                    class="btn btn-secondary static btn-sm"
-                                    hx-trigger="click"
-                                    hx-get="task_details?task_id={{ task.uuid }}"
-                                    hx-target="#task_details"
-                            >
-                                {{ task.id }}
-                            </button>
-                        </div>
-                        <div class="grow">
-                            <div class="mb-2">
-                                {{ desc::desc(task=task) }}
-                            </div>
-                            <div class="join">
-                                {% if task.project %}
-                                {% for p in task.project | split(pat=".") %}
-                                {% set ptag = ["project", p] | join(sep=":") %}
-                                <button class="join-item btn btn-accent btn-xs"
-                                        hx-include="[id='filtering']"
-                                        hx-target="#list-of-tasks"
-                                        hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
-                                    {{ p }}
-                                </button>
-                                {% endfor %}
-                                <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
-                                {% endif %}
-                                {% if task.priority %}
-                                <button class="btn btn-xs {{ task.priority }} btn-neutral"
-                                        hx-get="tasks?query=priority:{{ task.priority }}" hx-target="#list-of-tasks"
-                                        hx-include="[id='filtering']"
-                                        hx-swap="innerHTML"
-                                >{{ task.priority }}
-                                </button>
-                                <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
-                                {% endif %}
-                                {% if task.tags %}
-                                {% for p in task.tags %}
-                                <button class="btn btn-xs btn-neutral join-item" hx-get="tasks?query=%2B{{ p }}"
-                                        hx-target="#list-of-tasks"
-                                        hx-include="[id='filtering']"
-                                        hx-swap="innerHTML">
-                                    {{ p }}
-                                </button>
-                                {% endfor %}
-                                <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
-                                {% endif %}
-                            </div>
+        <div class="flex">
+
+            <div id="tags_map_drawer" class="shrink pt-4 hidden w-10/12">
+                <div class="flex flex-wrap gap-2 p-4">
+                    <div class="join">
+                        <button
+                                id="tag-btn-back"
+                                class="btn btn-warning btn-xs join-item"
+                                hx-get="tasks"
+                                hx-trigger="click,keyup[key=='Escape'] from:#task-inp"
+                                hx-target="#list-of-tasks"
+                                hx-include="[id='filtering']"
+                        ><span><span class="shortcut_key">ESC</span></span></button>
+                        <label for="tag-inp" class="hidden"></label>
+                        <input type="text" id="tag-inp"
+                               class="input input-xs input-accent join-item"
+                               placeholder="Tag Bar"
+                               hx-trigger="changes delay:2s"
+                               hx-target="#list-of-tasks"
+                               hx-include="[id='filtering']"
+                               hx-swap="innerHTML"
+                               autofocus
+                               onkeyup="if (this.value.length >= 2) { document.getElementById(this.value).click() }"
+                        />
+                    </div>
+                    {% for tag, shortcut in tags_map %}
+                    {% if tag is keyword_tag %}
+                    {% endif %}
+                    {% if tag is user_tag %}
+                    {% endif %}
+                    <div class="mb-2">
+                        <div class="flex gap-2">
+                            <button id="{{shortcut}}"
+                                    {% if tag is starting_with('+') %}
+                                    class="btn btn-xs btn-accent shrink"
+                                    hx-get="tasks?query={{ tag | replace(from='+', to='%2B') }}"
+                                    {% elif tag is starting_with('@') %}
+                                    class="btn btn-xs btn-info shrink"
+                                    hx-get="tasks?query={{ tag | trim_start_matches(pat='@') }}"
+                                    {% else %}
+                                    class="btn btn-xs btn-neutral shrink"
+                                    hx-get="tasks?query={% if tag is starting_with('project:') %}{{ tag }}{% else %}project:{{tag}}{% endif %}"
+                                    {% endif %}
+                                    hx-target="#list-of-tasks"
+                                    hx-include="[id='filtering']"
+                                    hx-swap="innerHTML"
+                            >{{ shortcut }}</button>
+                            <div class="text-xs pt-1">{{ tag | trim_start_matches(pat='@') }}</div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% if task.urgency > 20 %}
-                <div class="badge badge-warning">{{ task.urgency }}</div>
-                {% elif task.urgency > 10 %}
-                <div class="badge badge-primary">{{ task.urgency }}</div>
-                {% else %}
-                <div class="badge badge-secondary">{{ task.urgency }}</div>
-                {% endif %}
-            </li>
-            {% endfor %}
-        </ul>
+            </div>
+
+            <div class="grow">
+                <ul class="list bg-base-100 rounded-box shadow-md">
+                    {% for task in tasks %}
+                    <li class="list-row">
+                        <div>
+                            <input type="checkbox"
+                                   class="checkbox checkbox-sm"
+                                   name="checkbox-{{ task.uuid }}"
+                                   id="checkbox-ls-{{ task.uuid }}"
+                                   hx-trigger="change"
+                                   hx-post="tasks" hx-target="#list-of-tasks"
+                                   hx-include="[id='filtering']"
+                                   {% if task.status !="completed" %}
+                                   hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
+                                   hx-swap="innerHTML"
+                                   {% else %}
+                                   checked="checked"
+                                   hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
+                                   hx-swap="innerHTML"
+                                   {% endif %}>
+                        </div>
+                        <div>
+                            <div class="flex gap-4 ">
+                                <div class="shrink">
+                                    <button
+                                            class="btn btn-secondary static btn-sm is-a-tag "
+                                            hx-trigger="click"
+                                            hx-get="task_details?task_id={{ task.uuid }}"
+                                            hx-target="#task_details"
+                                    >
+                                        {{ task.id }}
+                                    </button>
+                                </div>
+                                <div class="grow">
+                                    <div class="mb-2">
+                                        {{ desc::desc(task=task) }}
+                                    </div>
+                                    <div class="join">
+                                        {% if task.project %}
+                                        {% for p in task.project | split(pat=".") %}
+                                        {% set ptag = ["project", p] | join(sep=":") %}
+                                        <button class="join-item btn btn-accent btn-xs is-a-tag"
+                                                hx-include="[id='filtering']"
+                                                hx-target="#list-of-tasks"
+                                                hx-get="tasks?query=project:{{ project_name(full_name=task.project, index=loop.index) }}">
+                                            {{ p }}
+                                        </button>
+                                        {% endfor %}
+                                        {% endif %}
+                                        {% if task.priority %}
+                                        <button class="btn btn-xs {{ task.priority }} btn-neutral"
+                                                hx-get="tasks?query=priority:{{ task.priority }}"
+                                                hx-target="#list-of-tasks"
+                                                hx-include="[id='filtering']"
+                                                hx-swap="innerHTML"
+                                        >{{ task.priority }}
+                                        </button>
+                                        {% endif %}
+                                        {% if task.tags %}
+                                        {% for p in task.tags %}
+                                        <button class="btn btn-xs btn-neutral join-item is-a-tag"
+                                                hx-get="tasks?query={{ p | replace(from='+', to='%2B') }}"
+                                                hx-target="#list-of-tasks"
+                                                hx-include="[id='filtering']"
+                                                hx-swap="innerHTML">
+                                            {{ p }}
+                                        </button>
+                                        {% endfor %}
+                                        {% else %}
+                                        <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="join">
+                            {% if task.urgency > 20 %}
+                            <div class="badge badge-warning join-item">{{ task.urgency }}</div>
+                            {% elif task.urgency > 10 %}
+                            <div class="badge badge-primary join-item">{{ task.urgency }}</div>
+                            {% else %}
+                            <div class="badge badge-secondary join-item">{{ task.urgency }}</div>
+                            {% endif %}
+                            {% if task.depends %}
+                            <div class="badge  badge-neutral join-item">
+                                DEP
+                                {% for uuid in task.depends %}
+                                {%if tasks_db[uuid] %}
+                                <div class="badge badge-ghost badge-xs">
+                                    {{ tasks_db[uuid].id }}
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="badge badge-neutral join-item"></div>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 </div>

@@ -1,15 +1,7 @@
-<div class="join">
-    <button hx-get="tag_bar" hx-target="#tag_search_bar" hx-swap="outerHTML" class="btn btn-neutral btn-xs join-item"
-            hx-trigger="click,keyup[key=='t'] from:#cmd-inp">
-        <span><span class="shortcut_key">t</span>ag</span>
+<div class="join" id="tag_search_bar">
+    <button class="btn btn-neutral btn-xs join-item">
+        <span><span class="shortcut_key">t</span>ags</span>
     </button>
-    <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
-            class="btn btn-xs btn-neutral join-item"
-            hx-trigger="click,keyup[key=='s'] from:#cmd-inp">
-        <span>ta<span class="shortcut_key">s</span>k</span>
-    </button>
-</div>
-<div class="join">
     <button class="btn btn-xs btn-neutral join-item"
             hx-get="tasks/undo/report"
             hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
