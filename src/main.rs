@@ -302,12 +302,6 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
         }
     };
     let current_filter = tq.as_filter_text();
-    let TaskViewDataRetType {
-        tasks,
-        tag_map,
-        shortcuts,
-        task_list,
-    } = get_tasks_view_data(tasks, &current_filter);
     let mut filter_ar = vec![];
     for filter in current_filter.iter() {
         if filter.starts_with("project:") {
@@ -320,7 +314,13 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
             filter_ar.push(filter.to_string());
         }
     }
-    trace!("{:?}", current_filter);
+    let TaskViewDataRetType {
+        tasks,
+        tag_map,
+        shortcuts,
+        task_list,
+    } = get_tasks_view_data(tasks, &filter_ar);
+    trace!("{:?}", tag_map);
     let mut ctx_b = Context::new();
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
