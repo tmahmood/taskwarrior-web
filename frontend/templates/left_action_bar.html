@@ -1,12 +1,17 @@
-<div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2">
+<div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2" xmlns:hx-on="http://www.w3.org/1999/xhtml">
     <div class="join" id="tag_search_bar">
-        <button class="btn btn-neutral btn-xs join-item">
-            <span><span class="shortcut_key">t</span>ags</span>
+        <button class="btn btn-neutral btn-xs join-item" id="tag-selection-toggle">
+            <span><span class="shortcut_key"
+            >t</span>ags</span>
         </button>
+        <span class="btn btn-neutral btn-xs join-item" id="task_action_bar">
+            <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
+                    hx-trigger="click,keyup[key=='s'] from:#cmd-inp">ta<span class="shortcut_key">s</span>k</button>
+        </span>
         <button class="btn btn-xs btn-neutral join-item"
                 hx-get="tasks/undo/report"
                 hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
-                hx-target="#undo_confirm"
+                hx-target="#all-dialog-boxes"
                 hx-swap="innerHTML">
             <span><span class="shortcut_key">u</span>ndo</span>
         </button>
@@ -14,7 +19,7 @@
                 hx-get="tasks/add"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
-                hx-target="#task_form_div"
+                hx-target="#all-dialog-boxes"
                 hx-swap="innerHTML">
             <span><span class="shortcut_key">n</span>ew</span>
         </button>

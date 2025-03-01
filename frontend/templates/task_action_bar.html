@@ -6,12 +6,10 @@
             hx-trigger="click,keyup[key=='Escape'] from:#task-inp"
             hx-target="#list-of-tasks"
             hx-include="[id='filtering']"
-    ><span><span class="shortcut_key">ESC</span>back</span></button>
-</div>
-<span>
+    ><span><span class="shortcut_key">ESC</span></span></button>
     <label for="task-inp" class="hidden"></label>
     <input type="text" id="task-inp"
-           class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+           class="input input-neutral input-xs join-item"
            placeholder="Enter Shortcut"
            hx-trigger="changes delay:2s"
            hx-target="#list-of-tasks"
@@ -19,7 +17,7 @@
            hx-swap="innerHTML"
            autofocus
            onkeyup="if (this.value.length >= 2) { document.getElementById(this.value).click() }"
-           onfocus="document.querySelectorAll('.kw-id-layer').forEach((e) => e.classList.remove('hidden'))"
-           onblur="document.querySelectorAll('.kw-id-layer').forEach((e) => e.classList.add('hidden'));"
+           onfocus="document.querySelectorAll('.task-shortcut-tag').forEach((e) => e.classList.remove('hidden'))"
+           onblur="document.querySelectorAll('.task-shortcut-tag').forEach((e) => e.classList.add('hidden'));"
     />
-</span>
+</div>

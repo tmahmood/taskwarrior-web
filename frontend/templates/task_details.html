@@ -1,74 +1,77 @@
 {% import "desc.html" as desc %}
-<div class="rounded-lg bg-neutral-800 p-2 shadow-2xl absolute top-10 left-72 z-50 w-3/5 lg:h-4/5 xl:h-auto overflow-y-auto">
+<div class="modal-box">
     <h2 class="text-lg font-bold text-neutral-200">Task Details</h2>
-    <div class="pl-2 pr-5 py-1.5 bg-neutral-700 shadow-xl rounded-sm mt-2 text-xs flex">
-        <div class="tag-list">
-            <button
-                    class="tag-item-800 tag-item"
-                    id="tag-btn-back-details"
-                    hx-get="tasks"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-trigger="click,keyup[key=='Escape'] from:#task-details-inp"
-            >[Esc] back
-            </button>
-            <button
-                    class="tag-item-800 tag-item success"
-                    id="btn-mark-as-done"
-                    hx-post="tasks"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    {% if task.status !="completed" %}
-                        hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
-                    {% else %}
-                        hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
-                    {% endif %}
-                    hx-trigger="click,keyup[key=='d'] from:#task-details-inp"
-            ><u>d</u>one
-            </button>
-            <button
-                    class="tag-item-800 tag-item red"
-                    id="btn-denotate-task"
-                    hx-post="tasks"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-vals='{"uuid":"{{ task.uuid }}", "action": "DenotateTask"}'
-                    hx-trigger="click,keyup[key=='n'] from:#task-details-inp"
-            >de<u>n</u>otate
-            </button>
-            <button
-                    class="tag-item-800 tag-item pending"
-                    id="btn-timer-toggle"
-                    hx-post="tasks"
-                    hx-target="#list-of-tasks"
-                    hx-include="[id='filtering']"
-                    hx-vals='{"uuid":"{{ task.uuid }}", "action": "ToggleTimer"}'
-                    hx-trigger="click,keyup[key=='s'] from:#task-details-inp">
-                {% if task.start %}
-                <u>s</u>top
+    <div class="join mb-3">
+        <button class="btn btn-xs btn-warning join-item"
+                id="tag-btn-back-details"
+                hx-get="tasks"
+                hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
+                hx-trigger="click,keyup[key=='Escape'] from:#task-details-inp">
+            <kbd class="shortcut_key">[Esc]</kbd>
+        </button>
+        <button
+                class="btn btn-success btn-xs join-item"
+                id="btn-mark-as-done"
+                hx-post="tasks"
+                hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
+                {% if task.status !="completed" %}
+                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
                 {% else %}
-                <u>s</u>tart
+                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
                 {% endif %}
-            </button>
+                hx-trigger="click,keyup[key=='d'] from:#task-details-inp"
+        ><span><span class="shortcut_key">d</span>one</span></button>
+        <button
+                class="btn btn-accent btn-xs join-item"
+                id="btn-denotate-task"
+                hx-post="tasks"
+                hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
+                hx-vals='{"uuid":"{{ task.uuid }}", "action": "DenotateTask"}'
+                hx-trigger="click,keyup[key=='n'] from:#task-details-inp"
+        >
+            <span>de<span class="shortcut_key">n</span>otate</span>
+        </button>
+        <button
+                class="btn btn-info btn-xs join-item"
+                id="btn-timer-toggle"
+                hx-post="tasks"
+                hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
+                hx-vals='{"uuid":"{{ task.uuid }}", "action": "ToggleTimer"}'
+                hx-trigger="click,keyup[key=='s'] from:#task-details-inp">
             <span>
+            {% if task.start %}
+                <span class="shortcut_key">s</span>top
+            {% else %}
+            <span class="shortcut_key">s</span>tart
+            {% endif %}
+            </span>
+        </button>
+        <span class="join-item">
             <label for="task-details-inp" class="hidden"></label>
             <input type="text" id="task-details-inp"
-                   class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2"
+                   class="input input-neutral input-xs join-item"
                    placeholder="Cmd Bar, Ctrl+Shift+K"
-                   autofocus
-            />
-        </span>
-        </div>
+                   autofocus /></span>
     </div>
-    <table class="table-large vt">
+    <table class="table table-xs table-zebra">
         <tbody>
         <tr>
-        <th class="w-1/6">
+            <th>Description</th>
+            <td class="text-wrap w-2/3">
+                {{ desc::desc(task=task) }}
+            </td>
+        </tr>
+        <tr>
+            <th class="w-1/6">
                 <label for="task-edit-inp">Modify</label>
             </th>
             <td>
                 <input type="text" id="task-edit-inp"
-                       class="pl-1 bg-neutral-600 outline-none text-xs border-neutral-600 border-2 w-full"
+                       class="input-neutral input input-xs"
                        placeholder="Edit task with command"
                        hx-trigger="keyup[key=='Enter'] from:#task-edit-inp"
                        hx-post="tasks"
@@ -85,7 +88,7 @@
             </th>
             <td>
                 <input type="text" id="task-annot-inp"
-                       class="pl-1 bg-neutral-700 outline-none text-xs border-neutral-700 border-2 w-full"
+                       class="input-neutral input input-xs"
                        placeholder="Annotate task"
                        hx-trigger="keyup[key=='Enter'] from:#task-annot-inp"
                        hx-post="tasks"
@@ -114,12 +117,14 @@
             <th>Project</th>
             <td>
                 {% if task.project %}
-                <div class="breadcrumb tag-list">
+                <div class="breadcrumbs text-sm">
+                    <ul>
                     {% for p in task.project | split(pat=".") %}
-                    <span class="tag-item tag-item-800">
+                    <li class="">
                         {{ p }}
-                    </span>
+                    </li>
                     {% endfor %}
+                    </ul>
                 </div>
                 {% endif %}
             </td>
@@ -127,24 +132,18 @@
         <tr>
             <th>Tags</th>
             <td>
-                <div class="tag-list">
+                <div>
                     {% if task.tags %}
-                    {% for p in task.tags %}
-                    <span class="tag-item tag-item-800">
-                            {{ p }}
-                        </span>
-                    {% endfor %}
+                        {% for p in task.tags %}
+                            <span class="badge-sm badge badge-accent">
+                                {{ p }}
+                            </span>
+                        {% endfor %}
                     {% endif %}
                     {% if task.priority %}
-                    <span class="tag-item {{ task.priority }} tag-item-800">{{ task.priority }}</span>
+                    <span class="badge badge-sm badge-secondary">{{ task.priority }}</span>
                     {% endif %}
                 </div>
-            </td>
-        </tr>
-        <tr>
-            <th>Description</th>
-            <td class="text-wrap w-2/3">
-                {{ desc::desc(task=task) }}
             </td>
         </tr>
         <tr>
@@ -193,4 +192,8 @@
         </tr>
         </tbody>
     </table>
+    <script>
+        document.getElementById('task-inp').value = '';
+        document.getElementById('all-dialog-boxes').showModal()
+    </script>
 </div>

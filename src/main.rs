@@ -7,7 +7,7 @@ use rand::distr::{Alphanumeric, SampleString};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
-use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TAG_KEYWORDS};
+use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TaskViewDataRetType, TAG_KEYWORDS};
 use taskwarrior_web::{
     task_query_merge_previous_params, task_query_previous_params, FlashMsg, NewTask, TWGlobalState,
     TaskActions, TEMPLATES,
@@ -172,13 +172,13 @@ fn make_shortcut(name: &str, shortcuts: &mut HashSet<String>) -> String {
     let mut len = 2;
     let mut tries = 0;
     loop {
-        let shortcut = alpha.sample_string(&mut rand::rng(), 2).to_lowercase();
+        let shortcut = alpha.sample_string(&mut rand::rng(), len).to_lowercase();
         if !shortcuts.contains(&shortcut) {
             shortcuts.insert(shortcut.clone());
             return shortcut;
         }
         tries += 1;
-        if tries > 700 {
+        if tries > 1000 {
             len += 1;
             if len > 3 {
                 panic!("too many shortcuts! this should not happen");
@@ -188,18 +188,12 @@ fn make_shortcut(name: &str, shortcuts: &mut HashSet<String>) -> String {
     }
 }
 
-struct TaskViewDataRetType {
-    tasks: IndexMap<TaskUUID, Task>,
-    tag_map: HashMap<String, String>,
-    shortcuts: HashSet<String>,
-    task_list: Vec<Task>,
-}
-
 fn get_tasks_view_data(
     mut tasks: IndexMap<TaskUUID, Task>,
     filters: &Vec<String>,
 ) -> TaskViewDataRetType {
     let mut tag_map: HashMap<String, String> = HashMap::new();
+    let mut task_shortcut_map: HashMap<String, String> = HashMap::new();
     let mut shortcuts = HashSet::new();
     let task_list: Vec<Task> = tasks
         .values_mut()
@@ -226,6 +220,11 @@ fn get_tasks_view_data(
                     }
                 }
             }
+            let shortcut = make_shortcut("", &mut shortcuts);
+            task_shortcut_map.insert(task.id.to_string(), shortcut);
+            let shortcut = make_shortcut("", &mut shortcuts);
+            let uuid = task.uuid.clone();
+            task_shortcut_map.insert(uuid, shortcut);
             task.clone()
         })
         .collect();
@@ -257,6 +256,7 @@ fn get_tasks_view_data(
         task_list,
         shortcuts,
         tag_map,
+        task_shortcut_map
     }
 }
 
@@ -269,6 +269,7 @@ async fn front_page() -> Html<String> {
         tag_map,
         shortcuts,
         task_list,
+        task_shortcut_map,
     } = get_tasks_view_data(tasks, &filters);
     let mut ctx = Context::new();
     ctx.insert("tasks_db", &tasks);
@@ -276,13 +277,13 @@ async fn front_page() -> Html<String> {
     ctx.insert("current_filter", &tq.as_filter_text());
     ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     ctx.insert("tags_map", &tag_map);
+    ctx.insert("task_shortcuts", &task_shortcut_map);
     let n = env::var("DISPLAY_TIME_OF_THE_DAY")
         .unwrap_or("0".to_string())
         .parse::<i32>()
         .unwrap_or(0);
     ctx.insert("display_time_of_the_day", &n);
     let t = tasks.iter().find(|(_, task)| task.start.is_some());
-    println!("{:?} {:?}", tag_map, shortcuts);
     if let Some((_, v)) = t {
         ctx.insert("active_task", v);
     }
@@ -318,7 +319,7 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
         tasks,
         tag_map,
         shortcuts,
-        task_list,
+        task_list, task_shortcut_map,
     } = get_tasks_view_data(tasks, &filter_ar);
     trace!("{:?}", tag_map);
     let mut ctx_b = Context::new();
@@ -327,6 +328,7 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     ctx_b.insert("current_filter", &filter_ar);
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     ctx_b.insert("tags_map", &tag_map);
+    ctx_b.insert("task_shortcuts", &task_shortcut_map);
     let n = env::var("DISPLAY_TIME_OF_THE_DAY")
         .unwrap_or("0".to_string())
         .parse::<i32>()

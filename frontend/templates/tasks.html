@@ -18,7 +18,7 @@
 </div>
 {% endif %}
 <div class="mb-auto h-max">
-    <div id="undo_confirm"></div>
+    <dialog id="all-dialog-boxes" class="modal"></dialog>
     <div id="task_form_div"></div>
     <div id="task_details"></div>
     <!-- Open the modal using ID.showModal() method -->
@@ -42,7 +42,6 @@
                 <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
         </div>
         <input type="hidden" id="filtering" name="filter_value" value="{{ filter_value }}">
-
         <!-- // -->
     </div>
 
@@ -111,14 +110,14 @@
             </div>
 
             <div class="grow">
-                <ul class="list bg-base-100 rounded-box shadow-md">
+                <ul class="list bg-base-100 rounded-box shadow-md text-sm">
                     {% for task in tasks %}
-                    <li class="list-row">
+                    <li class="list-row {% if task.start %} bg-green-700 {% endif %}">
                         <div>
                             <input type="checkbox"
                                    class="checkbox checkbox-sm"
                                    name="checkbox-{{ task.uuid }}"
-                                   id="checkbox-ls-{{ task.uuid }}"
+                                   id="{{ task_shortcuts[task.uuid] }}"
                                    hx-trigger="change"
                                    hx-post="tasks" hx-target="#list-of-tasks"
                                    hx-include="[id='filtering']"
@@ -130,17 +129,19 @@
                                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
                                    hx-swap="innerHTML"
                                    {% endif %}>
+                            <button class="btn btn-xs btn-primary hidden task-shortcut-tag">{{ task_shortcuts[task.uuid] }}</button>
                         </div>
                         <div>
                             <div class="flex gap-4 ">
                                 <div class="shrink">
                                     <button
+                                            id="{{ task_shortcuts[task.id] }}"
                                             class="btn btn-secondary static btn-sm is-a-tag min-w-12"
                                             hx-trigger="click"
                                             hx-get="task_details?task_id={{ task.uuid }}"
-                                            hx-target="#task_details"
+                                            hx-target="#all-dialog-boxes"
                                     >
-                                        {{ task.id }}
+                                        {{ task.id }} <span class="shortcut_key hidden task-shortcut-tag">{{ task_shortcuts[task.id] }}</span>
                                     </button>
                                 </div>
                                 <div class="grow">
@@ -186,27 +187,48 @@
                             </div>
                         </div>
                         <div class="join">
-                            {% if task.urgency > 20 %}
-                            <div class="badge badge-warning join-item">{{ task.urgency }}</div>
-                            {% elif task.urgency > 10 %}
-                            <div class="badge badge-primary join-item">{{ task.urgency }}</div>
-                            {% else %}
-                            <div class="badge badge-secondary join-item">{{ task.urgency }}</div>
-                            {% endif %}
+
                             {% if task.depends %}
-                            <div class="badge  badge-neutral join-item">
-                                DEP
                                 {% for uuid in task.depends %}
                                 {%if tasks_db[uuid] %}
-                                <div class="badge badge-ghost badge-xs">
+                                <button class="btn btn-secondary btn-xs is-a-tag join-item"
+                                        hx-trigger="click"
+                                        hx-get="task_details?task_id={{ tasks_db[uuid].uuid }}"
+                                        hx-target="#task_details">
                                     {{ tasks_db[uuid].id }}
-                                </div>
+                                </button>
                                 {% endif %}
                                 {% endfor %}
-                            </div>
-                            {% else %}
-                            <div class="badge badge-neutral join-item"></div>
                             {% endif %}
+
+                            {% if task.urgency > 20 %}
+                            <div class="btn btn-xs btn-warning  join-item">{{ task.urgency }}</div>
+                            {% elif task.urgency > 10 %}
+                            <div class="btn btn-xs btn-primary  join-item">{{ task.urgency }}</div>
+                            {% else %}
+                            <div class="btn btn-xs btn-neutral  join-item">{{ task.urgency }}</div>
+                            {% endif %}
+                            {% if task.due %}
+                            <div class="btn btn-xs btn-neutral  join-item">{{ task.due }}</div>
+                            {% endif %}
+
+                            {% if task.due and task.status != 'completed' %}
+                            <div class="btn btn-neutral  btn-xs join-item">
+                                {{ date_proper(date=task.due, in_future=true) }}
+                            </div>
+                            {% endif %}
+
+                            {% if task.start %}
+                                <div class="btn btn-neutral  btn-xs join-item">{{ date_proper(date=task.start) }}</div>
+                            {% endif %}
+
+                            {% if task.end %}
+                            <div class="btn btn-neutral  btn-xs join-item">{{ date_proper(date=task.end) }}</div>
+                            {% endif %}
+
+                            <div class="btn btn-neutral  btn-xs join-item">
+                                {% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}
+                            </div>
                         </div>
                     </li>
                     {% endfor %}

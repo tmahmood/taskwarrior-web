@@ -1,5 +1,5 @@
 {% set bg_color = "bg-neutral-800" %}
-<div class="rounded-lg p-5 shadow-2xl absolute top-10 left-72 z-50 w-3/5 lg:h-4/5 xl:h-auto overflow-y-auto bg-base-300">
+<div class="modal-box">
     <h2 class="text-lg  font-bold text-neutral-50">Adding new task</h2>
 
     <form class="mt-2 text-sm" id="task_add_form"
@@ -76,20 +76,23 @@
         </div>
     </form>
 
-    <div class="mt-4 flex gap-2" id="model-add-task">
-        <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-medium text-green-200" id="btn-mdl-yes" form="task_add_form"
+    <div class="modal-action" id="model-add-task">
+        <button class="btn btn-md btn-success" id="btn-mdl-yes" form="task_add_form"
                 hx-trigger="click,keyup[key=='Enter']">
-            [Ent] Done
+            <kbd class="shortcut_key">Done</kbd>
         </button>
 
-        <button type="button" class="rounded bg-red-900 px-4 py-2 text-sm font-medium text-red-100"
+        <button class="btn btn-md btn-warning"
                 hx-get="tasks"
                 hx-trigger="click,keyup[key=='Escape'] from:body"
                 hx-include="[id='filtering']"
                 hx-target="#list-of-tasks">
-            [Esc] Cancel
+            <kbd class="shortcut_key">Esc</kbd> Cancel
         </button>
     </div>
 
-</div>
+    <script>
+        document.getElementById('all-dialog-boxes').showModal()
+    </script>
 
+</div>

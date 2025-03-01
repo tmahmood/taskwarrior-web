@@ -10,6 +10,7 @@ use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, TimeDelta};
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{de, Deserialize, Deserializer, Serialize};
+use tracing::{debug, trace, warn};
 use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
@@ -18,7 +19,7 @@ lazy_static::lazy_static! {
         let mut tera = match tera::Tera::new("dist/templates/**/*") {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {}", e);
+                warn!("Parsing error(s): {}", e);
                 ::std::process::exit(1);
             }
         };
@@ -236,7 +237,6 @@ fn get_project_name_link() -> impl tera::Function {
 fn is_tag_keyword_tests() -> impl tera::Test {
     Box::new(move |val: Option<&tera::Value>, values: &[tera::Value]| -> tera::Result<bool>{
         let v_str = val.as_ref().unwrap().to_string();
-        println!("keyword: {} {}", v_str, is_tag_keyword(&v_str));
         Ok(is_tag_keyword(&v_str))
     })
 }
@@ -244,7 +244,6 @@ fn is_tag_keyword_tests() -> impl tera::Test {
 fn is_tag_tests() -> impl tera::Test {
     Box::new(move |val: Option<&tera::Value>, values: &[tera::Value]| -> tera::Result<bool>{
         let v_str = val.as_ref().unwrap().to_string();
-        println!("user_tag: {} {} {}", v_str, is_a_tag(&v_str), v_str.starts_with("+"));
         Ok(is_a_tag(&v_str))
     })
 }

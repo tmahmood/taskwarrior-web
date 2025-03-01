@@ -1,16 +1,17 @@
-<div class="join">
-    <button
-            class="btn btn-secondary btn-xs join-item"
-            id="tag-btn-back"
-            hx-get="tasks"
-            hx-trigger="click,keyup[key=='Escape'] from:#tag-inp"
-            hx-target="#list-of-tasks"
-            hx-include="[id='filtering']"
-    >ESC</button>
-    <span class="join-item">
+
+<div class="flex flex-wrap gap-2 p-4">
+    <div class="join">
+        <button
+                id="tag-btn-back"
+                class="btn btn-warning btn-xs join-item"
+                hx-get="tasks"
+                hx-trigger="click,keyup[key=='Escape'] from:#task-inp"
+                hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
+        ><span><span class="shortcut_key">ESC</span></span></button>
         <label for="tag-inp" class="hidden"></label>
         <input type="text" id="tag-inp"
-               class="input input-xs input-accent"
+               class="input input-xs input-accent join-item"
                placeholder="Tag Bar"
                hx-trigger="changes delay:2s"
                hx-target="#list-of-tasks"
@@ -18,8 +19,33 @@
                hx-swap="innerHTML"
                autofocus
                onkeyup="if (this.value.length >= 2) { document.getElementById(this.value).click() }"
-               onfocus="document.querySelectorAll('.is-a-tag-selector').forEach((e) => e.classList.remove('hidden'))"
-               onblur="document.querySelectorAll('.is-a-tag-selector').forEach((e) => e.classList.add('hidden')); document.getElementById('tag-btn-back').click();"
         />
-    </span>
+    </div>
+    {% for tag, shortcut in tags_map %}
+    {% if tag is keyword_tag %}
+    {% endif %}
+    {% if tag is user_tag %}
+    {% endif %}
+    <div class="mb-2">
+        <div class="flex gap-2">
+            <button id="{{shortcut}}"
+                    {% if tag is starting_with('+') %}
+            class="btn btn-xs btn-accent shrink"
+            hx-get="tasks?query={{ tag | replace(from='+', to='%2B') }}"
+            {% elif tag is starting_with('@') %}
+            class="btn btn-xs btn-info shrink"
+            hx-get="tasks?query={{ tag | trim_start_matches(pat='@') }}"
+            {% else %}
+            class="btn btn-xs btn-neutral shrink"
+            hx-get="tasks?query={% if tag is starting_with('project:') %}{{ tag }}{% else %}project:{{tag}}{% endif %}"
+            {% endif %}
+            hx-target="#list-of-tasks"
+            hx-include="[id='filtering']"
+            hx-swap="innerHTML"
+            >{{ shortcut }}</button>
+            <div class="text-xs pt-1">{{ tag | trim_start_matches(pat='@') }}</div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
+

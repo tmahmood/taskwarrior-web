@@ -1,11 +1,11 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use tracing::{error, info, trace};
+use tracing::{debug, error, info, trace};
 
 pub mod task_query_builder;
 
@@ -31,7 +31,7 @@ pub struct Task {
     pub end: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
-    pub uuid: Option<String>,
+    pub uuid: String,
     pub urgency: Option<f64>,
     pub entry: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,7 +89,7 @@ fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, an
     };
     let mut hm = IndexMap::new();
     for task in tasks.iter() {
-        hm.insert(TaskUUID(task.uuid.as_ref().unwrap().clone()), task.clone());
+        hm.insert(TaskUUID(task.uuid.clone()), task.clone());
     }
     Ok(hm)
 }
@@ -292,7 +292,7 @@ fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
 }
 
 pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
-    info!("uuid: {}", uuid);
+    debug!("uuid: {}", uuid);
     let mut p = TWGlobalState::default();
     p.filter = Some(uuid.clone());
     let mut t = TaskQuery::empty();
@@ -319,7 +319,7 @@ pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
                 val.trim().to_string(),
             );
         } else {
-            println!("FAIL: {}", line);
+            error!("FAIL: {}", line);
             ss = line.split_once(" ");
             if let Some((key, val)) = ss {
                 settings.insert(
@@ -327,8 +327,7 @@ pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
                     val.trim().to_string(),
                 );
             } else {
-                println!("TOTAL FAIL: {}", line);
-
+                error!("TOTAL FAIL: {}", line);
             }
         }
     });
@@ -343,4 +342,12 @@ pub fn is_tag_keyword(tag: &str) -> bool {
 
 pub fn is_a_tag(tag: &str) -> bool {
     is_tag_keyword(tag) || tag.starts_with("+")
+}
+
+pub struct TaskViewDataRetType {
+    pub tasks: IndexMap<TaskUUID, Task>,
+    pub tag_map: HashMap<String, String>,
+    pub shortcuts: HashSet<String>,
+    pub task_list: Vec<Task>,
+    pub task_shortcut_map: HashMap<String, String>
 }

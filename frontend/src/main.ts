@@ -60,12 +60,8 @@ hotkeys('t', function (event, handler) {
         return
     }
     event.preventDefault()
-    let tag_selector = document.getElementById('tag-inp')
-    document.querySelector('#tags_map_drawer').classList.toggle('hidden')
-    if (tag_selector.checkVisibility()) {
-        tag_selector.focus();
-    }
-    return false;
+    toggle_tag_panel();
+
 });
 
 hotkeys('ctrl+shift+K', function (event, handler) {
@@ -73,6 +69,20 @@ hotkeys('ctrl+shift+K', function (event, handler) {
     event.preventDefault()
     focus_text_input(event);
     return false;
+});
+
+const toggle_tag_panel = () => {
+    let tag_selector = document.getElementById('tag-inp')
+    document.querySelector('#tags_map_drawer').classList.toggle('hidden')
+    if (tag_selector.checkVisibility()) {
+        tag_selector.focus();
+    }
+    return false;
+}
+
+document.querySelector('#tag-selection-toggle').addEventListener('click', function (event) {
+    event.preventDefault();
+    toggle_tag_panel();
 });
 
 document.addEventListener('click', function (event) {
