@@ -7,13 +7,12 @@ use rand::distr::{Alphanumeric, SampleString};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
-use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TaskViewDataRetType, TAG_KEYWORDS};
+use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TaskViewDataRetType};
 use taskwarrior_web::{
     task_query_merge_previous_params, task_query_previous_params, FlashMsg, NewTask, TWGlobalState,
     TaskActions, TEMPLATES,
 };
 use tera::Context;
-use tower::ServiceExt;
 use tracing::{error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -167,7 +166,7 @@ async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
     get_tasks_view(task_query_previous_params(&params), Some(fm))
 }
 
-fn make_shortcut(name: &str, shortcuts: &mut HashSet<String>) -> String {
+fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
     let alpha = Alphanumeric::default();
     let mut len = 2;
     let mut tries = 0;
@@ -203,7 +202,7 @@ fn get_tasks_view_data(
                     if !tasks::is_tag_keyword(v) {
                         *v = format!("+{}", v);
                     }
-                    let shortcut = make_shortcut(&v, &mut shortcuts);
+                    let shortcut = make_shortcut(&mut shortcuts);
                     tag_map.insert(v.clone(), shortcut);
                 });
             }
@@ -216,14 +215,14 @@ fn get_tasks_view_data(
                         total_parts.push(part);
                         let mut s = "project:".to_string();
                         s.push_str(&total_parts.join("."));
-                        let shortcut = make_shortcut(&s, &mut shortcuts);
+                        let shortcut = make_shortcut(&mut shortcuts);
                         tag_map.insert(s, shortcut);
                     }
                 }
             }
-            let shortcut = make_shortcut("", &mut shortcuts);
+            let shortcut = make_shortcut(&mut shortcuts);
             task_shortcut_map.insert(task.id.to_string(), shortcut);
-            let shortcut = make_shortcut("", &mut shortcuts);
+            let shortcut = make_shortcut(&mut shortcuts);
             let uuid = task.uuid.clone();
             task_shortcut_map.insert(uuid, shortcut);
             task.clone()
@@ -236,7 +235,7 @@ fn get_tasks_view_data(
             }
             else if tasks::is_a_tag(filter) {
                 let ky = format!("@{}", filter);
-                let shortcut = make_shortcut(&ky, &mut shortcuts);
+                let shortcut = make_shortcut(&mut shortcuts);
                 tag_map.insert(ky, shortcut);
             } else {
                 let parts: Vec<_> = filter.split('.').collect();
@@ -244,8 +243,7 @@ fn get_tasks_view_data(
                 for part in parts {
                     total_parts.push(part);
                     let ky = format!("@{}", filter);
-                    let s = total_parts.join(".");
-                    let shortcut = make_shortcut(&ky, &mut shortcuts);
+                    let shortcut = make_shortcut(&mut shortcuts);
                     tag_map.insert(ky, shortcut);
                 }
             }
@@ -268,7 +266,7 @@ async fn front_page() -> Html<String> {
     let TaskViewDataRetType {
         tasks,
         tag_map,
-        shortcuts,
+        shortcuts: _,
         task_list,
         task_shortcut_map,
     } = get_tasks_view_data(tasks, &filters);
@@ -319,7 +317,7 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     let TaskViewDataRetType {
         tasks,
         tag_map,
-        shortcuts,
+        shortcuts: _,
         task_list, task_shortcut_map,
     } = get_tasks_view_data(tasks, &filter_ar);
     trace!("{:?}", tag_map);

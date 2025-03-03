@@ -10,7 +10,7 @@ use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, TimeDelta};
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{de, Deserialize, Deserializer, Serialize};
-use tracing::{debug, trace, warn};
+use tracing::{warn};
 use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 
@@ -235,14 +235,14 @@ fn get_project_name_link() -> impl tera::Function {
 }
 
 fn is_tag_keyword_tests() -> impl tera::Test {
-    Box::new(move |val: Option<&tera::Value>, values: &[tera::Value]| -> tera::Result<bool>{
+    Box::new(move |val: Option<&tera::Value>, _values: &[tera::Value]| -> tera::Result<bool>{
         let v_str = val.as_ref().unwrap().to_string();
         Ok(is_tag_keyword(&v_str))
     })
 }
 
 fn is_tag_tests() -> impl tera::Test {
-    Box::new(move |val: Option<&tera::Value>, values: &[tera::Value]| -> tera::Result<bool>{
+    Box::new(move |val: Option<&tera::Value>, _values: &[tera::Value]| -> tera::Result<bool>{
         let v_str = val.as_ref().unwrap().to_string();
         Ok(is_a_tag(&v_str))
     })
