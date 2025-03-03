@@ -214,7 +214,8 @@ fn get_tasks_view_data(
                     let mut total_parts = vec![];
                     for part in parts {
                         total_parts.push(part);
-                        let s = total_parts.join(".");
+                        let mut s = "project:".to_string();
+                        s.push_str(&total_parts.join("."));
                         let shortcut = make_shortcut(&s, &mut shortcuts);
                         tag_map.insert(s, shortcut);
                     }

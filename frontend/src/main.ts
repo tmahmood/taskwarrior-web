@@ -16,19 +16,7 @@ hotkeys.filter = function (event) {
     return true;
 }
 
-function makeId(length: number) {
-    let result = '';
-    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        counter += 1;
-    }
-    return result;
-}
-
-function focus_text_input(event) {
+function focusTextInput(event: KeyboardEvent | MouseEvent) {
     let ss = document.getElementById('task-details-inp');
     if (ss !== null) {
         event.preventDefault()
@@ -60,48 +48,44 @@ hotkeys('t', function (event, handler) {
         return
     }
     event.preventDefault()
-    toggle_tag_panel();
+    window['toggleTagPanel']();
 
 });
 
 hotkeys('ctrl+shift+K', function (event, handler) {
     // Prevent the default refresh event under WINDOWS system
     event.preventDefault()
-    focus_text_input(event);
+    focusTextInput(event);
     return false;
 });
 
-const toggle_tag_panel = () => {
-    let tag_selector = document.getElementById('tag-inp')
+window['toggleTagPanel'] = () => {
+    let tagSelector = document.getElementById('tag-inp')
     document.querySelector('#tags_map_drawer').classList.toggle('hidden')
-    if (tag_selector.checkVisibility()) {
-        tag_selector.focus();
+    if (tagSelector.checkVisibility()) {
+        tagSelector.focus();
     }
     return false;
 }
-
-document.querySelector('#tag-selection-toggle').addEventListener('click', function (event) {
-    event.preventDefault();
-    toggle_tag_panel();
-});
 
 document.addEventListener('click', function (event) {
     let element = document.getElementsByTagName('html')[0];
     if (event.target !== element) {
         return;
     }
-    focus_text_input(event);
+    focusTextInput(event);
 })
 
 document.addEventListener("DOMContentLoaded", function () {
     let n = setInterval(
         () => {
-            let which_one = 1;
+            let whichOne = 0;
             let dd = document.getElementById('active-timer');
             if (dd === undefined || dd === null) {
                 return
             }
-            let s = dd.children[which_one].textContent.split(":");
+            let timeBox = dd.children[1].children[whichOne];
+            let s = timeBox.textContent.split(":");
             let second = parseInt(s.pop());
             let minute = parseInt(s.pop());
             if (isNaN(minute)) {
@@ -119,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     hour += 1;
                 }
             }
-            dd.children[which_one].textContent = hour.toString()
+            timeBox.textContent = hour.toString()
                     // @ts-ignore
                     .padStart(2, "0") + ":" +
                 minute.toString()

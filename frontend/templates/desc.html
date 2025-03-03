@@ -1,5 +1,4 @@
 {% macro desc(task) %}
-<div>
     {% if task.annotations %}
     <p>
         <strong>{{ task.description }}</strong>
@@ -16,5 +15,4 @@
         {{ task.description }}
     </p>
     {% endif %}
-</div>
 {% endmacro desc %}

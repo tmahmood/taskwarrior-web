@@ -1,19 +1,24 @@
 <div hx-get="tasks/active" hx-trigger="every 60s" hx-swap="outerHTML" hx-target="this">
     {% if active_task %}
-    <div class="pl-2.5 pr-6 py-1.5 bg-green-700 text-green-200 shadow-xl rounded-sm flex flex-wrap " id="active-timer">
+    <div class="join">
+
+    </div>
+    <div class="pl-2.5 pr-6 py-1.5 bg-green-900 text-green-200 shadow-xl rounded-sm flex flex-wrap " id="active-timer">
         <span class="flex-grow">{{ active_task.description }}</span>
-        <span class="flex-shrink bg-emerald-500 drop-shadow-2xl px-3">
-        {{ timer_value(date=active_task.start) }}
-    </span>
-        <button class="btn btn-accent"
-                hx-post="tasks"
-                hx-target="#list-of-tasks"
-                hx-swap="innerHTML"
-                hx-include="[id='filtering']"
-                hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer"}'
-                hx-trigger="click,keyup[key=='o'] from:#cmd-inp">
-            <span>St<span class="shortcut_key">o</span>p</span>
-        </button>
+        <div class="join">
+            <span class="badge badge-success badge-md badge-soft join-item">
+                {{ timer_value(date=active_task.start) }}
+            </span>
+            <button class="btn btn-accent btn-xs join-item"
+                    hx-post="tasks"
+                    hx-target="#list-of-tasks"
+                    hx-swap="innerHTML"
+                    hx-include="[id='filtering']"
+                    hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer"}'
+                    hx-trigger="click,keyup[key=='o'] from:#cmd-inp">
+                <span>St<span class="shortcut_key">o</span>p</span>
+            </button>
+        </div>
     </div>
     {% endif %}
 </div>

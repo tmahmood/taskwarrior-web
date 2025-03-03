@@ -8,7 +8,7 @@
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[key=='Escape'] from:#task-details-inp">
-            <kbd class="shortcut_key">[Esc]</kbd>
+            <kbd class="shortcut_key">Esc</kbd>
         </button>
         <button
                 class="btn btn-success btn-xs join-item"
@@ -193,7 +193,11 @@
         </tbody>
     </table>
     <script>
-        document.getElementById('task-inp').value = '';
+        try {
+            document.getElementById('task-inp').value = '';
+        } catch (e) {
+
+        }
         document.getElementById('all-dialog-boxes').showModal()
     </script>
 </div>
