@@ -2,14 +2,20 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=frontend/");
-    match Command::new("tailwindcss")
+    let css_build_success = match Command::new("tailwindcss")
         .args(["-i", "frontend/css/style.css", "-o", "dist/style.css"])
         .status() {
         Ok(vv) => {
             vv.success()
         }
         Err(_e) => {
-            println!("cargo::warning=Failed to process css");
+            false
+        }
+    };
+    if !css_build_success {
+        if let Err(_e) = Command::new("./tailwindcss")
+            .args(["-i", "frontend/css/style.css", "-o", "dist/style.css"])
+            .status() {
             panic!("Failed to process css")
         }
     };
