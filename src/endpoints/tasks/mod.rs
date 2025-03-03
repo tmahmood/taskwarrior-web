@@ -210,6 +210,9 @@ pub fn run_denotate_command(task_uuid: &str) -> Result<(), anyhow::Error> {
 // mark a task as done
 pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
     let mut t = get_task_from_tw(&task.uuid)?;
+    if !t.start.is_none() {
+        stop_any_active_task()?;
+    }
     let entry = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
     t.modified = Some(entry.clone());
     t.status = Some(task.status);
@@ -236,13 +239,18 @@ pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
     }
 }
 
-pub fn toggle_task_active(task_uuid: &str) -> Result<bool, anyhow::Error> {
-    let t = get_task_from_tw(task_uuid)?;
-    // maybe another task is running? So stop all other tasks first
+pub fn stop_any_active_task() -> Result<(), anyhow::Error> {
     if let Err(e) = Command::new("task").arg("+ACTIVE").arg("stop").output() {
         error!("Failed to stop any task: {}", e);
         anyhow::bail!("Failed to stop task");
     }
+    Ok(())
+}
+
+pub fn toggle_task_active(task_uuid: &str) -> Result<bool, anyhow::Error> {
+    let t = get_task_from_tw(task_uuid)?;
+    // maybe another task is running? So stop all other tasks first
+    stop_any_active_task()?;
     let is_running = t.start.is_none();
     // the task was not running, so let's start it
     if is_running {

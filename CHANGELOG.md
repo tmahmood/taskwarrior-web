@@ -1,3 +1,12 @@
+## Tue 04, March, 2025
+
+- [x] BIG UI UPDATE
+- [x] Using tailwindcss 4
+- [x] Using daisyui for UI components
+- [x] All the projects and tags are listed in single place when making selection
+- [x] Dialog boxes are now using default dialog element instead of hacked out modal windows
+- [x] Tag selection, Task selection UI should be more responsive 
+
 ## Tue 15, 2024
 
 - [x] Added time of the day widget

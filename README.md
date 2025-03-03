@@ -1,3 +1,10 @@
+# NEW!
+
+- Updated to tailwindcss 4 and using daisyui for UI components. 
+- Cleaned-up code a bit to make it easier to manage
+
+Please report any bugs, contributions are welcome. 
+
 # What is this?
 
 A Minimalistic Web UI for Task Warrior focusing on Keyboard navigation.
@@ -170,9 +177,10 @@ This will bring up undo confirmation dialog
 This is a work in progress application, many things will not work,
 there will be errors, as no checks, and there may not be any error messages in case of error.
 
+
 ## Planned
 - [ ] Usability improvements on a long task list
-  - [ ] Hiding empty columns
+  - [x] Hiding empty columns
   - [ ] Temporary highlight last modified row, if visible
 - [ ] Make the mnemonics same for tags on refresh
 - [ ] Modification
@@ -193,9 +201,8 @@ there will be errors, as no checks, and there may not be any error messages in c
 
 ## Issues
 - [ ] Not able to select and copy tags, maybe add a copy button
-- [ ] Must keep filtering on refresh
 - [ ] Keyboard shortcut applied when there is a shortcut key and I use a mnemonic
-- [ ] When marking task as done stop if active
+- [x] When marking task as done stop if active
 
 
 
