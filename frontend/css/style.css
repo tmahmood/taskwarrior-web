@@ -45,8 +45,14 @@
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 
+
+@font-face {
+    font-family: 'Departure Mono';
+    src: url('assets/DepartureMono-Regular.woff') format('woff');
+}
+
 body {
-    font-family: 'Maple Mono NF', sans-serif;
+    font-family: 'Departure Mono', sans-serif;
 }
 
 .shortcut_key {

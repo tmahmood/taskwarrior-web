@@ -26,7 +26,7 @@ fn main() {
     }
     // adding templates
     if !Command::new("cp")
-        .args(["-r", "frontend/templates", "dist/"])
+        .args(["-r", "frontend/templates",  "frontend/assets", "dist"])
         .status().unwrap().success() {
         println!("cargo::warning=Failed to copy files");
         panic!("Failed to copy template files")
