@@ -49,8 +49,8 @@
 
         {% if display_time_of_the_day == 1 %}
         <div class="justify-start items-center h-4" id="time_of_the_day">
-            <div class="flex-1 w-full rounded-sm text-lime-50 text-xs">
-                <div class="[min-width:4px] mt-1 bg-lime-600 shadow-inner shadow-lime-950 rounded-sm fill-lime-50 px-2 content-end">
+            <div class="flex-1 w-full rounded-sm text-accent-content text-xs">
+                <div class="[min-width:4px] mt-1 bg-accent shadow-inner shadow-accent rounded-sm fill-accent px-2 content-end">
                 </div>
             </div>
         </div>
@@ -59,7 +59,7 @@
         <span hx-get="tasks/active" hx-trigger="load" hx-swap="outerHTML" hx-target="this"></span>
 
         <div class="grid grid-cols-1">
-            <div id="tags_map_drawer" class="pt-4 hidden bg-green-300 mb-2">
+            <div id="tags_map_drawer" class="pt-4 hidden mb-2">
                 <div class="flex flex-wrap gap-2 p-4 bg-accent-content">
                     <div class="join">
                         <button

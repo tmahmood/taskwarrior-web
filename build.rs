@@ -2,16 +2,11 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=frontend/");
-    if let Err(_) = Command::new("tailwindcss")
+    if let Err(_e) = Command::new("./tailwindcss")
         .args(["-i", "frontend/css/style.css", "-o", "dist/style.css"])
         .status()
     {
-        if let Err(_e) = Command::new("./tailwindcss")
-            .args(["-i", "frontend/css/style.css", "-o", "dist/style.css"])
-            .status()
-        {
-            panic!("Failed to process css")
-        }
+        panic!("Failed to process css")
     }
     if !Command::new("rollup")
         .args(["-c", "frontend/rollup.config.js"])
