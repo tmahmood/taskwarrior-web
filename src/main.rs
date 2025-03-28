@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 use rand::distr::{Alphanumeric, SampleString};
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::string::ToString;
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TaskViewDataRetType};
 use taskwarrior_web::{
@@ -17,6 +18,7 @@ use tracing::{error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use taskwarrior_web::endpoints::tasks;
+
 
 #[tokio::main]
 async fn main() {
@@ -56,6 +58,17 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
+fn get_default_context() -> Context {
+    let mut ctx = Context::new();
+    let ss = match env::var("TWK_USE_FONT") {
+        Ok(v) => Some(v),
+        Err(_) => None
+    };
+    ctx.insert("USE_FONT", &ss);
+    ctx.insert("FALLBACK_FAMILY", "monospace");
+    ctx
+}
+
 fn init_tracing() {
     tracing_subscriber::registry()
         .with(
@@ -71,14 +84,14 @@ async fn display_task_details(Query(param): Query<HashMap<String, String>>) -> H
     let task = get_task_details(task_id).unwrap();
     let tq = TaskQuery::new(TWGlobalState::default());
     let tasks = list_tasks(&tq).unwrap();
-    let mut ctx = Context::new();
+    let mut ctx = get_default_context();
     ctx.insert("tasks_db", &tasks);
     ctx.insert("task", &task);
     Html(TEMPLATES.render("task_details.html", &ctx).unwrap())
 }
 
 async fn get_active_task() -> Html<String> {
-    let mut ctx = Context::new();
+    let mut ctx = get_default_context();
     if let Ok(v) = fetch_active_task() {
         if let Some(v) = v {
             ctx.insert("active_task", &v);
@@ -88,13 +101,13 @@ async fn get_active_task() -> Html<String> {
 }
 
 async fn get_task_action_bar() -> Html<String> {
-    let ctx = Context::new();
+    let ctx = get_default_context();
     Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
 }
 
 async fn get_bar(Query(param): Query<HashMap<String, String>>) -> Html<String> {
     if let Some(bar) = param.get("bar") {
-        let ctx = Context::new();
+        let ctx = get_default_context();
         if bar == "left_action_bar" {
             Html(TEMPLATES.render("left_action_bar.html", &ctx).unwrap())
         } else {
@@ -106,7 +119,7 @@ async fn get_bar(Query(param): Query<HashMap<String, String>>) -> Html<String> {
 }
 
 async fn get_tag_bar() -> Html<String> {
-    let ctx = Context::new();
+    let ctx = get_default_context();
     Html(TEMPLATES.render("tag_bar.html", &ctx).unwrap())
 }
 
@@ -115,7 +128,7 @@ async fn just_empty() -> Html<String> {
 }
 
 async fn display_flash_message(Query(msg): Query<FlashMsg>) -> Html<String> {
-    let mut ctx = Context::new();
+    let mut ctx = get_default_context();
     ctx.insert("msg", &msg.msg());
     ctx.insert("timeout", &msg.timeout());
     Html(TEMPLATES.render("flash_msg.html", &ctx).unwrap())
@@ -124,7 +137,7 @@ async fn display_flash_message(Query(msg): Query<FlashMsg>) -> Html<String> {
 async fn get_undo_report() -> Html<String> {
     match task_undo_report() {
         Ok(s) => {
-            let mut ctx = Context::new();
+            let mut ctx = get_default_context();
             let lines = s.lines();
             let first_line: String = lines.clone().take(1).collect();
             let mut rest_lines: Vec<String> = lines.skip(1).map(|v| v.to_string()).collect();
@@ -134,7 +147,7 @@ async fn get_undo_report() -> Html<String> {
             Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
         }
         Err(e) => {
-            let mut ctx = Context::new();
+            let mut ctx = get_default_context();
             ctx.insert("heading", &e.to_string());
             Html(TEMPLATES.render("error.html", &ctx).unwrap())
         }
@@ -154,7 +167,7 @@ async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<St
         })
         .or(Some(TaskQuery::default()))
         .unwrap();
-    let mut ctx = Context::new();
+    let mut ctx = get_default_context();
     ctx.insert("tags", &tq.tags().join(" "));
     ctx.insert("project", tq.project());
     Html(TEMPLATES.render("task_add.html", &ctx).unwrap())
@@ -270,7 +283,7 @@ async fn front_page() -> Html<String> {
         task_list,
         task_shortcut_map,
     } = get_tasks_view_data(tasks, &filters);
-    let mut ctx = Context::new();
+    let mut ctx = get_default_context();
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
     ctx.insert("current_filter", &tq.as_filter_text());
@@ -321,7 +334,7 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
         task_list, task_shortcut_map,
     } = get_tasks_view_data(tasks, &filter_ar);
     trace!("{:?}", tag_map);
-    let mut ctx_b = Context::new();
+    let mut ctx_b = get_default_context();
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &filter_ar);

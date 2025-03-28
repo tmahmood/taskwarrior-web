@@ -2,6 +2,13 @@
 <html lang="en" data-theme="task-warrior">
 <head>
     <link rel="stylesheet" href="/dist/style.css"/>
+    <style>
+        {% if USE_FONT %}
+        body {
+            font-family: '{{ USE_FONT }}', '{{ FALLBACK_FAMILY }}';
+        }
+        {% endif %}
+    </style>
     <script src="/dist/bundle.js" type="module"></script>
     <title>
         Org.Me

@@ -58,9 +58,9 @@
 
         <span hx-get="tasks/active" hx-trigger="load" hx-swap="outerHTML" hx-target="this"></span>
 
-        <div class="flex">
-            <div id="tags_map_drawer" class="shrink pt-4 hidden w-10/12">
-                <div class="flex flex-wrap gap-2 p-4">
+        <div class="grid grid-cols-1">
+            <div id="tags_map_drawer" class="pt-4 hidden bg-green-300 mb-2">
+                <div class="flex flex-wrap gap-2 p-4 bg-accent-content">
                     <div class="join">
                         <button
                                 id="tag-btn-back"
@@ -110,8 +110,7 @@
                     {% endfor %}
                 </div>
             </div>
-
-            <div class="grow">
+            <div>
                 <ul class="list bg-base-100 rounded-box shadow-md text-sm">
                     {% for task in tasks %}
                     <li class="list-row {% if task.start %} bg-green-700 {% endif %} p-2">
@@ -200,10 +199,8 @@
                             {% elif task.urgency > 10 %}
                             <div class="btn btn-xs btn-primary  join-item">{{ task.urgency }}</div>
                             {% else %}
-                            <div class="btn btn-xs btn-neutral  join-item">{{ task.urgency }}</div>
-                            {% endif %}
-                            {% if task.due %}
-                            <div class="btn btn-xs btn-neutral  join-item">{{ task.due }}</div>
+                            <div class="btn btn-xs btn-neutral  join-item">
+                                {{ task.urgency }}</div>
                             {% endif %}
 
                             {% if task.due and task.status != 'completed' %}

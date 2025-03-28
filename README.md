@@ -117,6 +117,16 @@ By default the "time of the day" widget is not visible, to display it put
 
 in the `.env` file
 
+### Font customization
+
+Previously the app used `Departure Mono` as default font, which was also included in the repo.
+It's now removed.
+And the font can be set using env variable.
+
+Add the following to change default font:
+
+`TWK_USE_FONT='Maple Mono'`
+
 
 # Using the app
 
@@ -179,6 +189,7 @@ there will be errors, as no checks, and there may not be any error messages in c
 
 
 ## Planned
+- [ ] Better configuration
 - [ ] Usability improvements on a long task list
   - [x] Hiding empty columns
   - [ ] Temporary highlight last modified row, if visible

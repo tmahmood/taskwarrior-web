@@ -1,3 +1,7 @@
+## Fri 28, March, 2025
+- [x] Font's can be customized
+- [x] Removed packaged font
+
 ## Tue 04, March, 2025
 
 - [x] BIG UI UPDATE
