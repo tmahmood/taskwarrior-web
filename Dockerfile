@@ -66,7 +66,7 @@ USER task
 EXPOSE 3000
 
 # Taskwarrior data volume
-VOLUME /app/.task/
+VOLUME /app/taskdata/
 VOLUME /app/.timewarrior/
 
 ENV TASKRC="/app/.taskrc"
