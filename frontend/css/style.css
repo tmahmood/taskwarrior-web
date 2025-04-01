@@ -1,50 +1,85 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
-@plugin "daisyui";
-
-
-
-
-
-@plugin "daisyui/theme" {
-    name: "task-warrior";
-    default: false;
-    prefersdark: false;
-    color-scheme: "dark";
-    --color-base-100: oklch(21% 0.006 56.043);
-    --color-base-200: oklch(14% 0.004 49.25);
-    --color-base-300: oklch(0% 0 0);
-    --color-base-content: oklch(84.955% 0 0);
-    --color-primary: oklch(50% 0.134 242.749);
-    --color-primary-content: oklch(19.693% 0.004 196.779);
-    --color-secondary: oklch(43% 0 0);
-    --color-secondary-content: oklch(89.196% 0.049 305.03);
-    --color-accent: oklch(55% 0.027 264.364);
-    --color-accent-content: oklch(0% 0 0);
-    --color-neutral: oklch(37% 0.034 259.733);
-    --color-neutral-content: oklch(84.874% 0.009 65.681);
-    --color-info: oklch(54.615% 0.215 262.88);
-    --color-info-content: oklch(90.923% 0.043 262.88);
-    --color-success: oklch(62.705% 0.169 149.213);
-    --color-success-content: oklch(12.541% 0.033 149.213);
-    --color-warning: oklch(66.584% 0.157 58.318);
-    --color-warning-content: oklch(13.316% 0.031 58.318);
-    --color-error: oklch(65.72% 0.199 27.33);
-    --color-error-content: oklch(13.144% 0.039 27.33);
-    --radius-selector: 0.25rem;
-    --radius-field: 0.25rem;
-    --radius-box: 0.25rem;
-    --size-selector: 0.25rem;
-    --size-field: 0.25rem;
-    --border: 1px;
-    --depth: 1;
-    --noise: 0;
+@plugin "daisyui" {
+  themes: taskwarrior-light, taskwarrior-dark;
+  root: ":root";
+  darktheme: "taskwarrior-dark";
+  logs: false;
 }
 
+@plugin "daisyui/theme" {
+  name: "taskwarrior-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(21% 0.006 56.043);
+  --color-base-200: oklch(14% 0.004 49.25);
+  --color-base-300: oklch(0% 0 0);
+  --color-base-content: oklch(84.955% 0 0);
+  --color-primary: oklch(50% 0.134 242.749);
+  --color-primary-content: oklch(19.693% 0.004 196.779);
+  --color-secondary: oklch(43% 0 0);
+  --color-secondary-content: oklch(89.196% 0.049 305.03);
+  --color-accent: oklch(55% 0.027 264.364);
+  --color-accent-content: oklch(0% 0 0);
+  --color-neutral: oklch(37% 0.034 259.733);
+  --color-neutral-content: oklch(84.874% 0.009 65.681);
+  --color-info: oklch(54.615% 0.215 262.88);
+  --color-info-content: oklch(90.923% 0.043 262.88);
+  --color-success: oklch(62.705% 0.169 149.213);
+  --color-success-content: oklch(12.541% 0.033 149.213);
+  --color-warning: oklch(66.584% 0.157 58.318);
+  --color-warning-content: oklch(13.316% 0.031 58.318);
+  --color-error: oklch(65.72% 0.199 27.33);
+  --color-error-content: oklch(13.144% 0.039 27.33);
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "taskwarrior-light";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(98% 0 0);
+  --color-base-300: oklch(95% 0 0);
+  --color-base-content: oklch(21% 0.006 285.885);
+  --color-primary: oklch(45% 0.24 277.023);
+  --color-primary-content: oklch(93% 0.034 272.788);
+  --color-secondary: oklch(65% 0.241 354.308);
+  --color-secondary-content: oklch(94% 0.028 342.258);
+  --color-accent: oklch(77% 0.152 181.912);
+  --color-accent-content: oklch(38% 0.063 188.416);
+  --color-neutral: oklch(14% 0.005 285.823);
+  --color-neutral-content: oklch(92% 0.004 286.32);
+  --color-info: oklch(74% 0.16 232.661);
+  --color-info-content: oklch(29% 0.066 243.157);
+  --color-success: oklch(76% 0.177 163.223);
+  --color-success-content: oklch(37% 0.077 168.94);
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: oklch(41% 0.112 45.904);
+  --color-error: oklch(71% 0.194 13.428);
+  --color-error-content: oklch(27% 0.105 12.094);
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
 
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 
 .shortcut_key {
-    @apply px-1 mx-0.5 space-x-0 opacity-50 text-white bg-base-100 rounded-sm;
+  @apply px-1 mx-0.5 space-x-0 opacity-50 text-base-content bg-base-100 rounded-sm;
 }

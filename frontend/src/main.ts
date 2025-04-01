@@ -2,6 +2,7 @@ import 'htmx.org';
 import 'hyperscript.org';
 import * as _hyperscript from "hyperscript.org";
 import hotkeys from "hotkeys-js";
+import * as theme from "./theme.ts";
 
 _hyperscript.browserInit();
 
@@ -54,7 +55,7 @@ hotkeys('t', function (event, handler) {
 
 hotkeys('ctrl+shift+K', function (event, handler) {
     // Prevent the default refresh event under WINDOWS system
-    event.preventDefault()
+    event.preventDefault();
     focusTextInput(event);
     return false;
 });
@@ -70,13 +71,21 @@ window['toggleTagPanel'] = () => {
 
 document.addEventListener('click', function (event) {
     let element = document.getElementsByTagName('html')[0];
-    if (event.target !== element) {
-        return;
+    switch(event.target) {
+        case element:
+            focusTextInput(event);
+            break;
+        case document.getElementById('theme-switcher'):
+            event.preventDefault();
+            theme.switchTheme();
+            break;
     }
-    focusTextInput(event);
+    return;
 })
 
 document.addEventListener("DOMContentLoaded", function () {
+    theme.init();
+
     let n = setInterval(
         () => {
             let whichOne = 0;
@@ -130,3 +139,4 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 1000
     )
 });
+

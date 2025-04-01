@@ -1,4 +1,4 @@
-<div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2" xmlns:hx-on="http://www.w3.org/1999/xhtml">
+<div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2 items-center" xmlns:hx-on="http://www.w3.org/1999/xhtml">
     <div class="join" id="tag_search_bar">
         <button class="btn btn-neutral btn-xs join-item" id="tag-selection-toggle" onclick="window['toggleTagPanel']()">
             <span><span class="shortcut_key"
@@ -103,10 +103,14 @@
             <span><span class="shortcut_key">L</span></span>
         </button>
     </div>
+    <!-- Other options -->
+    <div>
+        <button class="btn btn-xs btn-ghost" id="theme-switcher">⚹</button>
+    </div>
     <!-- CMD BAR -->
     <div>
         <label class="" for="cmd-inp"></label>
         <input type="search" class="input input-xs input-neutral focus:border-base-100 grow input-ghost border-base-200" placeholder="Cmd Bar, Ctrl+Shift+k" id="cmd-inp"
-               autofocus/>
+               autofocus value="" autocomplete="off" />
     </div>
 </div>

@@ -45,7 +45,7 @@
         <!-- // -->
     </div>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-16 pt-0 pb-2 mb-5">
+    <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-20 pt-0 pb-2 mb-5">
 
         {% if display_time_of_the_day == 1 %}
         <div class="justify-start items-center h-4" id="time_of_the_day">
@@ -60,7 +60,7 @@
 
         <div class="grid grid-cols-1">
             <div id="tags_map_drawer" class="pt-4 hidden mb-2">
-                <div class="flex flex-wrap gap-2 p-4 bg-accent-content">
+                <div class="flex flex-wrap gap-2 p-4 bg-base-300">
                     <div class="join">
                         <button
                                 id="tag-btn-back"
@@ -91,7 +91,7 @@
                         <div class="flex gap-2">
                             <button id="{{shortcut}}"
                                     {% if tag is starting_with('+') %}
-                                    class="btn btn-xs btn-accent shrink"
+                                    class="btn btn-xs btn-accent-content shrink"
                                     hx-get="tasks?query={{ tag | replace(from='+', to='%2B') }}"
                                     {% elif tag is starting_with('@') %}
                                     class="btn btn-xs btn-info shrink"
@@ -113,7 +113,7 @@
             <div>
                 <ul class="list bg-base-100 rounded-box shadow-md text-sm">
                     {% for task in tasks %}
-                    <li class="list-row {% if task.start %} bg-green-700 {% endif %} p-2">
+                    <li class="list-row {% if task.start %} bg-green-700 text-green-200 {% endif %} p-2">
                         <div>
                             <input type="checkbox"
                                    class="checkbox checkbox-sm"
