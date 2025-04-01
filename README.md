@@ -19,8 +19,8 @@ Font in the screenshot is [Maple Mono NF](https://github.com/subframe7536/maple-
 - [tera](https://github.com/Keats/tera)
 - [TailwindCSS](https://tailwindcss.com/)
 - [daisyUI](https://daisyui.com/)
-- HTMX
-- hotkeys
+- [HTMX](https://htmx.org)
+- [hotkeys](https://github.com/jaywcjlove/hotkeys-js)
 - [rollup](https://rollupjs.org/)
 - [Taskwarrior](https://taskwarrior.org/) (obviously :))
 - [Timewarrior](https://timewarrior.net)
@@ -68,7 +68,7 @@ It is recommend to specify the corresponding volume in order to persist the data
 
 ## Ports
 
-`taskwarrior-web` is internally listening on following ports `3000`:
+`taskwarrior-web` is by default internally listening on port `3000`:
 
 | Port | Protocol | Purpose                          |
 | ---- | -------- | -------------------------------- |
@@ -78,11 +78,12 @@ It is recommend to specify the corresponding volume in order to persist the data
 
 In order to configure the environment variables and contexts for `timewarrior-web`, docker environments can be specified:
 
-| Docker environment               | Internal Variable       |
-| -------------------------------- | ----------------------- |
-| TASK_WEB_TWK_SERVER_PORT         | TWK_SERVER_PORT         |
-| TASK_WEB_DISPLAY_TIME_OF_THE_DAY | DISPLAY_TIME_OF_THE_DAY |
-| TASK_WEB_TWK_USE_FONT            | TWK_USE_FONT            |
+| Docker environment               | Shell environment       | Purpose 
+| -------------------------------- | ----------------------- | ---------------------------------------------------------|
+| TASK_WEB_TWK_SERVER_PORT         | TWK_SERVER_PORT         | Specifies the server port (see "Ports")                  |
+| TASK_WEB_DISPLAY_TIME_OF_THE_DAY | DISPLAY_TIME_OF_THE_DAY | Displays a time of the day widget in case of value `1`   |
+| TASK_WEB_TWK_USE_FONT            | TWK_USE_FONT            | Font to be used. If not, browsers default fonts are used |
+| TASK_WEB_TWK_THEME               | TWK_THEME               | Defines the theme to be used (see "Themes")              | 
 
 ## Hooks
 
@@ -133,6 +134,8 @@ if you are receiving the following error in step 5
 
 It's because, `tailwindcss-cli` is missing
 
+## Customizing
+
 ### Customizing the port
 
 By default, the program will use 3000 as port,
@@ -157,6 +160,19 @@ And the font can be set using env variable.
 Add the following to change default font:
 
 `TWK_USE_FONT='Maple Mono'`
+
+### Themes
+
+By default, `taskwarrior-web` provides two themes:
+
+1. taskwarrior-dark (intended for dark mode)
+2. taskwarrior-light (intended for light mode)
+
+`taskwarrior-web` decides automatically based on the operating system and [browser preferences](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) whether the light or the dark theme should be shown.
+
+If a specific theme should be set fixed, the theme can be set as following in the environment:
+
+`TWK_THEME=taskwarrior-dark` (for dark-mode)
 
 # Using the app
 
@@ -210,6 +226,18 @@ Keyboard shortcut is `u`
 
 This will bring up undo confirmation dialog
 ![Undo](./screenshots/undo.png)
+
+## Switch theme
+
+It is possible to switch the theme, which is saved in local storage too.
+
+For this following three symbols are used (left of the command bar):
+
+| Symbol | Purpose                               |
+|--------|---------------------------------------|
+|   ⚹    | Auto Mode or forced mode from server |  
+|   ☽    | Dark mode                            |
+|   🌣    | Light mode                           |
 
 # WIP warning
 

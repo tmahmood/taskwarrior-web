@@ -45,7 +45,7 @@
         <!-- // -->
     </div>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-16 pt-0 pb-2 mb-5">
+    <div class="relative overflow-x-auto shadow-md sm:rounded-b-lg overflow-y-auto mt-20 pt-0 pb-2 mb-5">
 
         {% if display_time_of_the_day == 1 %}
         <div class="justify-start items-center h-4" id="time_of_the_day">
@@ -113,7 +113,7 @@
             <div>
                 <ul class="list bg-base-100 rounded-box shadow-md text-sm">
                     {% for task in tasks %}
-                    <li class="list-row {% if task.start %} bg-green-700 {% endif %} p-2">
+                    <li class="list-row {% if task.start %} bg-green-700 text-green-200 {% endif %} p-2">
                         <div>
                             <input type="checkbox"
                                    class="checkbox checkbox-sm"

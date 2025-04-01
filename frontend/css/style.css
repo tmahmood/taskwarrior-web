@@ -1,14 +1,14 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 @plugin "daisyui" {
-  themes: task-warrior-light, task-warrior-dark;
+  themes: taskwarrior-light, taskwarrior-dark;
   root: ":root";
-  darktheme: "task-warrior-dark";
+  darktheme: "taskwarrior-dark";
   logs: false;
 }
 
 @plugin "daisyui/theme" {
-  name: "task-warrior-dark";
+  name: "taskwarrior-dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
@@ -43,7 +43,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "task-warrior-light";
+  name: "taskwarrior-light";
   default: true;
   prefersdark: false;
   color-scheme: "light";

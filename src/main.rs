@@ -1,4 +1,4 @@
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::response::Html;
 use axum::routing::post;
 use axum::{routing::get, Form, Router};
@@ -7,18 +7,21 @@ use rand::distr::{Alphanumeric, SampleString};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::string::ToString;
+use taskwarrior_web::endpoints::tasks;
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
-use taskwarrior_web::endpoints::tasks::{fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command, run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report, toggle_task_active, Task, TaskUUID, TaskViewDataRetType};
+use taskwarrior_web::endpoints::tasks::{
+    fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command,
+    run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report,
+    toggle_task_active, Task, TaskUUID, TaskViewDataRetType,
+};
 use taskwarrior_web::{
-    task_query_merge_previous_params, task_query_previous_params, FlashMsg, NewTask, TWGlobalState,
-    TaskActions, TEMPLATES,
+    task_query_merge_previous_params, task_query_previous_params, AppState, FlashMsg, NewTask,
+    TWGlobalState, TaskActions, TEMPLATES,
 };
 use tera::Context;
 use tracing::{error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use taskwarrior_web::endpoints::tasks;
-
 
 #[tokio::main]
 async fn main() {
@@ -33,6 +36,8 @@ async fn main() {
         "0.0.0.0:{}",
         env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
     );
+
+    let app_settings = AppState::default();
 
     // build our application with a route
     let app = Router::new()
@@ -50,7 +55,8 @@ async fn main() {
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
         .route("/task_details", get(display_task_details))
-        .route("/bars", get(get_bar));
+        .route("/bars", get(get_bar))
+        .with_state(app_settings);
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
@@ -58,15 +64,8 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-fn get_default_context() -> Context {
-    let mut ctx = Context::new();
-    let ss = match env::var("TWK_USE_FONT") {
-        Ok(v) => Some(v),
-        Err(_) => None
-    };
-    ctx.insert("USE_FONT", &ss);
-    ctx.insert("FALLBACK_FAMILY", "monospace");
-    ctx
+fn get_default_context(state: &AppState) -> Context {
+    state.into()
 }
 
 fn init_tracing() {
@@ -79,19 +78,22 @@ fn init_tracing() {
         .init();
 }
 
-async fn display_task_details(Query(param): Query<HashMap<String, String>>) -> Html<String> {
+async fn display_task_details(
+    Query(param): Query<HashMap<String, String>>,
+    app_state: State<AppState>,
+) -> Html<String> {
     let task_id = param.get("task_id").unwrap().clone();
     let task = get_task_details(task_id).unwrap();
     let tq = TaskQuery::new(TWGlobalState::default());
     let tasks = list_tasks(&tq).unwrap();
-    let mut ctx = get_default_context();
+    let mut ctx = get_default_context(&app_state);
     ctx.insert("tasks_db", &tasks);
     ctx.insert("task", &task);
     Html(TEMPLATES.render("task_details.html", &ctx).unwrap())
 }
 
-async fn get_active_task() -> Html<String> {
-    let mut ctx = get_default_context();
+async fn get_active_task(app_state: State<AppState>) -> Html<String> {
+    let mut ctx = get_default_context(&app_state);
     if let Ok(v) = fetch_active_task() {
         if let Some(v) = v {
             ctx.insert("active_task", &v);
@@ -100,14 +102,17 @@ async fn get_active_task() -> Html<String> {
     Html(TEMPLATES.render("active_task.html", &ctx).unwrap())
 }
 
-async fn get_task_action_bar() -> Html<String> {
-    let ctx = get_default_context();
+async fn get_task_action_bar(app_state: State<AppState>) -> Html<String> {
+    let ctx = get_default_context(&app_state);
     Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
 }
 
-async fn get_bar(Query(param): Query<HashMap<String, String>>) -> Html<String> {
+async fn get_bar(
+    Query(param): Query<HashMap<String, String>>,
+    app_state: State<AppState>,
+) -> Html<String> {
     if let Some(bar) = param.get("bar") {
-        let ctx = get_default_context();
+        let ctx = get_default_context(&app_state);
         if bar == "left_action_bar" {
             Html(TEMPLATES.render("left_action_bar.html", &ctx).unwrap())
         } else {
@@ -118,8 +123,8 @@ async fn get_bar(Query(param): Query<HashMap<String, String>>) -> Html<String> {
     }
 }
 
-async fn get_tag_bar() -> Html<String> {
-    let ctx = get_default_context();
+async fn get_tag_bar(app_state: State<AppState>) -> Html<String> {
+    let ctx = get_default_context(&app_state);
     Html(TEMPLATES.render("tag_bar.html", &ctx).unwrap())
 }
 
@@ -127,17 +132,20 @@ async fn just_empty() -> Html<String> {
     Html("".to_string())
 }
 
-async fn display_flash_message(Query(msg): Query<FlashMsg>) -> Html<String> {
-    let mut ctx = get_default_context();
+async fn display_flash_message(
+    Query(msg): Query<FlashMsg>,
+    app_state: State<AppState>,
+) -> Html<String> {
+    let mut ctx = get_default_context(&app_state);
     ctx.insert("msg", &msg.msg());
     ctx.insert("timeout", &msg.timeout());
     Html(TEMPLATES.render("flash_msg.html", &ctx).unwrap())
 }
 
-async fn get_undo_report() -> Html<String> {
+async fn get_undo_report(app_state: State<AppState>) -> Html<String> {
     match task_undo_report() {
         Ok(s) => {
-            let mut ctx = get_default_context();
+            let mut ctx = get_default_context(&app_state);
             let lines = s.lines();
             let first_line: String = lines.clone().take(1).collect();
             let mut rest_lines: Vec<String> = lines.skip(1).map(|v| v.to_string()).collect();
@@ -147,14 +155,17 @@ async fn get_undo_report() -> Html<String> {
             Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
         }
         Err(e) => {
-            let mut ctx = get_default_context();
+            let mut ctx = get_default_context(&app_state);
             ctx.insert("heading", &e.to_string());
             Html(TEMPLATES.render("error.html", &ctx).unwrap())
         }
     }
 }
 
-async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<String> {
+async fn display_task_add_window(
+    Query(params): Query<TWGlobalState>,
+    app_state: State<AppState>,
+) -> Html<String> {
     let tq: TaskQuery = params
         .filter_value()
         .clone()
@@ -167,16 +178,19 @@ async fn display_task_add_window(Query(params): Query<TWGlobalState>) -> Html<St
         })
         .or(Some(TaskQuery::default()))
         .unwrap();
-    let mut ctx = get_default_context();
+    let mut ctx = get_default_context(&app_state);
     ctx.insert("tags", &tq.tags().join(" "));
     ctx.insert("project", tq.project());
     Html(TEMPLATES.render("task_add.html", &ctx).unwrap())
 }
 
-async fn undo_last_change(Query(params): Query<TWGlobalState>) -> Html<String> {
+async fn undo_last_change(
+    Query(params): Query<TWGlobalState>,
+    app_state: State<AppState>,
+) -> Html<String> {
     task_undo().unwrap();
     let fm = FlashMsg::new("Undo successful", None);
-    get_tasks_view(task_query_previous_params(&params), Some(fm))
+    get_tasks_view(task_query_previous_params(&params), Some(fm), &app_state)
 }
 
 fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
@@ -244,9 +258,7 @@ fn get_tasks_view_data(
     for filter in filters {
         if !tag_map.contains_key(filter) {
             if tasks::is_tag_keyword(filter) {
-
-            }
-            else if tasks::is_a_tag(filter) {
+            } else if tasks::is_a_tag(filter) {
                 let ky = format!("@{}", filter);
                 let shortcut = make_shortcut(&mut shortcuts);
                 tag_map.insert(ky, shortcut);
@@ -268,11 +280,11 @@ fn get_tasks_view_data(
         task_list,
         shortcuts,
         tag_map,
-        task_shortcut_map
+        task_shortcut_map,
     }
 }
 
-async fn front_page() -> Html<String> {
+async fn front_page(app_state: State<AppState>) -> Html<String> {
     let tq = TaskQuery::new(TWGlobalState::default());
     let tasks = list_tasks(&tq).unwrap();
     let filters = tq.as_filter_text();
@@ -283,31 +295,32 @@ async fn front_page() -> Html<String> {
         task_list,
         task_shortcut_map,
     } = get_tasks_view_data(tasks, &filters);
-    let mut ctx = get_default_context();
+    let mut ctx = get_default_context(&app_state);
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
     ctx.insert("current_filter", &tq.as_filter_text());
     ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     ctx.insert("tags_map", &tag_map);
     ctx.insert("task_shortcuts", &task_shortcut_map);
-    let n = env::var("DISPLAY_TIME_OF_THE_DAY")
-        .unwrap_or("0".to_string())
-        .parse::<i32>()
-        .unwrap_or(0);
-    ctx.insert("display_time_of_the_day", &n);
-    let t = tasks.iter().find(|(_, task)| task.start.is_some());
+    let t: Option<(&TaskUUID, &Task)> = tasks.iter().find(|(_, task)| task.start.is_some());
     if let Some((_, v)) = t {
         ctx.insert("active_task", v);
     }
     Html(TEMPLATES.render("base.html", &ctx).unwrap())
 }
 
-async fn tasks_display(Query(params): Query<TWGlobalState>) -> Html<String> {
-    get_tasks_view(task_query_merge_previous_params(&params), None)
+async fn tasks_display(
+    Query(params): Query<TWGlobalState>,
+    app_state: State<AppState>,
+) -> Html<String> {
+    get_tasks_view(task_query_merge_previous_params(&params), None, &app_state)
 }
 
-fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
-    dotenvy::dotenv().unwrap();
+fn get_tasks_view(
+    tq: TaskQuery,
+    flash_msg: Option<FlashMsg>,
+    app_state: &State<AppState>,
+) -> Html<String> {
     let tasks = match list_tasks(&tq) {
         Ok(t) => t,
         Err(e) => {
@@ -331,21 +344,17 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
         tasks,
         tag_map,
         shortcuts: _,
-        task_list, task_shortcut_map,
+        task_list,
+        task_shortcut_map,
     } = get_tasks_view_data(tasks, &filter_ar);
     trace!("{:?}", tag_map);
-    let mut ctx_b = get_default_context();
+    let mut ctx_b = get_default_context(&app_state);
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &filter_ar);
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     ctx_b.insert("tags_map", &tag_map);
     ctx_b.insert("task_shortcuts", &task_shortcut_map);
-    let n = env::var("DISPLAY_TIME_OF_THE_DAY")
-        .unwrap_or("0".to_string())
-        .parse::<i32>()
-        .unwrap_or(0);
-    ctx_b.insert("display_time_of_the_day", &n);
     if let Some(msg) = flash_msg {
         ctx_b.insert("has_toast", &true);
         ctx_b.insert("toast_msg", msg.msg());
@@ -358,7 +367,10 @@ fn get_tasks_view(tq: TaskQuery, flash_msg: Option<FlashMsg>) -> Html<String> {
     Html(TEMPLATES.render("tasks.html", &ctx_b).unwrap())
 }
 
-async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
+async fn create_new_task(
+    app_state: State<AppState>,
+    Form(new_task): Form<NewTask>,
+) -> Html<String> {
     let fm = match task_add(&new_task) {
         Ok(_) => FlashMsg::new("New task created", None),
         Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None),
@@ -368,10 +380,13 @@ async fn create_new_task(Form(new_task): Form<NewTask>) -> Html<String> {
     } else {
         TaskQuery::default()
     };
-    get_tasks_view(s, Some(fm))
+    get_tasks_view(s, Some(fm), &app_state)
 }
 
-async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
+async fn do_task_actions(
+    app_state: State<AppState>,
+    Form(multipart): Form<TWGlobalState>,
+) -> Html<String> {
     info!("{:?}", multipart);
     let fm = match multipart.action().clone().unwrap() {
         TaskActions::StatusUpdate => {
@@ -440,5 +455,5 @@ async fn do_task_actions(Form(multipart): Form<TWGlobalState>) -> Html<String> {
             }
         }
     };
-    get_tasks_view(task_query_previous_params(&multipart), Some(fm))
+    get_tasks_view(task_query_previous_params(&multipart), Some(fm), &app_state)
 }
