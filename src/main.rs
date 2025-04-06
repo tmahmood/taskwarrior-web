@@ -1,22 +1,27 @@
 use axum::extract::{Query, State};
-use axum::response::Html;
+use axum::http::StatusCode;
+use axum::response::{Html, Response};
 use axum::routing::post;
 use axum::{routing::get, Form, Router};
 use indexmap::IndexMap;
 use rand::distr::{Alphanumeric, SampleString};
+use taskchampion::Uuid;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::string::ToString;
+use taskwarrior_web::backend::task::{get_project_list, TaskOperation};
+use taskwarrior_web::core::app::AppState;
+use taskwarrior_web::core::errors::FormValidation;
 use taskwarrior_web::endpoints::tasks;
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 use taskwarrior_web::endpoints::tasks::{
     fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command,
-    run_denotate_command, run_modify_command, task_add, task_undo, task_undo_report,
-    toggle_task_active, Task, TaskUUID, TaskViewDataRetType,
+    run_denotate_command, run_modify_command, task_add, task_undo, toggle_task_active, Task,
+    TaskUUID, TaskViewDataRetType,
 };
 use taskwarrior_web::{
-    task_query_merge_previous_params, task_query_previous_params, AppState, FlashMsg, NewTask,
-    TWGlobalState, TaskActions, TEMPLATES,
+    task_query_merge_previous_params, task_query_previous_params, FlashMsg, NewTask, TWGlobalState,
+    TaskActions, TEMPLATES,
 };
 use tera::Context;
 use tracing::{error, info, trace};
@@ -47,10 +52,10 @@ async fn main() {
         .route("/tasks", post(do_task_actions))
         .route("/tasks/undo/report", get(get_undo_report))
         .route("/tasks/undo/confirmed", post(undo_last_change))
-        .route("/msg", get(display_flash_message))
         .route("/tasks/add", get(display_task_add_window))
         .route("/tasks/active", get(get_active_task))
         .route("/tasks/add", post(create_new_task))
+        .route("/msg", get(display_flash_message))
         .route("/msg_clr", get(just_empty))
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
@@ -143,20 +148,19 @@ async fn display_flash_message(
 }
 
 async fn get_undo_report(app_state: State<AppState>) -> Html<String> {
-    match task_undo_report() {
+    match taskwarrior_web::backend::task::get_undo_operations(&app_state.task_storage_path) {
         Ok(s) => {
             let mut ctx = get_default_context(&app_state);
-            let lines = s.lines();
-            let first_line: String = lines.clone().take(1).collect();
-            let mut rest_lines: Vec<String> = lines.skip(1).map(|v| v.to_string()).collect();
-            rest_lines.pop();
-            ctx.insert("heading", &first_line);
-            ctx.insert("report", &rest_lines);
+            let number_operations: i64 = s.values().map(|f| f.len() as i64).sum();
+            let heading = format!("The following {} operations would be reverted", number_operations);
+            ctx.insert("heading", &heading);
+            ctx.insert("undo_report", &s);
             Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
         }
         Err(e) => {
             let mut ctx = get_default_context(&app_state);
             ctx.insert("heading", &e.to_string());
+            ctx.insert("undo_report", &HashMap::<Uuid, Vec<TaskOperation>>::new());
             Html(TEMPLATES.render("error.html", &ctx).unwrap())
         }
     }
@@ -178,9 +182,20 @@ async fn display_task_add_window(
         })
         .or(Some(TaskQuery::default()))
         .unwrap();
+    let project_list = get_project_list(&app_state.task_storage_path).unwrap_or(Vec::new());
     let mut ctx = get_default_context(&app_state);
+    let new_task = NewTask::new(
+        None,
+        Some(tq.tags().join(" ")),
+        tq.project().clone(),
+        None,
+        None,
+    );
+    ctx.insert("new_task", &new_task);
     ctx.insert("tags", &tq.tags().join(" "));
     ctx.insert("project", tq.project());
+    ctx.insert("project_list", &project_list);
+    ctx.insert("validation", &FormValidation::default());
     Html(TEMPLATES.render("task_add.html", &ctx).unwrap())
 }
 
@@ -321,10 +336,18 @@ fn get_tasks_view(
     flash_msg: Option<FlashMsg>,
     app_state: &State<AppState>,
 ) -> Html<String> {
+    Html(get_tasks_view_plain(tq, flash_msg, app_state))
+}
+
+fn get_tasks_view_plain(
+    tq: TaskQuery,
+    flash_msg: Option<FlashMsg>,
+    app_state: &State<AppState>,
+) -> String {
     let tasks = match list_tasks(&tq) {
         Ok(t) => t,
         Err(e) => {
-            return Html(e.to_string());
+            return e.to_string();
         }
     };
     let current_filter = tq.as_filter_text();
@@ -364,23 +387,42 @@ fn get_tasks_view(
     if let Some((_, v)) = t {
         ctx_b.insert("active_task", v);
     }
-    Html(TEMPLATES.render("tasks.html", &ctx_b).unwrap())
+    TEMPLATES.render("tasks.html", &ctx_b).unwrap()
 }
 
 async fn create_new_task(
     app_state: State<AppState>,
     Form(new_task): Form<NewTask>,
-) -> Html<String> {
-    let fm = match task_add(&new_task) {
-        Ok(_) => FlashMsg::new("New task created", None),
-        Err(e) => FlashMsg::new(&format!("Failed to create new task: {e}"), None),
-    };
+) -> Response<String> {
     let s = if let Some(tw_q) = new_task.filter_value() {
         serde_json::from_str(tw_q).unwrap()
     } else {
         TaskQuery::default()
     };
-    get_tasks_view(s, Some(fm), &app_state)
+    match task_add(&new_task, &app_state) {
+        Ok(_) => {
+            let flash_msg = FlashMsg::new("New task created", None);
+            Response::builder()
+                .status(StatusCode::CREATED)
+                .header("HX-Retarget", "#list-of-tasks")
+                .header("HX-Reswap", "innerHTML")
+                .header("Content-Type", "text/html")
+                .body(get_tasks_view_plain(s, Some(flash_msg), &app_state))
+                .unwrap()
+        }
+        Err(e) => {
+            let project_list = get_project_list(&app_state.task_storage_path).unwrap_or(Vec::new());
+            let mut ctx = get_default_context(&app_state);
+            ctx.insert("new_task", &new_task);
+            ctx.insert("project_list", &project_list);
+            ctx.insert("validation", &e);
+            Response::builder()
+                .status(StatusCode::OK)
+                .header("Content-Type", "text/html")
+                .body(TEMPLATES.render("task_add.html", &ctx).unwrap())
+                .unwrap()
+        }
+    }
 }
 
 async fn do_task_actions(
@@ -391,7 +433,7 @@ async fn do_task_actions(
     let fm = match multipart.action().clone().unwrap() {
         TaskActions::StatusUpdate => {
             if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
-                match mark_task_as_done(task.clone()) {
+                match mark_task_as_done(task.clone(), &app_state) {
                     Ok(_) => FlashMsg::new(&format!("Task [{}] was updated", task.uuid), None),
                     Err(e) => {
                         error!("Failed: {}", e);
@@ -404,7 +446,7 @@ async fn do_task_actions(
         }
         TaskActions::ToggleTimer => {
             let task_uuid = multipart.uuid().clone().unwrap();
-            match toggle_task_active(&task_uuid) {
+            match toggle_task_active(task_uuid, &app_state) {
                 Ok(v) => {
                     if v {
                         FlashMsg::new(
@@ -430,7 +472,7 @@ async fn do_task_actions(
                 error!("Failed: No annotation provided");
                 FlashMsg::new("Failed to execute command, none provided", None)
             } else {
-                match run_modify_command(multipart.uuid().as_ref().unwrap(), &cmd) {
+                match run_modify_command(multipart.uuid().unwrap(), &cmd) {
                     Ok(_) => FlashMsg::new("Modify command success", None),
                     Err(e) => FlashMsg::new(&format!("Modify command failed: {}", e), None),
                 }
@@ -442,18 +484,16 @@ async fn do_task_actions(
                 error!("Failed: No command provided");
                 FlashMsg::new("Failed to execute command, none provided", None)
             } else {
-                match run_annotate_command(multipart.uuid().as_ref().unwrap(), &cmd) {
+                match run_annotate_command(multipart.uuid().unwrap(), &cmd) {
                     Ok(_) => FlashMsg::new("Annotation added", None),
                     Err(e) => FlashMsg::new(&format!("Annotation command failed: {}", e), None),
                 }
             }
         }
-        TaskActions::DenotateTask => {
-            match run_denotate_command(multipart.uuid().as_ref().unwrap()) {
-                Ok(_) => FlashMsg::new("Denotated task", None),
-                Err(e) => FlashMsg::new(&format!("Denotation command failed: {}", e), None),
-            }
-        }
+        TaskActions::DenotateTask => match run_denotate_command(multipart.uuid().unwrap()) {
+            Ok(_) => FlashMsg::new("Denotated task", None),
+            Err(e) => FlashMsg::new(&format!("Denotation command failed: {}", e), None),
+        },
     };
     get_tasks_view(task_query_previous_params(&multipart), Some(fm), &app_state)
 }

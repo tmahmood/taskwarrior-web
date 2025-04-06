@@ -3,10 +3,7 @@ RUN pacman -Suy --needed --noconfirm curl base-devel npm
 RUN mkdir /app \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh \
     && chmod +x rustup.sh \
-    && ./rustup.sh -y --default-toolchain nightly \
-    # Tailwind
-    && cd /app && curl -o /app/tailwindcss -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 \
-    && chmod +x /app/tailwindcss
+    && ./rustup.sh -y --default-toolchain nightly
 
 FROM rustbase AS buildapp
 # Copy files

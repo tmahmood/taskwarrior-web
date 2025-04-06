@@ -20,3 +20,4 @@ csv = "1.3.1"
 indexmap = { version = "2.2.5", features = ["serde"] }
 rand = "0.9.0-beta.3"
 dotenvy = { version = "0.15.7" }
+taskchampion = { version="2.0.3", default-features = false, features = [] }

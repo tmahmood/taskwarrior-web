@@ -1,20 +1,20 @@
+use chrono::Utc;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::PathBuf;
 use std::process::Command;
+use std::str::FromStr;
+use taskchampion::{Operations, Status, Tag, Uuid};
 use tracing::{debug, error, info, trace};
 
 pub mod task_query_builder;
 
+use crate::backend::task::{execute_hooks, get_replica, TaskEvent, TaskProperties};
+use crate::core::app::AppState;
+use crate::core::errors::{FieldError, FormValidation};
 use crate::{NewTask, TWGlobalState, TaskUpdateStatus};
 use task_query_builder::TaskQuery;
-
-pub const TASK_DATA_FILE: &str = "data.json";
-pub const TASK_DATA_FILE_EDIT: &str = "data_edit.json";
-pub const TASK_OUTPUT_FILE: &str = "output.out";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Annotation {
@@ -81,6 +81,12 @@ pub fn fetch_task_from_cmd(task_query: &TaskQuery) -> Result<String, anyhow::Err
 #[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct TaskUUID(String);
 
+impl From<TaskUUID> for Uuid {
+    fn from(val: TaskUUID) -> Self {
+        Uuid::from_str(&val.0).expect("No valid uuid given")
+    }
+}
+
 fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
     let content = fetch_task_from_cmd(&task_query)?;
     let tasks: Vec<Task> = match serde_json::from_str(&content) {
@@ -94,58 +100,147 @@ fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, an
     Ok(hm)
 }
 
-pub fn task_undo_report() -> Result<String, anyhow::Error> {
-    match Command::new("task").arg("undo").output() {
-        Ok(o) => {
-            let s = String::from_utf8(o.stdout).unwrap();
-            Ok(s)
-        }
-        Err(e) => {
-            error!("Failed to execute command: {}", e);
-            anyhow::bail!("Failed to get undo report");
-        }
-    }
-}
+/// Create a new task
+/// Requires corresponding task information and path to the taskchampion directory.
+///
+/// The data will be evaluated and a response will be provided via FormValidation.
+pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidation> {
+    let mut validation_result = FormValidation::default();
+    let mut replica = get_replica(&app_state.task_storage_path)
+        .map_err(|err| <anyhow::Error as Into<FormValidation>>::into(err))?;
+    let uuid = Uuid::new_v4();
+    let mut ops = Operations::new();
+    ops.push(taskchampion::Operation::UndoPoint);
 
-pub fn task_add(task: &NewTask) -> Result<(), anyhow::Error> {
-    let mut cmd = Command::new("task");
-    cmd.arg("add").arg(task.description());
-    // add the tags
+    let mut t = replica
+        .create_task(uuid, &mut ops)
+        .map_err(|err| <taskchampion::Error as Into<FormValidation>>::into(err))?;
+    match t
+        .set_description(task.description.to_string(), &mut ops)
+        .map_err(|p| FieldError {
+            field: TaskProperties::DESCRIPTION.to_string(),
+            message: p.to_string(),
+        }) {
+        Ok(_) => {
+            // Check if it was field. This is a mandatory field!
+            if task.description.trim().is_empty() {
+                validation_result.push(FieldError {
+                    field: TaskProperties::DESCRIPTION.to_string(),
+                    message: "Description field is mandatory".to_string(),
+                })
+            }
+        }
+        Err(e) => validation_result.push(e),
+    };
+    match t
+        .set_status(Status::Pending, &mut ops)
+        .map_err(|p| FieldError {
+            field: TaskProperties::STATUS.to_string(),
+            message: p.to_string(),
+        }) {
+        Ok(_) => (),
+        Err(e) => validation_result.push(e),
+    };
+    match t
+        .set_entry(Some(Utc::now()), &mut ops)
+        .map_err(|p| FieldError {
+            field: TaskProperties::ENTRY.to_string(),
+            message: p.to_string(),
+        }) {
+        Ok(_) => (),
+        Err(e) => validation_result.push(e),
+    };
     if let Some(tags) = task.tags()
-        && tags != ""
+        && tags.trim().len() > 0
     {
-        for tag in tags.split(' ') {
-            if !tag.starts_with('+') {
-                cmd.arg(&format!("+{}", tag));
-            } else {
-                cmd.arg(&tag);
+        for tag in tags.split(&[' ', '+', '-']) {
+            if !tag.trim().is_empty() {
+                match &Tag::from_str(tag).map_err(|p| FieldError {
+                    field: "tags".to_string(),
+                    message: p.to_string(),
+                }) {
+                    Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
+                        field: "tags".to_string(),
+                        message: p.to_string(),
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => validation_result.push(e),
+                    },
+                    Err(e) => validation_result.push(e.to_owned()),
+                };
             }
         }
     }
-    // add the project
     if let Some(project) = task.project() {
-        if !project.starts_with("project:") {
-            cmd.arg(&format!("project:{}", project));
-        } else {
-            cmd.arg(&project);
-        }
+        match t
+            .set_value(
+                TaskProperties::PROJECT.to_string(),
+                Some(project.to_string()),
+                &mut ops,
+            )
+            .map_err(|p| FieldError {
+                field: TaskProperties::PROJECT.to_string().to_string(),
+                message: p.to_string(),
+            }) {
+            Ok(_) => (),
+            Err(e) => validation_result.push(e),
+        };
     }
 
     if let Some(additional) = task.additional() {
         for a in additional.split(' ') {
-            cmd.arg(&a);
+            let b1 = a
+                .split_once(':')
+                .map_or((a, None), |p| (p.0, Some(p.1.to_string())));
+            if let Ok(_) = TaskProperties::try_from(b1.0) {
+                match t.set_value(b1.0, b1.1, &mut ops).map_err(|p| FieldError {
+                    field: "additional".to_string(),
+                    message: p.to_string(),
+                }) {
+                    Ok(_) => (),
+                    Err(e) => validation_result.push(e),
+                };
+            } else {
+                match t
+                    .set_user_defined_attribute(b1.0, b1.1.unwrap_or("".to_string()), &mut ops)
+                    .map_err(|p| FieldError {
+                        field: "additional".to_string(),
+                        message: p.to_string(),
+                    }) {
+                    Ok(_) => (),
+                    Err(e) => validation_result.push(e),
+                };
+            }
         }
     }
 
-    match cmd.output() {
-        Ok(_o) => {
-            info!("New task added");
-            Ok(())
+    match validation_result.is_success() {
+        true => {
+            // Commit those operations to storage.
+            match replica.commit_operations(ops) {
+                Ok(_) => {
+                    info!("New task {} added", uuid.to_string());
+                    // execute hooks.
+                    let ct: crate::backend::task::Task = t.into();
+                    let _ = execute_hooks(
+                        &app_state.task_hooks_path,
+                        &TaskEvent::OnAdd,
+                        &None,
+                        &Some(ct),
+                    );
+                    Ok(())
+                }
+                Err(e) => {
+                    error!(
+                        "Could not create task {}, error: {}",
+                        uuid.to_string(),
+                        e.to_string()
+                    );
+                    Err(e.into())
+                }
+            }
         }
-        Err(e) => {
-            error!("Failed to execute new task: {}", e);
-            anyhow::bail!("Failed to add new task");
-        }
+        false => Err(validation_result.into()),
     }
 }
 
@@ -171,9 +266,9 @@ pub fn list_tasks(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, an
     read_task_file(task_query)
 }
 
-pub fn run_modify_command(task_uuid: &str, cmd_text: &str) -> Result<(), anyhow::Error> {
+pub fn run_modify_command(task_uuid: Uuid, cmd_text: &str) -> Result<(), anyhow::Error> {
     let mut task_cmd = Command::new("task");
-    task_cmd.arg("modify").arg(task_uuid);
+    task_cmd.arg("modify").arg(task_uuid.to_string());
     cmd_text.split(' ').for_each(|v| {
         task_cmd.arg(v);
     });
@@ -184,9 +279,9 @@ pub fn run_modify_command(task_uuid: &str, cmd_text: &str) -> Result<(), anyhow:
     Ok(())
 }
 
-pub fn run_annotate_command(task_uuid: &str, annotation: &str) -> Result<(), anyhow::Error> {
+pub fn run_annotate_command(task_uuid: Uuid, annotation: &str) -> Result<(), anyhow::Error> {
     let mut task_cmd = Command::new("task");
-    task_cmd.arg("annotate").arg(task_uuid);
+    task_cmd.arg("annotate").arg(task_uuid.to_string());
     annotation.split(' ').for_each(|v| {
         task_cmd.arg(v);
     });
@@ -197,9 +292,9 @@ pub fn run_annotate_command(task_uuid: &str, annotation: &str) -> Result<(), any
     Ok(())
 }
 
-pub fn run_denotate_command(task_uuid: &str) -> Result<(), anyhow::Error> {
+pub fn run_denotate_command(task_uuid: Uuid) -> Result<(), anyhow::Error> {
     let mut task_cmd = Command::new("task");
-    task_cmd.arg(task_uuid).arg("denotate");
+    task_cmd.arg(task_uuid.to_string()).arg("denotate");
     if let Err(e) = task_cmd.output() {
         error!("Failed to execute command: {}", e);
         anyhow::bail!("Failed to execute denotate command");
@@ -208,16 +303,51 @@ pub fn run_denotate_command(task_uuid: &str) -> Result<(), anyhow::Error> {
 }
 
 // mark a task as done
-pub fn mark_task_as_done(task: TaskUpdateStatus) -> Result<(), anyhow::Error> {
-    let mut t = get_task_from_tw(&task.uuid)?;
-    if !t.start.is_none() {
-        stop_any_active_task()?;
+pub fn mark_task_as_done(
+    task: TaskUpdateStatus,
+    app_state: &AppState,
+) -> Result<(), anyhow::Error> {
+    let mut replica = get_replica(&app_state.task_storage_path)?;
+    let mut ops = Operations::new();
+    ops.push(taskchampion::Operation::UndoPoint);
+
+    let mut t = replica
+        .get_task(task.uuid)
+        .unwrap()
+        .expect("Task does not exist");
+
+    let old_task = t.clone();
+
+    // Stop tasks.
+    if t.is_active() {
+        t.stop(&mut ops)?;
     }
-    let entry = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-    t.modified = Some(entry.clone());
-    t.status = Some(task.status);
-    t.end = Some(entry);
-    execute_update(t)
+    t.set_status(Status::Completed, &mut ops)?;
+
+    // Commit those operations to storage.
+    match replica.commit_operations(ops) {
+        Ok(_) => {
+            info!("Task {} completed", task.uuid.to_string());
+
+            // execute hooks.
+            let ct: crate::backend::task::Task = t.into();
+            let _ = execute_hooks(
+                &app_state.task_hooks_path,
+                &TaskEvent::OnModify,
+                &Some(old_task.into()),
+                &Some(ct),
+            );
+            Ok(())
+        }
+        Err(e) => {
+            error!(
+                "Could not create task {}, error: {}",
+                task.uuid.to_string(),
+                e.to_string()
+            );
+            Err(e.into())
+        }
+    }
 }
 
 pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
@@ -239,63 +369,54 @@ pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
     }
 }
 
-pub fn stop_any_active_task() -> Result<(), anyhow::Error> {
-    if let Err(e) = Command::new("task").arg("+ACTIVE").arg("stop").output() {
-        error!("Failed to stop any task: {}", e);
-        anyhow::bail!("Failed to stop task");
-    }
-    Ok(())
-}
+pub fn toggle_task_active(task_uuid: Uuid, app_state: &AppState) -> Result<bool, anyhow::Error> {
+    let mut replica = get_replica(&app_state.task_storage_path)?;
+    let mut ops = Operations::new();
+    ops.push(taskchampion::Operation::UndoPoint);
 
-pub fn toggle_task_active(task_uuid: &str) -> Result<bool, anyhow::Error> {
-    let t = get_task_from_tw(task_uuid)?;
-    // maybe another task is running? So stop all other tasks first
-    stop_any_active_task()?;
-    let is_running = t.start.is_none();
-    // the task was not running, so let's start it
-    if is_running {
-        if let Err(e) = Command::new("task").arg(task_uuid).arg("start").output() {
-            error!("Failed to start task: {}", e);
-            anyhow::bail!("Failed to start task");
+    let mut t = replica
+        .get_task(task_uuid)
+        .unwrap()
+        .expect("Task does not exist");
+
+    let old_task = t.clone();
+    let mut changed_tasks: Vec<(taskchampion::Task, taskchampion::Task)> = Vec::new();
+
+    // Stop all active tasks.
+    for mut single_task in replica.all_tasks()? {
+        if single_task.1.is_active() {
+            let old = single_task.1.clone();
+            single_task.1.stop(&mut ops)?;
+            let new = single_task.1.clone();
+            changed_tasks.push((old, new));
         }
     }
-    // the task is now running
-    Ok(is_running)
-}
+    t.start(&mut ops)?;
+    changed_tasks.push((old_task, t.clone()));
 
-fn execute_update(t: Task) -> Result<(), anyhow::Error> {
-    let tasks_vec: Vec<Task> = vec![t];
-    let data_file = PathBuf::from(TASK_DATA_FILE_EDIT);
-    fs::write(&data_file, serde_json::to_string(&tasks_vec)?)?;
-    match data_file.canonicalize().and_then(|v| {
-        Command::new("task")
-            .arg("import")
-            .arg(v.to_str().unwrap())
-            .output()
-    }) {
-        Ok(o) if o.status.exit_ok().is_ok() => {
-            info!("Synced with task");
-            Ok(())
+    // Commit those operations to storage.
+    match replica.commit_operations(ops) {
+        Ok(_) => {
+            info!("Task {} started", task_uuid.to_string());
+            // execute hooks.
+            for t in changed_tasks {
+                let _ = execute_hooks(
+                    &app_state.task_hooks_path,
+                    &TaskEvent::OnModify,
+                    &Some(t.0.into()),
+                    &Some(t.1.into()),
+                );
+            }
+            Ok(t.is_active())
         }
         Err(e) => {
-            error!("Failed to sync with task: {}", e);
-            anyhow::bail!("Failed to sync");
+            error!(
+                "Could not start task {}, error: {}",
+                task_uuid.to_string(),
+                e.to_string()
+            );
+            Err(e.into())
         }
-        Ok(o) => {
-            error!("Not ok from task command {:?} {:?}", o, o.stderr);
-            anyhow::bail!("Failed to sync");
-        }
-    }
-}
-
-fn get_task_from_tw(task_uuid: &str) -> Result<Task, anyhow::Error> {
-    let mut p = TWGlobalState::default();
-    p.filter = Some(task_uuid.to_string());
-    let t = TaskQuery::all();
-    let tasks = read_task_file(&t)?;
-    match tasks.get(&TaskUUID(task_uuid.to_string())) {
-        None => anyhow::bail!("Matching task not found"),
-        Some(t) => Ok(t.clone()),
     }
 }
 
@@ -315,25 +436,16 @@ pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
 /// Parse task settings
 pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
     let mut settings = IndexMap::<String, String>::default();
-    let rr = Command::new("task")
-        .arg("show")
-        .output()?
-        .stdout;
+    let rr = Command::new("task").arg("show").output()?.stdout;
     String::from_utf8(rr)?.lines().for_each(|line| {
         let mut ss = line.split_once(": ");
         if let Some((key, val)) = ss {
-            settings.insert(
-                key.trim().to_string(),
-                val.trim().to_string(),
-            );
+            settings.insert(key.trim().to_string(), val.trim().to_string());
         } else {
             error!("FAIL: {}", line);
             ss = line.split_once(" ");
             if let Some((key, val)) = ss {
-                settings.insert(
-                    key.trim().to_string(),
-                    val.trim().to_string(),
-                );
+                settings.insert(key.trim().to_string(), val.trim().to_string());
             } else {
                 error!("TOTAL FAIL: {}", line);
             }
@@ -342,7 +454,7 @@ pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
     Ok(settings)
 }
 
-pub const TAG_KEYWORDS: [&str; 4] = ["next", "new", "completed", "new"];
+pub const TAG_KEYWORDS: [&str; 4] = ["next", "pending", "completed", "new"];
 
 pub fn is_tag_keyword(tag: &str) -> bool {
     TAG_KEYWORDS.contains(&tag)
@@ -357,5 +469,5 @@ pub struct TaskViewDataRetType {
     pub tag_map: HashMap<String, String>,
     pub shortcuts: HashSet<String>,
     pub task_list: Vec<Task>,
-    pub task_shortcut_map: HashMap<String, String>
+    pub task_shortcut_map: HashMap<String, String>,
 }
