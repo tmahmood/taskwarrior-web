@@ -77,6 +77,16 @@ impl TryFrom<&str> for TaskProperties {
     }
 }
 
+pub fn convert_task_status(task_status: String) -> taskchampion::Status {
+    match task_status.as_str() {
+        "pending" => taskchampion::Status::Pending,
+        "completed" => taskchampion::Status::Completed,
+        "deleted" => taskchampion::Status::Deleted,
+        "recurring" => taskchampion::Status::Recurring,
+        &_ => taskchampion::Status::Unknown(task_status),
+    }
+}
+
 /// Supported hook events based on taskwarrior definitions.
 ///
 /// OnAdd requires executable script named with starting `on-add` and is executed
@@ -100,6 +110,8 @@ impl ToString for TaskEvent {
 
 mod task_status_serde {
     use serde::{self, Deserialize, Deserializer, Serializer};
+
+    use super::convert_task_status;
 
     pub fn serialize<S>(status: &Option<taskchampion::Status>, s: S) -> Result<S::Ok, S::Error>
     where
@@ -125,13 +137,7 @@ mod task_status_serde {
         let s: Option<String> = Option::deserialize(deserializer)?;
         if let Some(s) = s {
             let t = s.to_lowercase();
-            return Ok(Some(match t.as_str() {
-                "pending" => taskchampion::Status::Pending,
-                "completed" => taskchampion::Status::Completed,
-                "deleted" => taskchampion::Status::Deleted,
-                "recurring" => taskchampion::Status::Recurring,
-                &_ => taskchampion::Status::Unknown(t),
-            }));
+            return Ok(Some(convert_task_status(t)));
         }
 
         Ok(None)
