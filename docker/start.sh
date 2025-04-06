@@ -18,4 +18,3 @@ fi
 
 cd $HOME/bin
 exec ./taskwarrior-web
-

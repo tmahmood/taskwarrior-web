@@ -1,203 +1,300 @@
 {% import "desc.html" as desc %}
-<div class="modal-box">
-    <h2 class="text-lg font-bold text-neutral-content-200">Task Details</h2>
-    <div class="join mb-3">
-        <button class="btn btn-xs btn-warning join-item"
-                id="tag-btn-back-details"
-                hx-get="tasks"
-                hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-trigger="click,keyup[key=='Escape'] from:#task-details-inp">
-            <kbd class="shortcut_key">Esc</kbd>
-        </button>
-        <button
-                class="btn btn-success btn-xs join-item"
-                id="btn-mark-as-done"
-                hx-post="tasks"
-                hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                {% if task.status !="completed" %}
-                    hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
-                {% else %}
-                    hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
-                {% endif %}
-                hx-trigger="click,keyup[key=='d'] from:#task-details-inp"
-        ><span><span class="shortcut_key">d</span>one</span></button>
-        <button
-                class="btn btn-accent btn-xs join-item"
-                id="btn-denotate-task"
-                hx-post="tasks"
-                hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-vals='{"uuid":"{{ task.uuid }}", "action": "DenotateTask"}'
-                hx-trigger="click,keyup[key=='n'] from:#task-details-inp"
-        >
-            <span>de<span class="shortcut_key">n</span>otate</span>
-        </button>
-        <button
-                class="btn btn-info btn-xs join-item"
-                id="btn-timer-toggle"
-                hx-post="tasks"
-                hx-target="#list-of-tasks"
-                hx-include="[id='filtering']"
-                hx-vals='{"uuid":"{{ task.uuid }}", "action": "ToggleTimer"}'
-                hx-trigger="click,keyup[key=='s'] from:#task-details-inp">
-            <span>
-            {% if task.start %}
-                <span class="shortcut_key">s</span>top
+<div class="modal-box max-w-3xl" id="task-details-modal-box">
+  <h2 class="text-lg font-bold text-neutral-content-200">Task: {{ task.description }}</h2>
+  <div class="join mb-3">
+    <button
+      class="btn btn-xs btn-warning join-item"
+      id="tag-btn-back-details"
+      hx-get="tasks"
+      hx-target="#list-of-tasks"
+      hx-include="[id='filtering']"
+      hx-trigger="click,keyup[key=='Escape'] from:#task-details-inp"
+    >
+      <kbd class="shortcut_key">Esc</kbd>
+    </button>
+    <button
+      class="btn btn-success btn-xs join-item"
+      id="btn-mark-as-done"
+      hx-post="tasks"
+      hx-target="#list-of-tasks"
+      hx-include="[id='filtering']"
+      {%
+      if
+      task.status
+      !="completed"
+      %}
+      hx-vals='{"status": "completed", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
+      {%
+      else
+      %}
+      hx-vals='{"status": "pending", "uuid":"{{ task.uuid }}", "query": "status:completed", "action": "StatusUpdate" }'
+      {%
+      endif
+      %}
+      hx-trigger="click,keyup[key=='d'] from:#task-details-inp"
+    >
+      <span><span class="shortcut_key">d</span>one</span>
+    </button>
+    <button
+      class="btn btn-accent btn-xs join-item"
+      id="btn-denotate-task"
+      hx-trigger="click,keyup[key=='n'] from:#task-details-inp"
+      hx-on::before-request="window.handleTaskAnnotations(event)"
+      hx-post="tasks"
+      hx-target="#list-of-tasks"
+      hx-include="[id='filtering']"
+      hx-vals='{"uuid":"{{ task.uuid }}", "action": "DenotateTask"}'
+      >
+      <span>de<span class="shortcut_key">n</span>otate</span>
+    </button>
+    <button
+      class="btn btn-info btn-xs join-item"
+      id="btn-timer-toggle"
+      hx-post="tasks"
+      hx-target="#list-of-tasks"
+      hx-include="[id='filtering']"
+      hx-vals='{"uuid":"{{ task.uuid }}", "action": "ToggleTimer", "status": "{% if task.start %}stop{% else %}start{% endif %}"}'
+      hx-trigger="click,keyup[key=='s'] from:#task-details-inp"
+    >
+      <span>
+        {% if task.start %}
+        <span class="shortcut_key">s</span>top {% else %}
+        <span class="shortcut_key">s</span>tart {% endif %}
+      </span>
+    </button>
+    <button
+      class="btn btn-error btn-xs join-item"
+      id="btn-delete-task"
+      hx-get="tasks/{{ task.uuid }}/delete"
+      hx-target="#all-dialog-boxes"
+      hx-include="[id='filtering']"
+      hx-trigger="click,keyup[key=='l'] from:#task-details-inp"
+    >
+      <span>de<span class="shortcut_key">l</span>ete</span>
+    </button>
+    <span class="join-item">
+      <label for="task-details-inp" class="hidden"></label>
+      <input
+        type="text"
+        id="task-details-inp"
+        class="input input-neutral input-xs join-item"
+        placeholder="Cmd Bar, Ctrl+Shift+K"
+        autofocus
+        autocomplete="off"
+    /></span>
+  </div>
+  <table class="table table-xs table-zebra">
+    <tbody>
+      <tr>
+        <th>Description</th>
+        <td class="text-wrap w-2/3">
+            {{ task.description }}
+        </td>
+      </tr>
+      <tr>
+        <th>Uuid</th>
+        <td class="text-wrap w-2/3">
+            {{ task.uuid }}
+        </td>
+      </tr>
+      <tr>
+        <th class="w-1/6">
+          <label for="task-edit-inp">Modify</label>
+        </th>
+        <td>
+          <input
+            type="text"
+            id="task-edit-inp"
+            class="input-neutral input input-xs {% if validation.fields.additional %}border-pink-600 ring-pink-200 input-error{% endif %}"
+            placeholder="Edit task with command"
+            hx-trigger="keyup[key=='Enter'] from:#task-edit-inp"
+            hx-post="tasks/{{ task.uuid }}/details"
+            hx-target="#task-details-modal-box"
+            hx-swap="outerHTML"
+            hx-include="[this],[id='filtering']"
+            name="task_entry"
+            hx-vals='{"uuid":"{{ task.uuid }}", "action": "ModifyTask"}'
+            autocomplete="off"
+            value="{% if task_edit_cmd %}{{ task_edit_cmd }}{% endif %}"
+            title="Modify a task by giving space separated list of options to set. Tags are added by giving +tagname and removed via -tagname. 
+Any arbitary property can be set by giving propertyName:propertyValue. Value as well as both together can be set in quote to incorporate spaces.
+Dates should be given in format yyyy-mm-dd."
+          />
+          {% if validation.fields.additional %}
+          <p class="mt-2 [.validated_&]:peer-[:not(:placeholder-shown)]:peer-invalid:block text-pink-600">
+              {% for a in validation.fields.additional %}
+              {{ a.message }}
+              {% endfor %}
+          </p>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>
+          <label for="task-annot-inp">Annotate</label>
+        </th>
+        <td>
+          <input
+            type="text"
+            id="task-annot-inp"
+            class="input-neutral input input-xs"
+            placeholder="Annotate task"
+            hx-trigger="keyup[key=='Enter'] from:#task-annot-inp"
+            hx-post="tasks"
+            hx-target="#list-of-tasks"
+            hx-include="[this],[id='filtering']"
+            name="task_entry"
+            hx-vals='{"uuid":"{{ task.uuid }}", "action": "AnnotateTask"}'
+          />
+        </td>
+      </tr>
+      <tr>
+        <th>Age</th>
+        <td>
+          {% if task.entry %}{{ date_proper(date=task.entry) }} ({{ date(date=task.entry) }}){% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>Depends on</th>
+        <td>
+          {% if task.depends %} {% for dep_task in tasks_db %}
+          <button
+            class="btn btn-secondary btn-xs is-a-tag join-item {%if dep_task.status == 'completed'%}btn-outline{% endif %}"
+            hx-trigger="click"
+            hx-get="tasks/{{dep_task.uuid}}/details"
+            hx-target="#task-details-modal-box"
+            hx-swap="outerHTML"
+            title="{{dep_task.description}}"
+          >
+            {% if dep_task.status == 'completed' %}
+            ✓
+            {% endif %}
+            {% if dep_task.id %}
+            {{dep_task.id}}
             {% else %}
-            <span class="shortcut_key">s</span>tart
+            {{dep_task.uuid}}
             {% endif %}
-            </span>
-        </button>
-        <span class="join-item">
-            <label for="task-details-inp" class="hidden"></label>
-            <input type="text" id="task-details-inp"
-                   class="input input-neutral input-xs join-item"
-                   placeholder="Cmd Bar, Ctrl+Shift+K"
-                   autofocus /></span>
-    </div>
-    <table class="table table-xs table-zebra">
-        <tbody>
-        <tr>
-            <th>Description</th>
-            <td class="text-wrap w-2/3">
-                {{ desc::desc(task=task) }}
-            </td>
-        </tr>
-        <tr>
-            <th class="w-1/6">
-                <label for="task-edit-inp">Modify</label>
-            </th>
-            <td>
-                <input type="text" id="task-edit-inp"
-                       class="input-neutral input input-xs"
-                       placeholder="Edit task with command"
-                       hx-trigger="keyup[key=='Enter'] from:#task-edit-inp"
-                       hx-post="tasks"
-                       hx-target="#list-of-tasks"
-                       hx-include="[this],[id='filtering']"
-                       name="task_entry"
-                       hx-vals='{"uuid":"{{ task.uuid }}", "action": "ModifyTask"}'
-                />
-            </td>
-        </tr>
-        <tr>
-            <th>
-                <label for="task-annot-inp">Annotate</label>
-            </th>
-            <td>
-                <input type="text" id="task-annot-inp"
-                       class="input-neutral input input-xs"
-                       placeholder="Annotate task"
-                       hx-trigger="keyup[key=='Enter'] from:#task-annot-inp"
-                       hx-post="tasks"
-                       hx-target="#list-of-tasks"
-                       hx-include="[this],[id='filtering']"
-                       name="task_entry"
-                       hx-vals='{"uuid":"{{ task.uuid }}", "action": "AnnotateTask"}'
-                />
-            </td>
-        </tr>
-        <tr>
-            <th>Age</th>
-            <td>{% if task.entry %}{{ date_proper(date=task.entry) }}{% endif %}</td>
-        </tr>
-        <tr>
-            <th>Depends on</th>
-            <td>
-                {% if task.depends %}
-                {% for uuid in task.depends %}
-                {%if tasks_db[uuid] %}{{ tasks_db[uuid].id }}{% endif %}
-                {% endfor %}
-                {% endif %}
-            </td>
-        </tr>
-        <tr>
-            <th>Project</th>
-            <td>
-                {% if task.project %}
-                <div class="breadcrumbs text-sm">
-                    <ul>
-                    {% for p in task.project | split(pat=".") %}
-                    <li class="">
-                        {{ p }}
-                    </li>
+          </button>
+          {% endfor %} {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>Project</th>
+        <td>
+          {% if task.project %}
+          <div class="breadcrumbs text-sm">
+            <ul>
+              {% for p in task.project | split(pat=".") %}
+              <li class="">{{ p }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>Tags</th>
+        <td>
+          <div>
+            {% if task.tags %} {% for p in task.tags %}
+            <span class="badge-sm badge badge-accent"> {{ p }} </span>
+            {% endfor %} {% endif %} {% if task.priority %}
+            <span class="badge badge-sm badge-secondary"
+              >{{ task.priority }}</span
+            >
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <th>Urgency</th>
+        <td>{{ task.urgency }}</td>
+      </tr>
+      <tr>
+        {% if task.start %}
+        <th>Start</th>
+        <td>{{ date_proper(date=task.start) }}</td>
+      </tr>
+      <tr>
+        {% endif %} {% if task.due and task.status != 'completed' %}
+        <th>Due</th>
+        <td>{{ date_proper(date=task.due, in_future=true) }} ({{ date(date=task.due) }})</td>
+        {% endif %}
+      </tr>
+      <tr>
+        {% if task.scheduled %}
+        <th>Scheduled</th>
+        <td>{{ date_proper(date=task.scheduled, in_future=true) }}  ({{ date(date=task.scheduled) }})</td>
+        {% endif%}
+      </tr>
+      <tr>
+        {% if task.wait %}
+        <th>Wait until</th>
+        <td>{{ date_proper(date=task.wait, in_future=true) }}  ({{ date(date=task.wait) }})</td>
+        {% endif%}
+      </tr>
+      <tr>
+        {% if task.end %}
+        <th>End</th>
+        <td>{{ date_proper(date=task.end) }} ({{ date(date=task.end) }})</td>
+        {% endif %}
+      </tr>
+      <tr>
+        {% if task.recur %}
+        <th>RECUR</th>
+        <td>{{task.recur}}</td>
+        {% endif %}
+      </tr>
+      {% if task.annotations %}
+      <tr>
+        <th>Annotations</th>
+        <td><input type="text" id="anno-inp"
+          class="input input-xs input-accent join-item hidden"
+          autocomplete="off"
+          placeholder="Cmd annotation deletion"
+          hx-trigger="changes delay:2s"
+          hx-include="[id='filtering']"
+          hx-target="#task-details-modal-box"
+          hx-swap="outerHTML"
+          autofocus
+          onkeyup="window.handleTaskAnnotationTrigger(event)"
+   /></td>
+      </tr>
+      <tr>
+        <td colspan="2">
+            <table class="class">
+                <tbody>
+                    {% for annotation in task.annotations %}
+                    <tr>
+                        <th>{{date(date=annotation.entry) }}</th>
+                        <td>{{ annotation.description }}</td>
+                        {% if annotate_shortcuts %}
+                        <td>
+                          <button
+                                    id="anno_dlt_{{ annotate_shortcuts[loop.index0] }}"
+                                    class="btn btn-secondary static btn-xs is-a-annotation min-w-12 hidden"
+                                    hx-trigger="click,keyup[key=='{{ annotate_shortcuts[loop.index0] }}'] from:#task-details-inp"
+                                    hx-post="tasks/{{ task.uuid }}/denotate"
+                                    hx-vals='{"entry": "{{ annotation.entry }}", "description": "{{ annotation.description }}"}'
+                                    hx-target="#all-dialog-boxes"
+                            >
+                                <span class="shortcut_key">{{ annotate_shortcuts[loop.index0] }}</span>
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
                     {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-            </td>
-        </tr>
-        <tr>
-            <th>Tags</th>
-            <td>
-                <div>
-                    {% if task.tags %}
-                        {% for p in task.tags %}
-                            <span class="badge-sm badge badge-accent">
-                                {{ p }}
-                            </span>
-                        {% endfor %}
-                    {% endif %}
-                    {% if task.priority %}
-                    <span class="badge badge-sm badge-secondary">{{ task.priority }}</span>
-                    {% endif %}
-                </div>
-            </td>
-        </tr>
-        <tr>
-            <th>Urgency</th>
-            <td>{{ task.urgency }}</td>
-        </tr>
-        <tr>
-            {% if task.start %}
-            <th>Start</th>
-            <td>
-                {{ date_proper(date=task.start) }}
-            </td>
-        </tr>
-        <tr>
-            {% endif %}
-            {% if task.due and task.status != 'completed' %}
-            <th>Due</th>
-            <td>
-                {{ date_proper(date=task.due, in_future=true) }}
-            </td>
-            {% endif %}
-        </tr>
-        <tr>
-            {% if task.scheduled %}
-            <th>Schd</th>
-            <td>
-                {{ date_proper(date=task.scheduled, in_future=true) }}
-            </td>
-            {% endif%}
-        </tr>
-        <tr>
-            {% if task.end %}
-            <th>End</th>
-            <td>
-                {{ date_proper(date=task.end) }}
-            </td>
-            {% endif %}
-        </tr>
-        <tr>
-            {% if task.recur %}
-            <th>RECUR</th>
-            <td>
-                {{task.recur}}
-            </td>
-            {% endif %}
-        </tr>
-        </tbody>
-    </table>
-    <script>
-        try {
-            document.getElementById('task-inp').value = '';
-        } catch (e) {
-
-        }
-        document.getElementById('all-dialog-boxes').showModal()
-    </script>
+                </tbody>
+            </table>
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+  <script>
+    try {
+      document.getElementById("task-inp").value = "";
+    } catch (e) {}
+    document.getElementById("all-dialog-boxes").showModal();
+  </script>
 </div>

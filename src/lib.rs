@@ -11,6 +11,7 @@ use chrono::{DateTime, TimeDelta};
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use taskchampion::Uuid;
+use tera::Context;
 use tracing::warn;
 
 lazy_static::lazy_static! {
@@ -51,11 +52,21 @@ pub enum Requests {
     },
 }
 
+#[derive(Debug, Deserialize, Clone, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FlashMsgRoles {
+    Success,
+    Error,
+    Warning,
+    Info,
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct FlashMsg {
     msg: String,
     timeout: Option<u64>,
+    role: FlashMsgRoles,
 }
 
 impl FlashMsg {
@@ -63,15 +74,27 @@ impl FlashMsg {
         &self.msg
     }
 
+    pub fn role(&self) -> &FlashMsgRoles {
+        &self.role
+    }
+
     pub fn timeout(&self) -> u64 {
         self.timeout.clone().unwrap_or(15)
     }
 
-    pub fn new(msg: &str, timeout: Option<u64>) -> Self {
+    pub fn new(msg: &str, timeout: Option<u64>, role: FlashMsgRoles) -> Self {
         Self {
             msg: msg.to_string(),
             timeout,
+            role: role
         }
+    }
+
+    pub fn to_context(&self, ctx: &mut Context) {
+        ctx.insert("has_toast", &true);
+        ctx.insert("toast_msg", &self.msg());
+        ctx.insert("toast_role", &self.role());
+        ctx.insert("toast_timeout", &self.timeout());
     }
 }
 
@@ -289,7 +312,10 @@ pub struct DeltaNow {
 impl DeltaNow {
     pub fn new(time: &str) -> Self {
         let time = chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y%m%dT%H%M%SZ")
-            .unwrap()
+            .unwrap_or_else(|_|
+                // Try taskchampions variant.
+                chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y-%m-%dT%H:%M:%SZ").unwrap()
+            )
             .and_utc();
         let now = chrono::prelude::Utc::now();
         let delta = now - time;
@@ -340,7 +366,7 @@ fn get_date() -> impl tera::Function {
         move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
             // we are working with utc time
             let DeltaNow { time, .. } = DeltaNow::new(args.get("date").unwrap().as_str().unwrap());
-            Ok(tera::to_value(time.format("%Y-%b-%d %H:%m").to_string()).unwrap())
+            Ok(tera::to_value(time.format("%Y-%m-%d %H:%MZ").to_string()).unwrap())
         },
     )
 }
