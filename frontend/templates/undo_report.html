@@ -1,12 +1,52 @@
 <div class="modal-box">
-    <h2 class="text-lg font-bold text-neutral-50">{{ heading }}</h2>
+    <h2 class="text-lg font-bold text-neutral-content-50">{{ heading }}</h2>
     <p class="mt-2 text-sm text-neutral-400">
         The undo command is not reversible. Are you sure you want to revert to the previous state?
-        <ul class="text-neutral-500 text-sm mb-4">
-            {% for line in report %}
-            <li class="mt-2">{{line | replace(from='\t', to='    ') }}</li>
-            {% endfor %}
-        </ul>
+
+        <table class="table table-zebra table-pin-rows table-xs">
+            <thead>
+                <tr>
+                    <th>Uuid</th>
+                    <th>Operation</th>
+                    <th>Change</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for op_uuid, op_list in undo_report %}
+                    {% for operation in op_list %}
+                    <tr>
+                        {% if loop.first %}
+                        <td rowspan="{{ op_list | length }}">{{ operation.uuid }}</td>
+                        {% endif %}
+                        <td>{{ operation.operation }}</td>
+                        <td>{% if operation.property %}
+                            {% if operation.is_tag_change %}
+                                {% if operation.old_value %}
+                                Removed tag {{ operation.property }}
+                                {% else %}
+                                Added tag {{ operation.property }}
+                                {% endif %}
+                            {% else %}
+                                Attribute: {{ operation.property }}<br />
+                                {% if operation.old_value %}
+                                Old value: {{ operation.old_value }}<br />
+                                {% endif %}
+                                New value: {{ operation.value }}<br />
+                                {% endif %}
+                            {% endif %}
+
+                            {% if operation.old_task %}
+                            Following attributes were set:<br />
+                            {% for k,v in operation.old_task %}
+                                {{ k }} = {{ v }}
+                            {% endfor %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
     </p>
     <div class="modal-action" id="model-undo">
         <button class="btn btn-warning btn-md"

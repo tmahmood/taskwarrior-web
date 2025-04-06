@@ -1,98 +1,149 @@
 {% set bg_color = "bg-neutral-800" %}
-<div class="modal-box">
-    <h2 class="text-lg  font-bold text-neutral-content-50">Adding new task</h2>
+<div class="modal-box" id="modal_add_new_task">
+  <h2 class="text-lg font-bold text-neutral-content-50">Adding new task</h2>
 
-    <form class="mt-2 text-sm" id="task_add_form"
-
-          hx-post="tasks/add"
-          hx-include="[id='filtering']"
-          hx-target="#list-of-tasks"
-    >
-        <div class="my-1">
-            <label
-                    for="desc"
-                    class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-neutral-700 dark:{{bg_color}}"
-            >
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-200">Description</span>
-                <input
-                        autofocus
-                        type="text"
-                        id="desc"
-                        name="description"
-                        placeholder="Task description"
-                        class="mt-1 w-full border-none bg-transparent p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm dark:text-white"
-                />
-            </label>
-        </div>
-
-        <div class="my-1">
-            <label
-                    for="tags"
-                    class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-gray-700 dark:{{bg_color}}"
-            >
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-200">Tags</span>
-                <input
-                        type="text"
-                        id="tags"
-                        name="tags"
-                        placeholder="Tags. separate by ,"
-                        value="{{ tags }}"
-                        class="mt-1 w-full border-none bg-transparent p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm dark:text-white"
-                />
-            </label>
-
-        </div>
-        <div class="my-1">
-            <label
-                    for="project"
-                    class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-gray-700 dark:{{bg_color}}"
-            >
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-200">Project</span>
-                <input
-                        type="text"
-                        id="project"
-                        name="project"
-                        placeholder="Project"
-                        value="{{ project }}"
-                        class="mt-1 w-full border-none bg-transparent p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm dark:text-white"
-                />
-            </label>
-        </div>
-        <div class="my-1">
-            <label
-                    for="additional"
-                    class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-neutral-700 dark:{{bg_color}}"
-            >
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-200">Additional options, these will be added to task parameters directly</span>
-                <input
-                        autofocus
-                        type="text"
-                        id="additional"
-                        name="additional"
-                        placeholder="Additional options"
-                        class="mt-1 w-full border-none bg-transparent p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm dark:text-white"
-                />
-            </label>
-        </div>
-    </form>
-
-    <div class="modal-action" id="model-add-task">
-        <button class="btn btn-md btn-success" id="btn-mdl-yes" form="task_add_form"
-                hx-trigger="click,keyup[key=='Enter']">
-            <kbd class="shortcut_key">Enter</kbd>
-        </button>
-
-        <button class="btn btn-md btn-warning"
-                hx-get="tasks"
-                hx-trigger="click,keyup[key=='Escape'] from:body"
-                hx-include="[id='filtering']"
-                hx-target="#list-of-tasks">
-            <kbd class="shortcut_key">Esc</kbd>
-        </button>
+  <form
+    class="mt-2 text-sm peer {% if not validation.success %}validated{% endif %}"
+    id="task_add_form"
+    hx-post="tasks/add"
+    hx-include="[id='filtering']"
+    hx-target="#modal_add_new_task"
+    hx-swap="outerHTML"
+    hx-on::before-request="this.classList.add('validated')"
+  >
+    <div class="my-1">
+      <label
+        for="desc"
+        class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-neutral-700 dark:{{bg_color}}"
+      >
+        <span class="text-xs font-medium text-gray-700 dark:text-gray-200"
+          >Description</span
+        >
+        <input
+          autofocus
+          type="text"
+          id="desc"
+          name="description"
+          value="{{ new_task.description }}"
+          placeholder="Task description"
+          class="mt-1 w-full bg-transparent p-2 focus:outline-none sm:text-sm dark:text-white  {% if validation.fields.description %}border-pink-600 ring-pink-200 input-error input{% else %}border-none focus:ring-0 focus:border-transparent{% endif %}"
+        />
+        {% if validation.fields.description %}
+        <p class="mt-2 [.validated_&]:peer-[:not(:placeholder-shown)]:peer-invalid:block text-pink-600">
+            {% for a in validation.fields.description %}
+            {{ a.message }}
+            {% endfor %}
+        </p>
+        {% endif %}
+      </label>
     </div>
 
-    <script>
-        document.getElementById('all-dialog-boxes').showModal()
-    </script>
+    <div class="my-1">
+      <label
+        for="tags"
+        class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-gray-700 dark:{{bg_color}}"
+      >
+        <span class="text-xs font-medium text-gray-700 dark:text-gray-200"
+          >Tags</span
+        >
+        <input
+          type="text"
+          id="tags"
+          name="tags"
+          placeholder="Tags space separated alphanumeric list"
+          value="{{ new_task.tags }}"
+          class="mt-1 w-full bg-transparent p-2 focus:outline-none sm:text-sm dark:text-white {% if validation.fields.tags %}border-pink-600 ring-pink-200 input-error input{% else %}border-none focus:ring-0 focus:border-transparent{% endif %}"
+        />
+        {% if validation.fields.tags %}
+        <p class="mt-2 [.validated_&]:peer-[:not(:placeholder-shown)]:peer-invalid:block text-pink-600">
+            {% for a in validation.fields.tags %}
+            {{ a.message }}
+            {% endfor %}
+        </p>
+        {% endif %}
+      </label>
+    </div>
+    <div class="my-1">
+      <label
+        for="project"
+        class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-gray-700 dark:{{bg_color}}"
+      >
+        <span class="text-xs font-medium text-gray-700 dark:text-gray-200"
+          >Project</span
+        >
+        <input
+          type="text"
+          id="project"
+          autocomplete="off"
+          name="project"
+          placeholder="Project"
+          value="{{ new_task.project }}"
+          list="task_add_project_suggest"
+          class="mt-1 w-full bg-transparent p-2 focus:outline-none sm:text-sm dark:text-white {% if validation.fields.project %}border-pink-600 ring-pink-200 input-error input{% else %}border-none focus:ring-0 focus:border-transparent{% endif %}"
+        />
+        {% if validation.fields.project %}
+        <p class="mt-2 [.validated_&]:peer-[:not(:placeholder-shown)]:peer-invalid:block text-pink-600">
+            {% for a in validation.fields.project %}
+            {{ a.message }}
+            {% endfor %}
+        </p>
+        {% endif %}
+      </label>
+      <datalist id="task_add_project_suggest">
+        {% for p in project_list %}<option value="{{ p }}"></option>{% endfor %}
+      </datalist>
+    </div>
+    <div class="my-1">
+      <label
+        for="additional"
+        class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 dark:border-neutral-700 dark:{{bg_color}}"
+      >
+        <span class="text-xs font-medium text-gray-700 dark:text-gray-200"
+          >Additional options, these will be added to task parameters
+          directly</span
+        >
+        <input
+          autofocus
+          type="text"
+          id="additional"
+          name="additional"
+          value="{{ new_task.additional }}"
+          placeholder="Additional options"
+          class="mt-1 w-full bg-transparent p-2 focus:outline-none sm:text-sm dark:text-white {% if validation.fields.additional %}border-pink-600 ring-pink-200 input-error input{% else %}border-none focus:ring-0 focus:border-transparent{% endif %}"
+        />
+        {% if validation.fields.additional %}
+        <p class="mt-2 [.validated_&]:peer-[:not(:placeholder-shown)]:peer-invalid:block text-pink-600">
+            {% for a in validation.fields.additional %}
+            {{ a.message }}
+            {% endfor %}
+        </p>
+        {% endif %}
+      </label>
+    </div>
+  </form>
 
+  <div class="modal-action" id="model-add-task">
+    <button
+      class="btn btn-md btn-success"
+      id="btn-mdl-yes"
+      form="task_add_form"
+      hx-trigger="click,keyup[key=='Enter']"
+    >
+      <kbd class="shortcut_key">Enter</kbd>
+    </button>
+
+    <button
+      class="btn btn-md btn-warning"
+      hx-get="tasks"
+      hx-trigger="click,keyup[key=='Escape'] from:body"
+      hx-include="[id='filtering']"
+      hx-target="#list-of-tasks"
+    >
+      <kbd class="shortcut_key">Esc</kbd>
+    </button>
+  </div>
+
+  <script>
+    document.getElementById("all-dialog-boxes").showModal();
+  </script>
 </div>

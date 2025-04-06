@@ -2,17 +2,15 @@
 #![feature(let_chains)]
 
 use std::collections::HashMap;
+use std::fmt;
 use std::str::FromStr;
-use std::{env, fmt};
 
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
-use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, TimeDelta};
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{de, Deserialize, Deserializer, Serialize};
-use tera::Context;
+use taskchampion::Uuid;
 use tracing::warn;
 
 lazy_static::lazy_static! {
@@ -42,71 +40,8 @@ lazy_static::lazy_static! {
     };
 }
 
-#[derive(Clone, Debug)]
-pub struct AppState {
-    pub font: Option<String>,
-    pub fallback_family: String,
-    pub theme: Option<String>,
-    pub display_time_of_the_day: i32,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        let font = env::var("TWK_USE_FONT").map(|p| Some(p)).unwrap_or(None);
-        let theme = match env::var("TWK_THEME") {
-            Ok(p) if p.is_empty() => None,
-            Ok(p) => Some(p),
-            Err(_) => None,
-        };
-        let display_time_of_the_day = env::var("DISPLAY_TIME_OF_THE_DAY")
-            .unwrap_or("0".to_string())
-            .parse::<i32>()
-            .unwrap_or(0);
-
-        Self {
-            font: font,
-            fallback_family: "monospace".to_string(),
-            theme: theme,
-            display_time_of_the_day: display_time_of_the_day,
-        }
-    }
-}
-
-impl From<&AppState> for Context {
-    fn from(val: &AppState) -> Self {
-        let mut ctx = Context::new();
-        ctx.insert("USE_FONT", &val.font);
-        ctx.insert("FALLBACK_FAMILY", &val.fallback_family);
-        ctx.insert("DEFAULT_THEME", &val.theme);
-        ctx.insert("display_time_of_the_day", &val.display_time_of_the_day);
-        ctx
-    }
-}
-
-pub struct AppError(anyhow::Error);
-
-// Tell axum how to convert `AppError` into a response.
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Something went wrong: {}", self.0),
-        )
-            .into_response()
-    }
-}
-
-// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
-// `Result<_, AppError>`. That way you don't need to do that manually.
-impl<E> From<E> for AppError
-where
-    E: Into<anyhow::Error>,
-{
-    fn from(err: E) -> Self {
-        Self(err.into())
-    }
-}
-
+pub mod backend;
+pub mod core;
 pub mod endpoints;
 
 pub enum Requests {
@@ -156,7 +91,7 @@ pub struct TWGlobalState {
     query: Option<String>,
     report: Option<String>,
     status: Option<String>,
-    uuid: Option<String>,
+    uuid: Option<Uuid>,
     filter_value: Option<String>,
     task_entry: Option<String>,
     action: Option<TaskActions>,
@@ -175,7 +110,7 @@ impl TWGlobalState {
     pub fn status(&self) -> &Option<String> {
         &self.status
     }
-    pub fn uuid(&self) -> &Option<String> {
+    pub fn uuid(&self) -> &Option<Uuid> {
         &self.uuid
     }
     pub fn filter_value(&self) -> &Option<String> {
@@ -237,7 +172,7 @@ impl Default for TWGlobalState {
 #[derive(Clone)]
 pub struct TaskUpdateStatus {
     pub status: String,
-    pub uuid: String,
+    pub uuid: Uuid,
 }
 
 /// Serde deserialization decorator to map empty Strings to None,
@@ -410,7 +345,7 @@ fn get_date() -> impl tera::Function {
     )
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct NewTask {
     description: String,
     tags: Option<String>,
@@ -420,6 +355,21 @@ pub struct NewTask {
 }
 
 impl NewTask {
+    pub fn new(
+        description: Option<String>,
+        tags: Option<String>,
+        project: Option<String>,
+        filter_value: Option<String>,
+        additional: Option<String>,
+    ) -> Self {
+        Self {
+            description: description.unwrap_or_default(),
+            tags,
+            project,
+            filter_value,
+            additional,
+        }
+    }
     pub fn description(&self) -> &str {
         &self.description
     }

@@ -99,19 +99,11 @@ By default, the `timewarrior` on-modify hook is installed.
 
 - rust nightly
 - npm
-- tailwindcss-cli
 
 ### Installing rust nightly
 
 Should be installable through `rustup`
 https://rustup.rs/
-
-### Installing tailwindcss-cli
-
-```shell
-curl -o tailwindcss -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
-chmod +x tailwindcss
-```
 
 ### Building and Running
 
