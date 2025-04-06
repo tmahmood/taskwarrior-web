@@ -10,7 +10,9 @@ use tracing::{debug, error, info, trace};
 
 pub mod task_query_builder;
 
-use crate::backend::task::{execute_hooks, get_replica, TaskEvent, TaskProperties};
+use crate::backend::task::{
+    convert_task_status, execute_hooks, get_replica, TaskEvent, TaskProperties,
+};
 use crate::core::app::AppState;
 use crate::core::errors::{FieldError, FormValidation};
 use crate::{NewTask, TWGlobalState, TaskUpdateStatus};
@@ -302,8 +304,10 @@ pub fn run_denotate_command(task_uuid: Uuid) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-// mark a task as done
-pub fn mark_task_as_done(
+/// Change task status
+/// Mostly it switches between pending and completed.
+/// In any case, if the status is changed, the timer is stopped if active.
+pub fn change_task_status(
     task: TaskUpdateStatus,
     app_state: &AppState,
 ) -> Result<(), anyhow::Error> {
@@ -317,12 +321,14 @@ pub fn mark_task_as_done(
         .expect("Task does not exist");
 
     let old_task = t.clone();
+    let task_status = convert_task_status(task.status);
 
     // Stop tasks.
     if t.is_active() {
         t.stop(&mut ops)?;
     }
-    t.set_status(Status::Completed, &mut ops)?;
+
+    t.set_status(task_status, &mut ops)?;
 
     // Commit those operations to storage.
     match replica.commit_operations(ops) {

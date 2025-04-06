@@ -12,10 +12,10 @@ use std::string::ToString;
 use taskwarrior_web::backend::task::{get_project_list, TaskOperation};
 use taskwarrior_web::core::app::AppState;
 use taskwarrior_web::core::errors::FormValidation;
-use taskwarrior_web::endpoints::tasks;
+use taskwarrior_web::endpoints::tasks::{self, change_task_status};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 use taskwarrior_web::endpoints::tasks::{
-    fetch_active_task, get_task_details, list_tasks, mark_task_as_done, run_annotate_command,
+    fetch_active_task, get_task_details, list_tasks, run_annotate_command,
     run_denotate_command, run_modify_command, task_add, task_undo, toggle_task_active, Task,
     TaskUUID, TaskViewDataRetType,
 };
@@ -433,7 +433,7 @@ async fn do_task_actions(
     let fm = match multipart.action().clone().unwrap() {
         TaskActions::StatusUpdate => {
             if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
-                match mark_task_as_done(task.clone(), &app_state) {
+                match change_task_status(task.clone(), &app_state) {
                     Ok(_) => FlashMsg::new(&format!("Task [{}] was updated", task.uuid), None),
                     Err(e) => {
                         error!("Failed: {}", e);
