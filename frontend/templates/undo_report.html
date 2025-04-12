@@ -1,23 +1,24 @@
 <div class="modal-box">
-    <h2 class="text-lg font-bold text-neutral-content-50">{{ heading }}</h2>
-    <p class="mt-2 text-sm text-neutral-400">
+    <h2 class="text-lg font-bold">{{ heading }}</h2>
+    <p class="mt-2 text-sm">
         The undo command is not reversible. Are you sure you want to revert to the previous state?
 
-        <table class="table table-zebra table-pin-rows table-xs">
-            <thead>
-                <tr>
-                    <th>Uuid</th>
-                    <th>Operation</th>
-                    <th>Change</th>
-                </tr>
-            </thead>
+        <table class="table table-pin-rows table-xs mt-2">
             <tbody>
-                {% for op_uuid, op_list in undo_report %}
-                    {% for operation in op_list %}
+                {% for vv in undo_report %}
+                    {% for operation in vv.1 %}
+                    {% if loop.first %}
+                    <tr class="bg-base-200 text-lg">
+                        <td colspan="3">{{ vv.0 }}</td>
+                    </tr>
+                    <tr class="bg-base-300">
+                        <th></th>
+                        <th>Operation</th>
+                        <th>Change</th>
+                    </tr>
+                    {% endif %}
                     <tr>
-                        {% if loop.first %}
-                        <td rowspan="{{ op_list | length }}">{{ operation.uuid }}</td>
-                        {% endif %}
+                        <td></td>
                         <td>{{ operation.operation }}</td>
                         <td>{% if operation.property %}
                             {% if operation.is_tag_change %}

@@ -153,8 +153,15 @@ async fn get_undo_report(app_state: State<AppState>) -> Html<String> {
             let mut ctx = get_default_context(&app_state);
             let number_operations: i64 = s.values().map(|f| f.len() as i64).sum();
             let heading = format!("The following {} operations would be reverted", number_operations);
+            let undo_report: Vec<(_, &Vec<_>)> = s.iter().map(|(uuid, v)| {
+                let task_description = match get_task_details(uuid.to_string()) {
+                    Ok(t) => format!("{}({})", t.description, uuid),
+                    Err(_) => uuid.to_string(),
+                };
+                (task_description, v)
+            }).collect();
             ctx.insert("heading", &heading);
-            ctx.insert("undo_report", &s);
+            ctx.insert("undo_report", &undo_report);
             Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
         }
         Err(e) => {

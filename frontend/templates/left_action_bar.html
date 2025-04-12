@@ -1,19 +1,22 @@
-<div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2 items-center" xmlns:hx-on="http://www.w3.org/1999/xhtml">
+<div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2 items-center flex-wrap">
+
     <div class="join" id="tag_search_bar">
         <button class="btn btn-neutral btn-xs join-item" id="tag-selection-toggle" onclick="window['toggleTagPanel']()">
-            <span><span class="shortcut_key"
-            >t</span>ags</span>
+        <span><span class="shortcut_key opacity-50">t</span>ags</span>
         </button>
         <span class="btn btn-neutral btn-xs join-item" id="task_action_bar">
             <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
-                    hx-trigger="click,keyup[key=='s'] from:#cmd-inp">ta<span class="shortcut_key">s</span>k</button>
+                hx-trigger="click,keyup[key=='s'] from:#cmd-inp">ta<span class="shortcut_key opacity-50">s</span>k</button>
         </span>
+    </div>
+
+    <div class="join">
         <button class="btn btn-xs btn-neutral join-item"
                 hx-get="tasks/undo/report"
                 hx-trigger="click,keyup[{{mod_key}}key=='u'] from:#cmd-inp"
                 hx-target="#all-dialog-boxes"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">u</span>ndo</span>
+            <span><span class="shortcut_key opacity-50">u</span>ndo</span>
         </button>
         <button class="btn btn-xs btn-neutral join-item"
                 hx-get="tasks/add"
@@ -21,30 +24,31 @@
                 hx-trigger="click,keyup[{{mod_key}}key=='n'] from:#cmd-inp"
                 hx-target="#all-dialog-boxes"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">n</span>ew</span>
+            <span><span class="shortcut_key opacity-50">n</span>ew</span>
         </button>
     </div>
+
     <div class="join">
         <button class="btn btn-xs join-item btn-neutral" id="pending" hx-get="tasks?status=pending"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='p'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">p</span>ending</span>
+            <span><span class="shortcut_key opacity-50">p</span>ending</span>
         </button>
         <button class="btn btn-xs join-item btn-neutral" id="waiting" hx-get="tasks?status=waiting"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='w'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">w</span>aiting</span>
+            <span><span class="shortcut_key opacity-50">w</span>aiting</span>
         </button>
         <button class="btn btn-xs join-item btn-neutral" id="completed"
                 hx-get="tasks?status=completed"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='c'] from:#cmd-inp"
                 hx-target="#list-of-tasks" hx-swap="innerHTML">
-            <span><span class="shortcut_key">c</span>ompleted</span>
+            <span><span class="shortcut_key opacity-50">c</span>ompleted</span>
         </button>
         <button class="btn btn-xs join-item btn-neutral"
                 hx-get="tasks?report=all"
@@ -52,31 +56,31 @@
                 hx-target="#list-of-tasks"
                 hx-trigger="click,keyup[{{mod_key}}key=='a'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">a</span>ll</span>
+            <span><span class="shortcut_key opacity-50">a</span>ll</span>
         </button>
     </div>
 
     <div class="join">
-        <button class="btn btn-xs join-item btn-primary" hx-get="tasks?report=next"
+        <button class="btn btn-xs join-item btn-accent" hx-get="tasks?report=next"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='x'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span>ne<span class="shortcut_key">x</span>t</span>
+            <span>ne<span class="shortcut_key opacity-50">x</span>t</span>
         </button>
-        <button class="btn btn-xs join-item btn-primary" hx-get="tasks?report=ready"
+        <button class="btn btn-xs join-item btn-accent" hx-get="tasks?report=ready"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='r'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">r</span>eady</span>
+            <span><span class="shortcut_key opacity-50">r</span>eady</span>
         </button>
-        <button class="btn btn-xs join-item btn-primary" hx-get="tasks?report=new"
+        <button class="btn btn-xs join-item btn-accent" hx-get="tasks?report=new"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='e'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span>n<span class="shortcut_key">e</span>w</span>
+            <span>n<span class="shortcut_key opacity-50">e</span>w</span>
         </button>
     </div>
 
@@ -86,21 +90,21 @@
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='h'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">H</span></span>
+            <span><span class="shortcut_key opacity-50">H</span></span>
         </button>
         <button class="btn btn-xs join-item btn-neutral" id="priority-m" hx-get="tasks?query=priority:M"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='m'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">M</span></span>
+            <span><span class="shortcut_key opacity-50">M</span></span>
         </button>
         <button class="btn btn-xs join-item btn-neutral" id="priority-l" hx-get="tasks?query=priority:L"
                 hx-target="#list-of-tasks"
                 hx-include="[id='filtering']"
                 hx-trigger="click,keyup[{{mod_key}}key=='l'] from:#cmd-inp"
                 hx-swap="innerHTML">
-            <span><span class="shortcut_key">L</span></span>
+            <span><span class="shortcut_key opacity-50">L</span></span>
         </button>
     </div>
     <!-- Other options -->

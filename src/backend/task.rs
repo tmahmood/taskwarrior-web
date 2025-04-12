@@ -509,6 +509,7 @@ fn get_tag_list(taskdb: &PathBuf) -> Result<Vec<String>, AppError> {
     Ok(tags)
 }
 
+
 pub fn get_undo_operations(taskdb: &PathBuf) -> Result<HashMap<Uuid, Vec<TaskOperation>>, AppError> {
     let mut replica = get_replica(taskdb)?;
     let ops = replica.get_undo_operations()?;

@@ -316,8 +316,7 @@ pub fn change_task_status(
     ops.push(taskchampion::Operation::UndoPoint);
 
     let mut t = replica
-        .get_task(task.uuid)
-        .unwrap()
+        .get_task(task.uuid)?
         .expect("Task does not exist");
 
     let old_task = t.clone();
@@ -364,7 +363,7 @@ pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
             anyhow::bail!("No active task found");
         }
         Ok(v) => {
-            let n = String::from_utf8(v.stdout).unwrap();
+            let n = String::from_utf8(v.stdout)?;
             let res: Vec<Task> = serde_json::from_str(&n)?;
             if res.len() == 0 {
                 Ok(None)
