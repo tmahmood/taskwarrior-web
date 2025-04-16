@@ -1,6 +1,6 @@
 FROM archlinux:latest AS rustbase
 RUN pacman -Suy --needed --noconfirm curl base-devel npm cronie
-RUN systemctl enable --now cronie.service
+RUN systemctl enable cronie.service
 RUN mkdir /app \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh \
     && chmod +x rustup.sh \
