@@ -24,7 +24,7 @@ ARG TASK_ADDON_BUGWARRIOR_FEATURES=""
 RUN echo "NoExtract = !usr/share/doc/timew/*" >> /etc/pacman.conf \
  && echo "NoExtract = !usr/share/doc/task/*" >> /etc/pacman.conf \
  && pacman -Suy --needed --noconfirm git python \
- && pacman -S --noconfirm task timew cronie \
+ && pacman -S --noconfirm task timew cronie vi \
  && pacman -S --noconfirm python-pip \
  && useradd -m -d /app task && passwd -d task \
  && chown -R task:task /app && chmod -R 775 /app \
