@@ -20,12 +20,16 @@ function getTheme() : string | null {
     return themeDom === null ? themeStorage : themeDom;
 }
 
-function setTheme(theme: string | null) : boolean {
+function setTheme(theme: string | null, overrideStorage: boolean = true) : boolean {
     if (theme === null) {
-        localStorage.removeItem(STORAGE_THEME_KEY);
+        if (overrideStorage) {
+            localStorage.removeItem(STORAGE_THEME_KEY);
+        }
         document.getElementsByTagName('html')[0].removeAttribute(DOM_THEME_KEY);
     } else {
-        localStorage.setItem(STORAGE_THEME_KEY, theme);
+        if (overrideStorage) {
+            localStorage.setItem(STORAGE_THEME_KEY, theme);
+        }
         document.getElementsByTagName('html')[0].setAttribute(DOM_THEME_KEY, theme);
     }
 
@@ -58,14 +62,16 @@ export function switchTheme() {
 }
 
 export function init() {
-    // Ensure, that the icon is set correctly.
-    const themeDom = getThemeDom();
-    setTheme(themeDom!);
-    
-    // Check if there is anything different.
-    // Local storage is overriding DOM on initial read.
+    // If a theme is already set on storage, force it!
     const theme = getThemeStorage();
     if (theme != null) {
         setTheme(theme!);
+        return;
     }
+
+    // Ensure, that the icon is set correctly.
+    // Do not override the storage!
+    // This part is only done, if nothing is given yet in storage.
+    const themeDom = getThemeDom();
+    setTheme(themeDom!, false);
 }
