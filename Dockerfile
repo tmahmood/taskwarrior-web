@@ -33,6 +33,7 @@ RUN echo "NoExtract = !usr/share/doc/timew/*" >> /etc/pacman.conf \
  && mkdir -p /app/.timewarrior/data/ \
  && systemctl enable cronie.service \
  && cp /usr/share/doc/timew/ext/on-modify.timewarrior /app/.task/hooks/on-modify.timewarrior \
+ && chmod +x /app/.task/hooks/on-modify.timewarrior \
  && ( [[ $TASK_ADDON_BUGWARRIOR != "true" ]] || python3 -m pip install --break-system-packages bugwarrior[$TASK_ADDON_BUGWARRIOR_FEATURES]@git+https://github.com/GothenburgBitFactory/bugwarrior.git ) \
  # cleanup
  && pacman --noconfirm -R git python-pip \ 

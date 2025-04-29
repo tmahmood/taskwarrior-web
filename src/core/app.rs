@@ -66,3 +66,7 @@ impl From<&AppState> for Context {
         ctx
     }
 }
+
+pub fn get_default_context(state: &AppState) -> Context {
+    state.into()
+}

@@ -1,0 +1,145 @@
+<div class="modal-box">
+    <h2 class="text-lg font-bold text-neutral-content-50">Delete: {{ task.description }}</h2>
+    <p class="mt-2 text-sm text-content">
+        Deleting a task will stop any operation on the task and will finally delete it. This operation can still be reverted.
+        Are you sure you want to delete the task?
+    </p>
+    <p class="mt-2 text-sm text-content">
+        <table class="table table-xs table-zebra">
+            <tbody>
+              <tr>
+                <th>Description</th>
+                <td class="text-wrap w-2/3">
+                    {{ task.description }}
+                </td>
+              </tr>
+              <tr>
+                <th>Uuid</th>
+                <td class="text-wrap w-2/3">
+                    {{ task.uuid }}
+                </td>
+              </tr>
+                <tr>
+                    <th>Age</th>
+                    <td>
+                    {% if task.entry %}{{ date_proper(date=task.entry) }} ({{ date(date=task.entry) }}){% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Depends on</th>
+                    <td>
+                    {% if task.depends %} {% for dep_task in tasks_db %}
+                    <button
+                        class="btn btn-secondary btn-xs is-a-tag join-item {%if dep_task.status == 'completed'%}btn-outline{% endif %}"
+                        hx-trigger="click"
+                        hx-get="tasks/{{dep_task.uuid}}/details"
+                        hx-target="#task-details-modal-box"
+                        hx-swap="outerHTML"
+                        title="{{dep_task.description}}"
+                    >
+                        {% if dep_task.status == 'completed' %}
+                        ✓
+                        {% endif %}
+                        {% if dep_task.id %}
+                        {{dep_task.id}}
+                        {% else %}
+                        {{dep_task.uuid}}
+                        {% endif %}
+                    </button>
+                    {% endfor %} {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Project</th>
+                    <td>
+                    {% if task.project %}
+                    <div class="breadcrumbs text-sm">
+                        <ul>
+                        {% for p in task.project | split(pat=".") %}
+                        <li class="">{{ p }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Tags</th>
+                    <td>
+                    <div>
+                        {% if task.tags %} {% for p in task.tags %}
+                        <span class="badge-sm badge badge-accent"> {{ p }} </span>
+                        {% endfor %} {% endif %} {% if task.priority %}
+                        <span class="badge badge-sm badge-secondary"
+                        >{{ task.priority }}</span
+                        >
+                        {% endif %}
+                    </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Urgency</th>
+                    <td>{{ task.urgency }}</td>
+                </tr>
+                <tr>
+                    {% if task.start %}
+                    <th>Start</th>
+                    <td>{{ date_proper(date=task.start) }}</td>
+                </tr>
+                <tr>
+                    {% endif %} {% if task.due and task.status != 'completed' %}
+                    <th>Due</th>
+                    <td>{{ date_proper(date=task.due, in_future=true) }} ({{ date(date=task.due) }})</td>
+                    {% endif %}
+                </tr>
+                <tr>
+                    {% if task.scheduled %}
+                    <th>Scheduled</th>
+                    <td>{{ date_proper(date=task.scheduled, in_future=true) }}  ({{ date(date=task.scheduled) }})</td>
+                    {% endif%}
+                </tr>
+                <tr>
+                    {% if task.wait %}
+                    <th>Wait until</th>
+                    <td>{{ date_proper(date=task.wait, in_future=true) }}  ({{ date(date=task.wait) }})</td>
+                    {% endif%}
+                </tr>
+                <tr>
+                    {% if task.end %}
+                    <th>End</th>
+                    <td>{{ date_proper(date=task.end) }} ({{ date(date=task.end) }})</td>
+                    {% endif %}
+                </tr>
+                <tr>
+                    {% if task.recur %}
+                    <th>RECUR</th>
+                    <td>{{task.recur}}</td>
+                    {% endif %}
+                </tr>
+            </tbody>
+        </table>
+    </p>
+    <div class="modal-action" id="model-task-delete">
+        <button class="btn btn-warning btn-md"
+                id="btn-mdl-yes"
+                hx-include="[id='filtering']"
+                hx-target="#list-of-tasks"
+                hx-post="tasks"
+                hx-vals='{"status": "deleted", "uuid":"{{ task.uuid }}", "action": "StatusUpdate"}'
+                hx-trigger="click,keyup[key=='Enter'] from:body">
+            <kbd class="shortcut_key">Enter</kbd> Yes, Sure
+        </button>
+
+        <button  class="btn btn-success btn-md"
+                hx-get="tasks/{{ task.uuid }}/details"
+                hx-trigger="click,keyup[key=='Escape'] from:body"
+                hx-include="[id='filtering']"
+                hx-target="#all-dialog-boxes"
+            >
+            <kbd class="shortcut_key">Esc</kbd> Cancel
+        </button>
+    </div>
+    <script>
+        document.getElementById('all-dialog-boxes').showModal()
+    </script>
+</div>

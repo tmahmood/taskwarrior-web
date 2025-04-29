@@ -1,28 +1,31 @@
+use axum::extract::{Path, State};
+use axum::http::header;
+use axum::http::{Response, StatusCode};
+use axum::Form;
 use chrono::Utc;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
 use std::str::FromStr;
 use taskchampion::{Operations, Status, Tag, Uuid};
+use tera::Context;
 use tracing::{debug, error, info, trace};
 
 pub mod task_query_builder;
 
 use crate::backend::task::{
-    convert_task_status, execute_hooks, get_replica, TaskEvent, TaskProperties,
-};
-use crate::core::app::AppState;
-use crate::core::errors::{FieldError, FormValidation};
-use crate::{NewTask, TWGlobalState, TaskUpdateStatus};
-use task_query_builder::TaskQuery;
+    denotate_task, 
+    convert_task_status, execute_hooks, get_replica, get_task, Annotation, TaskEvent, TaskProperties,
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Annotation {
-    entry: String,
-    description: String,
-}
+};
+use crate::core::app::{get_default_context, AppState};
+use crate::core::errors::{FieldError, FormValidation};
+use crate::core::utils::make_shortcut;
+use crate::{NewTask, TWGlobalState, TaskUpdateStatus, TEMPLATES};
+use task_query_builder::TaskQuery;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Task {
@@ -89,17 +92,103 @@ impl From<TaskUUID> for Uuid {
     }
 }
 
-fn read_task_file(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+fn read_task_file(
+    task_query: &TaskQuery,
+) -> Result<IndexMap<TaskUUID, crate::backend::task::Task>, anyhow::Error> {
     let content = fetch_task_from_cmd(&task_query)?;
-    let tasks: Vec<Task> = match serde_json::from_str(&content) {
+    let jd = &mut serde_json::Deserializer::from_str(&content);
+    let result: Result<Vec<crate::backend::task::Task>, _> = serde_path_to_error::deserialize(jd);
+    match result {
+        Ok(_) => {}
+        Err(err) => {
+            let path = err.path().to_string();
+            debug!("Received json: {:?}", &content);
+            error!(path);
+        }
+    };
+    let tasks: Vec<crate::backend::task::Task> = match serde_json::from_str(&content) {
         Ok(s) => s,
         Err(e) => anyhow::bail!(e.to_string()),
     };
     let mut hm = IndexMap::new();
     for task in tasks.iter() {
-        hm.insert(TaskUUID(task.uuid.clone()), task.clone());
+        hm.insert(TaskUUID(task.uuid.to_string()), task.clone());
     }
     Ok(hm)
+}
+
+fn parse_apply_additions(
+    t: &mut taskchampion::Task,
+    mut ops: &mut Vec<taskchampion::Operation>,
+    additional: &String,
+    validation_result: &mut FormValidation,
+) {
+    let task_additions = shell_words::split(&additional).map_err(|e| FieldError {
+        field: "additional".to_string(),
+        message: e.to_string(),
+    });
+    match task_additions {
+        Ok(additional) => {
+            debug!("Arguments: {:?}", additional);
+            for a in additional {
+                let b1 = a.split_once(':').map_or((a.trim().to_string(), None), |p| {
+                    (p.0.trim().to_string(), Some(p.1.trim().to_string()))
+                });
+
+                // it might be a task operation if it starts with +/- without a value.
+                if b1.0.starts_with("+") && b1.1.is_none() {
+                    let tag_name = b1.0.strip_prefix("+").unwrap();
+                    match &Tag::from_str(tag_name).map_err(|p| FieldError {
+                        field: "additional".to_string(),
+                        message: p.to_string(),
+                    }) {
+                        Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
+                            field: "additional".to_string(),
+                            message: p.to_string(),
+                        }) {
+                            Ok(_) => (),
+                            Err(e) => validation_result.push(e),
+                        },
+                        Err(e) => validation_result.push(e.to_owned()),
+                    };
+                } else if b1.0.starts_with("-") && b1.1.is_none() {
+                    let tag_name = b1.0.strip_prefix("-").unwrap();
+                    match &Tag::from_str(tag_name).map_err(|p| FieldError {
+                        field: "additional".to_string(),
+                        message: p.to_string(),
+                    }) {
+                        Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
+                            field: "additional".to_string(),
+                            message: p.to_string(),
+                        }) {
+                            Ok(_) => (),
+                            Err(e) => validation_result.push(e),
+                        },
+                        Err(e) => validation_result.push(e.to_owned()),
+                    };
+                } else if let Ok(_) = TaskProperties::try_from(b1.0.as_str()) {
+                    match t.set_value(b1.0, b1.1, &mut ops).map_err(|p| FieldError {
+                        field: "additional".to_string(),
+                        message: p.to_string(),
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => validation_result.push(e),
+                    };
+                } else {
+                    match t
+                        .set_user_defined_attribute(b1.0, b1.1.unwrap_or("".to_string()), &mut ops)
+                        .map_err(|p| FieldError {
+                            field: "additional".to_string(),
+                            message: p.to_string(),
+                        }) {
+                        Ok(_) => (),
+                        Err(e) => validation_result.push(e),
+                    };
+                }
+            }
+        }
+        Err(e) => validation_result.push(e),
+    }
 }
 
 /// Create a new task
@@ -190,30 +279,7 @@ pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidati
     }
 
     if let Some(additional) = task.additional() {
-        for a in additional.split(' ') {
-            let b1 = a
-                .split_once(':')
-                .map_or((a, None), |p| (p.0, Some(p.1.to_string())));
-            if let Ok(_) = TaskProperties::try_from(b1.0) {
-                match t.set_value(b1.0, b1.1, &mut ops).map_err(|p| FieldError {
-                    field: "additional".to_string(),
-                    message: p.to_string(),
-                }) {
-                    Ok(_) => (),
-                    Err(e) => validation_result.push(e),
-                };
-            } else {
-                match t
-                    .set_user_defined_attribute(b1.0, b1.1.unwrap_or("".to_string()), &mut ops)
-                    .map_err(|p| FieldError {
-                        field: "additional".to_string(),
-                        message: p.to_string(),
-                    }) {
-                    Ok(_) => (),
-                    Err(e) => validation_result.push(e),
-                };
-            }
-        }
+        parse_apply_additions(&mut t, &mut ops, additional, &mut validation_result);
     }
 
     match validation_result.is_success() {
@@ -246,6 +312,57 @@ pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidati
     }
 }
 
+/// Update a tasks with given information.
+pub fn run_modify_command(
+    uuid: Uuid,
+    cmd_text: &str,
+    app_state: &AppState,
+) -> Result<(), FormValidation> {
+    let mut validation_result = FormValidation::default();
+    let mut replica = get_replica(&app_state.task_storage_path)
+        .map_err(|err| <anyhow::Error as Into<FormValidation>>::into(err))?;
+    let mut ops = Operations::new();
+    ops.push(taskchampion::Operation::UndoPoint);
+
+    let mut t = replica.get_task(uuid)?.expect("Valid task found");
+    let old_task = t.clone();
+    parse_apply_additions(
+        &mut t,
+        &mut ops,
+        &cmd_text.to_string(),
+        &mut validation_result,
+    );
+
+    match validation_result.is_success() {
+        true => {
+            // Commit those operations to storage.
+            match replica.commit_operations(ops) {
+                Ok(_) => {
+                    info!("Updated task {}", uuid.to_string());
+                    // execute hooks.
+                    let ct: crate::backend::task::Task = t.into();
+                    let _ = execute_hooks(
+                        &app_state.task_hooks_path,
+                        &TaskEvent::OnModify,
+                        &Some(old_task.into()),
+                        &Some(ct),
+                    );
+                    Ok(())
+                }
+                Err(e) => {
+                    error!(
+                        "Could not update task {}, error: {}",
+                        uuid.to_string(),
+                        e.to_string()
+                    );
+                    Err(e.into())
+                }
+            }
+        }
+        false => Err(validation_result.into()),
+    }
+}
+
 pub fn task_undo() -> Result<(), anyhow::Error> {
     match Command::new("task")
         .arg("rc.confirmation:off")
@@ -264,21 +381,10 @@ pub fn task_undo() -> Result<(), anyhow::Error> {
 }
 
 // what would happen
-pub fn list_tasks(task_query: &TaskQuery) -> Result<IndexMap<TaskUUID, Task>, anyhow::Error> {
+pub fn list_tasks(
+    task_query: &TaskQuery,
+) -> Result<IndexMap<TaskUUID, crate::backend::task::Task>, anyhow::Error> {
     read_task_file(task_query)
-}
-
-pub fn run_modify_command(task_uuid: Uuid, cmd_text: &str) -> Result<(), anyhow::Error> {
-    let mut task_cmd = Command::new("task");
-    task_cmd.arg("modify").arg(task_uuid.to_string());
-    cmd_text.split(' ').for_each(|v| {
-        task_cmd.arg(v);
-    });
-    if let Err(e) = task_cmd.output() {
-        error!("Failed to execute command: {}", e);
-        anyhow::bail!("Failed to execute modify command");
-    }
-    Ok(())
 }
 
 pub fn run_annotate_command(task_uuid: Uuid, annotation: &str) -> Result<(), anyhow::Error> {
@@ -374,7 +480,7 @@ pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
     }
 }
 
-pub fn toggle_task_active(task_uuid: Uuid, app_state: &AppState) -> Result<bool, anyhow::Error> {
+pub fn toggle_task_active(task_uuid: Uuid, task_status: String, app_state: &AppState) -> Result<bool, anyhow::Error> {
     let mut replica = get_replica(&app_state.task_storage_path)?;
     let mut ops = Operations::new();
     ops.push(taskchampion::Operation::UndoPoint);
@@ -387,6 +493,11 @@ pub fn toggle_task_active(task_uuid: Uuid, app_state: &AppState) -> Result<bool,
     let old_task = t.clone();
     let mut changed_tasks: Vec<(taskchampion::Task, taskchampion::Task)> = Vec::new();
 
+    // Request to stop the job
+    if task_status == "stop" {
+        t.stop(&mut ops)?;
+    }
+
     // Stop all active tasks.
     for mut single_task in replica.all_tasks()? {
         if single_task.1.is_active() {
@@ -396,7 +507,11 @@ pub fn toggle_task_active(task_uuid: Uuid, app_state: &AppState) -> Result<bool,
             changed_tasks.push((old, new));
         }
     }
-    t.start(&mut ops)?;
+
+    // Request to start the job
+    if task_status == "start" {
+        t.start(&mut ops)?;
+    }
     changed_tasks.push((old_task, t.clone()));
 
     // Commit those operations to storage.
@@ -404,12 +519,12 @@ pub fn toggle_task_active(task_uuid: Uuid, app_state: &AppState) -> Result<bool,
         Ok(_) => {
             info!("Task {} started", task_uuid.to_string());
             // execute hooks.
-            for t in changed_tasks {
+            for ct in changed_tasks {
                 let _ = execute_hooks(
                     &app_state.task_hooks_path,
                     &TaskEvent::OnModify,
-                    &Some(t.0.into()),
-                    &Some(t.1.into()),
+                    &Some(ct.0.into()),
+                    &Some(ct.1.into()),
                 );
             }
             Ok(t.is_active())
@@ -425,7 +540,11 @@ pub fn toggle_task_active(task_uuid: Uuid, app_state: &AppState) -> Result<bool,
     }
 }
 
-pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
+/// Read / Retrieve task by UUID
+/// via task command line.
+/// This is required required in order to get 
+/// priority information.
+pub fn get_task_details(uuid: String) -> Result<crate::backend::task::Task, anyhow::Error> {
     debug!("uuid: {}", uuid);
     let mut p = TWGlobalState::default();
     p.filter = Some(uuid.clone());
@@ -435,6 +554,178 @@ pub fn get_task_details(uuid: String) -> Result<Task, anyhow::Error> {
     match tasks.get(&TaskUUID(uuid.clone())) {
         None => anyhow::bail!("Matching task not found"),
         Some(t) => Ok(t.clone()),
+    }
+}
+
+/// Update / Prepares a task detail page considering 
+/// Annotation sort and sort of task dependency list.
+/// Annotations are sorted creation time descending (newest on top).
+pub fn get_task_details_form(
+    task: &mut crate::backend::task::Task,
+    app_state: &AppState,
+) -> Vec<crate::backend::task::Task> {
+    // we must sort the annotations.
+    if task.annotations.is_some() {
+        task.annotations.as_mut().unwrap().sort();
+        task.annotations.as_mut().unwrap().reverse();
+    }
+    // get dependent tasks if available.
+    let mut tasks_deps: Vec<crate::backend::task::Task> = Vec::new();
+    if let Some(dep_list) = &task.depends {
+        for dep_uuid in dep_list {
+            if let Ok(dep_task) = get_task(&app_state.task_storage_path, *dep_uuid) {
+                if let Some(dep_task) = dep_task {
+                    tasks_deps.push(dep_task)
+                }
+            }
+        }
+    }
+    tasks_deps.sort_by(|a, b| {
+        if a.status
+            .clone()
+            .unwrap_or(Status::Unknown("".to_string()))
+            .to_string()
+            == Status::Completed.to_string()
+            && b.status
+                .clone()
+                .unwrap_or(Status::Unknown("".to_string()))
+                .to_string()
+                == Status::Completed.to_string()
+        {
+            Ordering::Equal
+        } else if a
+            .status
+            .clone()
+            .unwrap_or(Status::Unknown("".to_string()))
+            .to_string()
+            == Status::Completed.to_string()
+            && b.status
+                .clone()
+                .unwrap_or(Status::Unknown("".to_string()))
+                .to_string()
+                != Status::Completed.to_string()
+        {
+            Ordering::Greater
+        } else if a
+            .status
+            .clone()
+            .unwrap_or(Status::Unknown("".to_string()))
+            .to_string()
+            != Status::Completed.to_string()
+            && b.status
+                .clone()
+                .unwrap_or(Status::Unknown("".to_string()))
+                .to_string()
+                == Status::Completed.to_string()
+        {
+            Ordering::Less
+        } else if a.id.unwrap_or(9999999) < b.id.unwrap_or(9999999) {
+            Ordering::Less
+        } else if a.id.unwrap_or(9999999) > b.id.unwrap_or(9999999) {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
+    tasks_deps
+}
+
+/// Request to display a task detail page.
+pub async fn display_task_details(
+    Path(task_id): Path<Uuid>,
+    app_state: State<AppState>,
+) -> Response<String> {
+    match get_task_details(task_id.to_string()) {
+        Ok(mut task) => {
+            let tasks_deps = get_task_details_form(&mut task, &app_state);
+            let mut ctx: Context = get_default_context(&app_state);
+            ctx.insert("tasks_db", &tasks_deps);
+            let mut shortcuts: HashSet<String> = HashSet::new();
+            let mut shortcut_list: Vec<String> = Vec::new();
+            if let Some(anno_list) = &task.annotations {
+                for _ in anno_list.iter().enumerate() {
+                    let shortcut = make_shortcut(&mut shortcuts);
+                    shortcut_list.push(shortcut);
+                }
+            }
+            // annotate_shortcuts
+            ctx.insert("annotate_shortcuts", &shortcut_list);
+            ctx.insert("task", &task);
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "text/html")
+                .body(TEMPLATES.render("task_details.html", &ctx).unwrap())
+                .unwrap()
+        }
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body("".to_string())
+            .unwrap(),
+    }
+}
+
+/// Request to get a confirmation screen prior
+/// deleting a task.
+pub async fn display_task_delete(
+    Path(task_id): Path<Uuid>,
+    app_state: State<AppState>,
+) -> Response<String> {
+    match get_task_details(task_id.to_string()) {
+        Ok(mut task) => {
+            let tasks_deps = get_task_details_form(&mut task, &app_state);
+            let mut ctx: Context = get_default_context(&app_state);
+            ctx.insert("tasks_db", &tasks_deps);
+            // annotate_shortcuts
+            ctx.insert("annotate_shortcuts", "");
+            ctx.insert("task", &task);
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(header::CONTENT_TYPE, "text/html")
+                .body(TEMPLATES.render("task_delete_confirm.html", &ctx).unwrap())
+                .unwrap()
+        }
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body("".to_string())
+            .unwrap(),
+    }
+}
+
+/// Process request to delete a specific annotation entry
+/// from task.
+pub async fn api_denotate_task_entry(
+    Path(task_id): Path<Uuid>,
+    app_state: State<AppState>,
+    Form(denotate_form): Form<Annotation>,
+) -> Response<String> {
+    match get_task(&app_state.task_storage_path, task_id) {
+        Ok(t) if t.is_some() => match denotate_task(task_id, &denotate_form, &app_state) {
+            Ok(mut task) => {
+                let tasks_deps = get_task_details_form(&mut task, &app_state);
+                let mut ctx: Context = get_default_context(&app_state);
+                ctx.insert("tasks_db", &tasks_deps);
+                // annotate_shortcuts
+                ctx.insert("annotate_shortcuts", "");
+                ctx.insert("task", &task);
+                Response::builder()
+                    .status(StatusCode::OK)
+                    .header(header::CONTENT_TYPE, "text/html")
+                    .body(TEMPLATES.render("task_details.html", &ctx).unwrap())
+                    .unwrap()
+            }
+            Err(_) => Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body("".to_string())
+                .unwrap(),
+        },
+        Ok(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body("".to_string())
+            .unwrap(),
+        Err(_) => Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body("".to_string())
+            .unwrap(),
     }
 }
 
@@ -470,9 +761,9 @@ pub fn is_a_tag(tag: &str) -> bool {
 }
 
 pub struct TaskViewDataRetType {
-    pub tasks: IndexMap<TaskUUID, Task>,
+    pub tasks: IndexMap<TaskUUID, crate::backend::task::Task>,
     pub tag_map: HashMap<String, String>,
     pub shortcuts: HashSet<String>,
-    pub task_list: Vec<Task>,
+    pub task_list: Vec<crate::backend::task::Task>,
     pub task_shortcut_map: HashMap<String, String>,
 }

@@ -1,20 +1,7 @@
 {% import "desc.html" as desc %}
 {% if has_toast %}
 <div hx-swap-oob="beforeend:#toast">
-    <div class="items-center justify-items-center gap-4 px-5 py-3 text-neutral-300 fixed h-18 top-0 left-0 w-full z-50 bg-cyan-700 shadow-xs shadow-black"
-         hx-trigger="load delay:{{ toast_timeout }}s" hx-get="/msg_clr" id="flash_msg" hx-swap="outerHTML">
-        <div class="flex flex-row">
-            <span class="text-sm font-medium hover:opacity-75 flex-grow">{{ toast_msg }}</span>
-            <span>
-                <button class="rounded bg-white/20 p-1 hover:bg-white/10" hx-get="/msg_clr" hx-target="#toast"
-                        hx-trigger="click,keyup[key=='Escape'] from:#cmd-inp"
-                        autofocus
-                        hx-swap="innerHTML">
-                    <span class="shortcut_key opacity-50">[Esc]</span>
-                </button>
-            </span>
-        </div>
-    </div>
+    {% include 'flash_msg.html' %}
 </div>
 {% endif %}
 <div class="mb-auto h-max">
@@ -73,6 +60,7 @@
                         <label for="tag-inp" class="hidden"></label>
                         <input type="text" id="tag-inp"
                                class="input input-xs input-accent join-item"
+                               autocomplete="off"
                                placeholder="Tag Bar"
                                hx-trigger="changes delay:2s"
                                hx-target="#list-of-tasks"
@@ -113,14 +101,16 @@
             <div class="p-1">
                 {% for task in tasks %}
                 <div class="grid grid-cols-12 gap-2 md:p-2 p-5 rounded-box text-sm even:bg-base-200/40">
-                    <div class="col-span-12 md:col-span-6">
+                    <div class="col-span-12 md:col-span-6"
+                        data-task-status="{{ task.status }}" data-task-uuid="{{ task.uuid }}">
                         <div class="flex gap-2">
                             <div class="w-20 flex-none">
                                 <span class="relative">
                                     <input type="checkbox"
                                            class="checkbox checkbox-sm"
                                            name="checkbox-{{ task.uuid }}"
-                                           id="{{ task_shortcuts[task.uuid] }}"
+                                           autocomplete="off"
+                                   id="{{ task_shortcuts[task.uuid] }}"
                                            hx-trigger="change"
                                            hx-post="tasks" hx-target="#list-of-tasks"
                                            hx-include="[id='filtering']"
@@ -138,7 +128,7 @@
                                         id="{{ task_shortcuts[task.id] }}"
                                         class="btn btn-secondary btn-xs is-a-tag min-w-12 relative"
                                         hx-trigger="click"
-                                        hx-get="task_details?task_id={{ task.uuid }}"
+                                        hx-get="tasks/{{ task.uuid }}/details"
                                         hx-target="#all-dialog-boxes"
                                 >
                                     {{ task.id }}
@@ -193,7 +183,7 @@
                                 {%if tasks_db[uuid] %}
                                 <button class="btn btn-secondary btn-xs is-a-tag join-item"
                                         hx-trigger="click"
-                                        hx-get="task_details?task_id={{ tasks_db[uuid].uuid }}"
+                                        hx-get="tasks/{{ tasks_db[uuid].uuid }}/details"
                                         hx-target="#task_details">
                                     {{ tasks_db[uuid].id }}
                                 </button>

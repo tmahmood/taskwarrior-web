@@ -1,16 +1,13 @@
 use std::{
-    collections::HashMap,
-    io::Write,
-    os::unix::fs::PermissionsExt,
-    path::PathBuf,
-    process::{Command, Stdio},
+    collections::HashMap, io::Write, os::unix::fs::PermissionsExt, path::PathBuf, process::{Command, Stdio}
 };
 
 use anyhow::Error;
 use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
-use taskchampion::{Operation, Replica, StorageConfig, Uuid};
+use taskchampion::{Operation, Operations, Replica, StorageConfig, Uuid};
 use tracing::{debug, error, info};
+use crate::{backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde}, core::app::AppState};
 
 use crate::core::errors::AppError;
 
@@ -108,86 +105,6 @@ impl ToString for TaskEvent {
     }
 }
 
-mod task_status_serde {
-    use serde::{self, Deserialize, Deserializer, Serializer};
-
-    use super::convert_task_status;
-
-    pub fn serialize<S>(status: &Option<taskchampion::Status>, s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if let Some(ref d) = *status {
-            let status = match d {
-                taskchampion::Status::Pending => "pending",
-                taskchampion::Status::Completed => "completed",
-                taskchampion::Status::Deleted => "deleted",
-                taskchampion::Status::Recurring => "recurring",
-                taskchampion::Status::Unknown(v) => v.as_ref(),
-            };
-            return s.serialize_str(status);
-        }
-        s.serialize_none()
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<taskchampion::Status>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: Option<String> = Option::deserialize(deserializer)?;
-        if let Some(s) = s {
-            let t = s.to_lowercase();
-            return Ok(Some(convert_task_status(t)));
-        }
-
-        Ok(None)
-    }
-}
-
-mod task_date_format {
-    use chrono::{DateTime, NaiveDateTime, Utc};
-    use serde::{self, Deserialize, Deserializer, Serializer};
-
-    const FORMAT: &'static str = "%Y%m%dT%H%M%SZ";
-
-    // The signature of a serialize_with function must follow the pattern:
-    //
-    //    fn serialize<S>(&T, S) -> Result<S::Ok, S::Error>
-    //    where
-    //        S: Serializer
-    //
-    // although it may also be generic over the input types T.
-    pub fn serialize<S>(date: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if let Some(dt) = date {
-            let s = format!("{}", dt.format(FORMAT));
-            serializer.serialize_str(&s)
-        } else {
-            serializer.serialize_none()
-        }
-    }
-
-    // The signature of a deserialize_with function must follow the pattern:
-    //
-    //    fn deserialize<'de, D>(D) -> Result<T, D::Error>
-    //    where
-    //        D: Deserializer<'de>
-    //
-    // although it may also be generic over the output types T.
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match NaiveDateTime::parse_from_str(&s, FORMAT) {
-            Ok(dt) => Ok(Some(DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))),
-            Err(_) => Ok(None),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 struct TcDateConverter(String);
 
@@ -224,8 +141,9 @@ impl TcDateConverter {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Annotation {
+    #[serde(with = "task_date_format_mandatory")]
     entry: DateTime<Utc>,
     description: String,
 }
@@ -239,7 +157,7 @@ impl From<taskchampion::Annotation> for Annotation {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
 pub struct Task {
     // id is the relative number within the working set!
     // to be retrieved with replica.working_set
@@ -252,27 +170,28 @@ pub struct Task {
     pub project: Option<String>,
     pub uuid: Uuid,
     pub urgency: Option<f64>,
-    #[serde(with = "task_date_format")]
+    #[serde(default, with = "task_date_format")]
     pub entry: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "task_date_format")]
+    #[serde(default, with = "task_date_format")]
     pub start: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "task_date_format")]
+    #[serde(default, with = "task_date_format")]
     pub until: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "task_date_format")]
+    #[serde(default, with = "task_date_format")]
     pub scheduled: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub annotations: Option<Vec<Annotation>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "task_date_format")]
+    #[serde(default, with = "task_date_format")]
     pub due: Option<DateTime<Utc>>,
+    #[serde(default, with = "task_date_format")]
     pub modified: Option<DateTime<Utc>>,
     #[serde(default, with = "task_status_serde")]
     pub status: Option<taskchampion::Status>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(with = "task_date_format")]
+    #[serde(default, with = "task_date_format")]
     pub wait: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
@@ -300,10 +219,12 @@ impl From<taskchampion::Task> for Task {
             .map(|p| p.to_string())
             .collect();
         let deps: Vec<Uuid> = value.get_dependencies().collect();
-        let annotations: Vec<Annotation> = value
+        let mut annotations: Vec<Annotation> = value
             .get_annotations()
             .map(|p| Annotation::from(p))
             .collect();
+        annotations.sort();
+        annotations.reverse();
         let uda: HashMap<String, String> = value
             .get_user_defined_attributes()
             .map(|p| (p.0.to_string(), p.1.to_string()))
@@ -345,6 +266,12 @@ impl From<taskchampion::Task> for Task {
             parent: value.get_value("parent").map(|p| p.to_string()),
             uda: Some(uda),
         }
+    }
+}
+
+impl Task {
+    pub fn set_id(&mut self, id: Option<i64>) {
+        self.id = id;
     }
 }
 
@@ -573,4 +500,52 @@ pub fn get_undo_operations(taskdb: &PathBuf) -> Result<HashMap<Uuid, Vec<TaskOpe
         }
     }
     Ok(converted_ops)
+}
+
+pub fn get_task(taskdb: &PathBuf, task_id: Uuid) -> Result<Option<Task>, anyhow::Error> {
+    let mut replica = get_replica(taskdb)?;
+    let idx: Option<i64> = replica.working_set().unwrap().by_uuid(task_id).map(|p| Some(p as i64)).unwrap_or(None);
+    let x: Option<Task> = replica.get_task(task_id).map(|t| {
+        if let Some(t_fine) = t {
+            let mut task = Task::from(t_fine);
+            task.set_id(idx);
+            Some(task)
+        } else {
+            None
+        }
+    })?;
+    Ok(x)
+}
+
+
+pub fn denotate_task(task_id: Uuid, anno: &Annotation, app_state: &AppState) -> Result<Task, anyhow::Error> {
+    let mut replica = get_replica(&app_state.task_storage_path)?;
+    let mut ops = Operations::new();
+    let mut task = replica.get_task(task_id)?.expect("Could not found task");
+    let old_task = task.clone();
+    ops.push(taskchampion::Operation::UndoPoint);
+    task.remove_annotation(anno.entry, &mut ops)?;
+
+    match replica.commit_operations(ops) {
+        Ok(_) => {
+            info!("Removed task {} annotation {}", task_id.to_string(), anno.entry);
+            // execute hooks.
+            let ct: crate::backend::task::Task = task.into();
+            let _ = execute_hooks(
+                &app_state.task_hooks_path,
+                &TaskEvent::OnModify,
+                &Some(old_task.into()),
+                &Some(ct.clone()),
+            );
+            Ok(ct)
+        }
+        Err(e) => {
+            error!(
+                "Could not create task {}, error: {}",
+                task_id.to_string(),
+                e.to_string()
+            );
+            Err(e.into())
+        }
+    }
 }

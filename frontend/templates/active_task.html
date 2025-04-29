@@ -3,10 +3,11 @@
     <div class="join">
 
     </div>
-    <div class="pl-2.5 pr-6 py-1.5 bg-green-900 text-green-200 shadow-xl rounded-sm flex flex-wrap " id="active-timer">
+    <div class="pl-2.5 pr-6 py-1.5 bg-green-900 text-green-200 shadow-xl rounded-sm flex flex-wrap " id="active-timer" 
+        data-task-id="{{ active_task.uuid }}" data-task-start="{{ active_task.start }}">
         <span class="flex-grow">{{ active_task.description }}</span>
         <div class="join">
-            <span class="badge badge-success badge-md badge-soft join-item">
+            <span class="badge badge-success badge-md badge-soft join-item timer-duration">
                 {{ timer_value(date=active_task.start) }}
             </span>
             <button class="btn btn-accent btn-xs join-item"
@@ -14,7 +15,7 @@
                     hx-target="#list-of-tasks"
                     hx-swap="innerHTML"
                     hx-include="[id='filtering']"
-                    hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer"}'
+                    hx-vals='{"uuid":"{{ active_task.uuid }}", "action": "ToggleTimer", "status": "stop"}'
                     hx-trigger="click,keyup[key=='o'] from:#cmd-inp">
                 <span>St<span class="shortcut_key">o</span>p</span>
             </button>

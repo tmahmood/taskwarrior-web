@@ -21,3 +21,5 @@ indexmap = { version = "2.2.5", features = ["serde"] }
 rand = "0.9.0-beta.3"
 dotenvy = { version = "0.15.7" }
 taskchampion = { version="2.0.3", default-features = false, features = [] }
+serde_path_to_error = "0.1.17"
+shell-words = "1.1.0"

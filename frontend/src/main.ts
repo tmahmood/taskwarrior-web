@@ -15,7 +15,7 @@ hotkeys.filter = function (event) {
     let tagName = event.target.tagName;
     hotkeys.setScope(/^(INPUT|TEXTAREA|SELECT)$/.test(tagName) ? 'input' : 'other');
     return true;
-}
+};
 
 function focusTextInput(event: KeyboardEvent | MouseEvent) {
     let ss = document.getElementById('task-details-inp');
@@ -24,6 +24,36 @@ function focusTextInput(event: KeyboardEvent | MouseEvent) {
         ss.focus();
     } else {
         document.getElementById('cmd-inp').focus();
+    }
+}
+
+window.handleTaskAnnotations = (event: KeyboardEvent | MouseEvent) => {
+    if(event.target != document.getElementById('btn-denotate-task')) {
+        console.log("not processing")
+        return
+    }
+    event.preventDefault();
+    let annoSelector = document.getElementById('anno-inp');
+    document.querySelector('#anno-inp').classList.toggle('hidden');
+    Array.from(document.querySelectorAll('.is-a-annotation')).forEach((value) => {
+        value.classList.toggle('hidden');
+    });
+    if (annoSelector.checkVisibility()) {
+        annoSelector.focus();
+    }
+    return false;
+};
+
+window.handleTaskAnnotationTrigger = (event: KeyboardEvent | MouseEvent) => {
+    event.preventDefault();
+    if (event.target) {
+        let shortkey = event.target.value;
+        if (shortkey.length >= 2) { 
+            let element = document.getElementById("anno_dlt_" + shortkey);
+            if (element) {
+                element.click();
+            }
+        };
     }
 }
 
@@ -89,6 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let n = setInterval(
         () => {
             let whichOne = 0;
+            // document.getElementById('active-timer').querySelectorAll('span.timer-duration')[0]
             let dd = document.getElementById('active-timer');
             if (dd === undefined || dd === null) {
                 return
