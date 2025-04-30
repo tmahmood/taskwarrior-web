@@ -27,9 +27,6 @@ jobs:
           echo "RELEASE_NAME=${{ env.BUILD_DATE }}" >> $GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Tools
-        run: |
-          curl -o tailwindcss -sL https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 && chmod +x tailwindcss
       - name: Setup rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -41,6 +38,7 @@ jobs:
             tar czf tw-web-${{ env.RELEASE_NAME }}.tar.gz dist taskwarrior-web
       - name: Release
         uses: softprops/action-gh-release@v2
+        if: ${{ github.event_name != 'pull_request' }}
         with:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
