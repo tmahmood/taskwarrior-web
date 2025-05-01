@@ -729,27 +729,6 @@ pub async fn api_denotate_task_entry(
     }
 }
 
-/// Parse task settings
-pub fn task_show() -> Result<IndexMap<String, String>, anyhow::Error> {
-    let mut settings = IndexMap::<String, String>::default();
-    let rr = Command::new("task").arg("show").output()?.stdout;
-    String::from_utf8(rr)?.lines().for_each(|line| {
-        let mut ss = line.split_once(": ");
-        if let Some((key, val)) = ss {
-            settings.insert(key.trim().to_string(), val.trim().to_string());
-        } else {
-            error!("FAIL: {}", line);
-            ss = line.split_once(" ");
-            if let Some((key, val)) = ss {
-                settings.insert(key.trim().to_string(), val.trim().to_string());
-            } else {
-                error!("TOTAL FAIL: {}", line);
-            }
-        }
-    });
-    Ok(settings)
-}
-
 pub const TAG_KEYWORDS: [&str; 4] = ["next", "pending", "completed", "new"];
 
 pub fn is_tag_keyword(tag: &str) -> bool {
