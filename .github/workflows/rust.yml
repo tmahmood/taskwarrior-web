@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update
           echo "confirmation=off" | sudo tee -a /root/.taskrc
           sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install taskwarrior
-          task 794618dd-7a41-4aca-ab2e-70cc4a04b5e6 export
+          echo "yes" | task || true
       - name: Run Tests and Upload Coverage
         uses: Reloaded-Project/devops-rust-test-and-coverage@v1
         with:
