@@ -3,6 +3,7 @@ import 'hyperscript.org';
 import * as _hyperscript from "hyperscript.org";
 import hotkeys from "hotkeys-js";
 import * as theme from "./theme.ts";
+import * as timer from "./timer.ts";
 
 _hyperscript.browserInit();
 
@@ -115,45 +116,7 @@ document.addEventListener('click', function (event) {
 
 document.addEventListener("DOMContentLoaded", function () {
     theme.init();
-
-    let n = setInterval(
-        () => {
-            let whichOne = 0;
-            // document.getElementById('active-timer').querySelectorAll('span.timer-duration')[0]
-            let dd = document.getElementById('active-timer');
-            if (dd === undefined || dd === null) {
-                return
-            }
-            let timeBox = dd.children[1].children[whichOne];
-            let s = timeBox.textContent.split(":");
-            let second = parseInt(s.pop());
-            let minute = parseInt(s.pop());
-            if (isNaN(minute)) {
-                minute = 0;
-            }
-            let hour = parseInt(s.pop());
-            if (isNaN(hour)) {
-                hour = 0;
-            }
-            second += 1;
-            if (second >= 60) {
-                second = 0;
-                minute += 1;
-                if (minute > 60) {
-                    hour += 1;
-                }
-            }
-            timeBox.textContent = hour.toString()
-                    // @ts-ignore
-                    .padStart(2, "0") + ":" +
-                minute.toString()
-                    // @ts-ignore
-                    .padStart(2, "0") + ":" +
-                second.toString()
-                    // @ts-ignore
-                    .padStart(2, "0");
-        }, 1000
-    )
+    timer.init();
     let day_progress = setInterval(
         () => {
             const dd = document.getElementById('time_of_the_day');
