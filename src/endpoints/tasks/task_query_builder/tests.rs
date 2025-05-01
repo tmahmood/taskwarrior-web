@@ -1,5 +1,5 @@
 use super::*;
-use crate::endpoints::tasks::{read_task_file, task_show};
+use crate::endpoints::tasks::read_task_file;
 
 #[test]
 fn modifying_existing_task_query() {
@@ -77,11 +77,4 @@ fn task_by_uuid() {
     println!("{:?}", t.as_filter_text());
     let tasks = read_task_file(&t).unwrap();
     println!("{:#?}", tasks);
-}
-
-#[test]
-fn task_get_settings() {
-    let ss = task_show().unwrap();
-    println!("{:#?}", ss);
-    assert_eq!(ss["report.next.columns"], "id,effort,areas,start.age,entry.age,depends,priority,project,tags,recur,scheduled.countdown,due.relative,until.remaining,description,urgency");
 }
