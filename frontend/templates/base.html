@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" {% if DEFAULT_THEME %}data-theme="{{ DEFAULT_THEME }}" {% endif %}>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/dist/style.css"/>
     <style>
         {% if USE_FONT %}
@@ -15,7 +16,7 @@
     </title>
 </head>
 <body>
-<div id="content" class="px-5">
+<div id="content">
     <main>
         <div class="toast fixed items-center right-5 bottom-5 w-full max-w-xs z-605" id="toast" role="alert"></div>
         <div id="list-of-tasks">{% include "tasks.html" %}</div>
