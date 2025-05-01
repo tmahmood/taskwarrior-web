@@ -15,48 +15,31 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
-    name: Test
+  test_and_coverage:
+    name: Test and create coverage report.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install Taskwarrior
+        run: |
+          sudo apt-get update
+          echo "confirmation=off" | sudo tee -a /root/.taskrc
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install taskwarrior
+          task 794618dd-7a41-4aca-ab2e-70cc4a04b5e6 export
+      - name: Run Tests and Upload Coverage
+        uses: Reloaded-Project/devops-rust-test-and-coverage@v1
         with:
-          toolchain: nightly
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Run tests
-        run: cargo test
-
-  coverage:
-    name: Code coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: nightly
-          components: llvm-tools-preview
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Generate code coverage
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-      - name: Generate report
-        run: cargo llvm-cov report --html --output-dir coverage
+          setup-rust-cache: true
+          rust-project-path: '.'
+          rust-toolchain: 'nightly'
+          use-tarpaulin: true
+          upload-coverage: false
+          target: 'x86_64-unknown-linux-gnu'
       - uses: actions/upload-artifact@v4
         with:
           name: "Coverage report"
-          path: coverage/
+          path: cobertura.xml
 
   build:
     runs-on: ubuntu-latest
