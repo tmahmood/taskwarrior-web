@@ -4,26 +4,30 @@ use axum::response::{Html, Response};
 use axum::routing::post;
 use axum::{routing::get, Form, Router};
 use indexmap::IndexMap;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::string::ToString;
 use taskchampion::Uuid;
 use taskwarrior_web::backend::task::{get_project_list, TaskOperation};
 use taskwarrior_web::core::app::{get_default_context, AppState};
+use taskwarrior_web::core::cache::MnemonicsType;
 use taskwarrior_web::core::errors::FormValidation;
-use taskwarrior_web::endpoints::tasks::{self, change_task_status, display_task_details};
+use taskwarrior_web::core::utils::{make_shortcut, make_shortcut_cache};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
-use taskwarrior_web::endpoints::tasks::{api_denotate_task_entry, display_task_delete, get_task_details, get_task_details_form};
+use taskwarrior_web::endpoints::tasks::{self, change_task_status, display_task_details};
 use taskwarrior_web::endpoints::tasks::{
-    fetch_active_task, list_tasks, run_annotate_command, run_denotate_command,
-    run_modify_command, task_add, task_undo, toggle_task_active, TaskUUID,
-    TaskViewDataRetType,
+    api_denotate_task_entry, display_task_delete, get_task_details, get_task_details_form,
+};
+use taskwarrior_web::endpoints::tasks::{
+    fetch_active_task, list_tasks, run_annotate_command, run_denotate_command, run_modify_command,
+    task_add, task_undo, toggle_task_active, TaskUUID, TaskViewDataRetType,
 };
 use taskwarrior_web::{
-    task_query_merge_previous_params, task_query_previous_params, FlashMsg, FlashMsgRoles, NewTask, TWGlobalState, TaskActions, TEMPLATES
+    task_query_merge_previous_params, task_query_previous_params, FlashMsg, FlashMsgRoles, NewTask,
+    TWGlobalState, TaskActions, TEMPLATES,
 };
-use taskwarrior_web::core::utils::make_shortcut;
-use tracing::{error, info, trace};
+use tracing::{error, info, trace, Level};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -63,11 +67,18 @@ async fn main() {
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
         .route("/bars", get(get_bar))
-        .with_state(app_settings);
+        .with_state(app_settings)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new()
+                    .level(Level::INFO))
+                .on_response(DefaultOnResponse::new()
+                    .level(Level::INFO))
+        );
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    println!("running on address: {}", addr);
+    info!("Application is listening on address: {}", addr);
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -137,7 +148,10 @@ async fn get_undo_report(app_state: State<AppState>) -> Html<String> {
         Ok(s) => {
             let mut ctx = get_default_context(&app_state);
             let number_operations: i64 = s.values().map(|f| f.len() as i64).sum();
-            let heading = format!("The following {} operations would be reverted", number_operations);
+            let heading = format!(
+                "The following {} operations would be reverted",
+                number_operations
+            );
             ctx.insert("heading", &heading);
             ctx.insert("undo_report", &s);
             Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
@@ -196,6 +210,7 @@ async fn undo_last_change(
 fn get_tasks_view_data(
     mut tasks: IndexMap<TaskUUID, taskwarrior_web::backend::task::Task>,
     filters: &Vec<String>,
+    app_state: &State<AppState>,
 ) -> TaskViewDataRetType {
     let mut tag_map: HashMap<String, String> = HashMap::new();
     let mut task_shortcut_map: HashMap<String, String> = HashMap::new();
@@ -208,7 +223,15 @@ fn get_tasks_view_data(
                     if !tasks::is_tag_keyword(v) {
                         *v = format!("+{}", v);
                     }
-                    let shortcut = make_shortcut(&mut shortcuts);
+                    let shortcut_match = app_state
+                        .app_cache
+                        .read()
+                        .unwrap()
+                        .get(MnemonicsType::TAG, v);
+                    let shortcut = match shortcut_match {
+                        Some(p) => p,
+                        None => make_shortcut_cache(MnemonicsType::TAG, v, app_state),
+                    };
                     tag_map.insert(v.clone(), shortcut);
                 });
             }
@@ -219,9 +242,21 @@ fn get_tasks_view_data(
                     let mut total_parts = vec![];
                     for part in parts {
                         total_parts.push(part);
-                        let mut s = "project:".to_string();
-                        s.push_str(&total_parts.join("."));
-                        let shortcut = make_shortcut(&mut shortcuts);
+                        let project_name = &total_parts.join(".");
+                        let s = format!("project:{}", project_name);
+                        let shortcut_cache = app_state
+                            .app_cache
+                            .read()
+                            .unwrap()
+                            .get(MnemonicsType::PROJECT, &project_name);
+                        let shortcut = match shortcut_cache {
+                            Some(p) => p,
+                            None => make_shortcut_cache(
+                                MnemonicsType::PROJECT,
+                                &project_name,
+                                app_state,
+                            ),
+                        };
                         tag_map.insert(s, shortcut);
                     }
                 }
@@ -275,7 +310,7 @@ async fn front_page(app_state: State<AppState>) -> Html<String> {
             error!("Cannot read task list, error: {:?}", e);
             let x: IndexMap<TaskUUID, taskwarrior_web::backend::task::Task> = IndexMap::new();
             x
-        },
+        }
     };
     let filters = tq.as_filter_text();
     let TaskViewDataRetType {
@@ -284,7 +319,7 @@ async fn front_page(app_state: State<AppState>) -> Html<String> {
         shortcuts: _,
         task_list,
         task_shortcut_map,
-    } = get_tasks_view_data(tasks, &filters);
+    } = get_tasks_view_data(tasks, &filters, &app_state);
     let mut ctx = get_default_context(&app_state);
     ctx.insert("tasks_db", &tasks);
     ctx.insert("tasks", &task_list);
@@ -345,7 +380,7 @@ fn get_tasks_view_plain(
         shortcuts: _,
         task_list,
         task_shortcut_map,
-    } = get_tasks_view_data(tasks, &filter_ar);
+    } = get_tasks_view_data(tasks, &filter_ar, &app_state);
     trace!("{:?}", tag_map);
     let mut ctx_b = get_default_context(&app_state);
     ctx_b.insert("tasks_db", &tasks);
@@ -408,10 +443,18 @@ async fn do_task_actions(
         TaskActions::StatusUpdate => {
             if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
                 match change_task_status(task.clone(), &app_state) {
-                    Ok(_) => FlashMsg::new(&format!("Task [{}] was updated", task.uuid), None, FlashMsgRoles::Success),
+                    Ok(_) => FlashMsg::new(
+                        &format!("Task [{}] was updated", task.uuid),
+                        None,
+                        FlashMsgRoles::Success,
+                    ),
                     Err(e) => {
                         error!("Failed: {}", e);
-                        FlashMsg::new(&format!("Failed to update task: {e}"), None, FlashMsgRoles::Error)
+                        FlashMsg::new(
+                            &format!("Failed to update task: {e}"),
+                            None,
+                            FlashMsgRoles::Error,
+                        )
                     }
                 }
             } else {
@@ -430,42 +473,70 @@ async fn do_task_actions(
                                 task_uuid
                             ),
                             None,
-                            FlashMsgRoles::Success
+                            FlashMsgRoles::Success,
                         )
                     } else {
-                        FlashMsg::new(&format!("Task {} stopped", task_uuid), None, FlashMsgRoles::Success)
+                        FlashMsg::new(
+                            &format!("Task {} stopped", task_uuid),
+                            None,
+                            FlashMsgRoles::Success,
+                        )
                     }
                 }
                 Err(e) => {
                     error!("Failed: {}", e);
-                    FlashMsg::new(&format!("Failed to update task: {e}"), None, FlashMsgRoles::Error)
+                    FlashMsg::new(
+                        &format!("Failed to update task: {e}"),
+                        None,
+                        FlashMsgRoles::Error,
+                    )
                 }
             }
         }
         TaskActions::ModifyTask => {
             error!("Failed: This endpoint is not supported anymore for this task!");
-            FlashMsg::new("Failed to execute command, none provided", None, FlashMsgRoles::Error)
+            FlashMsg::new(
+                "Failed to execute command, none provided",
+                None,
+                FlashMsgRoles::Error,
+            )
         }
         TaskActions::AnnotateTask => {
             let cmd = multipart.task_entry().clone().unwrap();
             if cmd.is_empty() {
                 error!("Failed: No command provided");
-                FlashMsg::new("Failed to execute command, none provided", None, FlashMsgRoles::Error)
+                FlashMsg::new(
+                    "Failed to execute command, none provided",
+                    None,
+                    FlashMsgRoles::Error,
+                )
             } else {
                 match run_annotate_command(multipart.uuid().unwrap(), &cmd) {
                     Ok(_) => FlashMsg::new("Annotation added", None, FlashMsgRoles::Success),
-                    Err(e) => FlashMsg::new(&format!("Annotation command failed: {}", e), None, FlashMsgRoles::Error),
+                    Err(e) => FlashMsg::new(
+                        &format!("Annotation command failed: {}", e),
+                        None,
+                        FlashMsgRoles::Error,
+                    ),
                 }
             }
         }
         TaskActions::DenotateTask => match run_denotate_command(multipart.uuid().unwrap()) {
             Ok(_) => FlashMsg::new("Denotated task", None, FlashMsgRoles::Success),
-            Err(e) => FlashMsg::new(&format!("Denotation command failed: {}", e), None, FlashMsgRoles::Error),
+            Err(e) => FlashMsg::new(
+                &format!("Denotation command failed: {}", e),
+                None,
+                FlashMsgRoles::Error,
+            ),
         },
     };
     Response::builder()
         .status(StatusCode::OK)
-        .body(get_tasks_view_plain(task_query_previous_params(&multipart), Some(fm), &app_state))
+        .body(get_tasks_view_plain(
+            task_query_previous_params(&multipart),
+            Some(fm),
+            &app_state,
+        ))
         .unwrap()
 }
 
@@ -476,36 +547,38 @@ async fn update_task_details(
 ) -> Response<String> {
     let cmd = multipart.task_entry().clone().unwrap();
     match get_task_details(task_id.to_string()) {
-        Ok(mut task) => {
-            match run_modify_command(multipart.uuid().unwrap(), &cmd, &app_state) {
-                Ok(()) => {
-                    let flash_msg = FlashMsg::new("Task updated", None, FlashMsgRoles::Success);
-                    Response::builder()
-                        .status(StatusCode::CREATED)
-                        .header("HX-Retarget", "#list-of-tasks")
-                        .header("HX-Reswap", "innerHTML")
-                        .header("Content-Type", "text/html")
-                        .body(get_tasks_view_plain(task_query_previous_params(&multipart), Some(flash_msg), &app_state))
-                        .unwrap()
-                }
-                Err(e) => {
-                    let tasks_deps = get_task_details_form(&mut task, &app_state);
-                    let mut ctx = get_default_context(&app_state);
-                    ctx.insert("tasks_db", &tasks_deps);
-                    ctx.insert("task", &task);
-                    ctx.insert("validation", &e);
-                    ctx.insert("task_edit_cmd", &cmd);
-                    Response::builder()
-                        .status(StatusCode::OK)
-                        .header("Content-Type", "text/html")
-                        .body(TEMPLATES.render("task_details.html", &ctx).unwrap())
-                        .unwrap()
-                }
+        Ok(mut task) => match run_modify_command(multipart.uuid().unwrap(), &cmd, &app_state) {
+            Ok(()) => {
+                let flash_msg = FlashMsg::new("Task updated", None, FlashMsgRoles::Success);
+                Response::builder()
+                    .status(StatusCode::CREATED)
+                    .header("HX-Retarget", "#list-of-tasks")
+                    .header("HX-Reswap", "innerHTML")
+                    .header("Content-Type", "text/html")
+                    .body(get_tasks_view_plain(
+                        task_query_previous_params(&multipart),
+                        Some(flash_msg),
+                        &app_state,
+                    ))
+                    .unwrap()
+            }
+            Err(e) => {
+                let tasks_deps = get_task_details_form(&mut task, &app_state);
+                let mut ctx = get_default_context(&app_state);
+                ctx.insert("tasks_db", &tasks_deps);
+                ctx.insert("task", &task);
+                ctx.insert("validation", &e);
+                ctx.insert("task_edit_cmd", &cmd);
+                Response::builder()
+                    .status(StatusCode::OK)
+                    .header("Content-Type", "text/html")
+                    .body(TEMPLATES.render("task_details.html", &ctx).unwrap())
+                    .unwrap()
             }
         },
         Err(_) => Response::builder()
-        .status(StatusCode::NOT_FOUND)
-        .body("".to_string())
-        .unwrap(),
+            .status(StatusCode::NOT_FOUND)
+            .body("".to_string())
+            .unwrap(),
     }
 }

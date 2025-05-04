@@ -242,7 +242,7 @@ there will be errors, as no checks, and there may not be any error messages in c
 - [ ] Usability improvements on a long task list
   - [x] Hiding empty columns
   - [ ] Temporary highlight last modified row, if visible
-- [ ] Make the mnemonics same for tags on refresh
+- [x] Make the mnemonics same for tags on refresh
 - [ ] Modification
   - [ ] Deleting
 - [ ] Following Context

@@ -1,5 +1,9 @@
-use std::{env::{self, home_dir}, path::PathBuf, str::FromStr};
+use std::{env::{self, home_dir}, fs::create_dir_all, path::PathBuf, str::FromStr, sync::{Arc, Mutex, RwLock}};
+use directories::ProjectDirs;
 use tera::Context;
+use tracing::info;
+
+use super::cache::{FileMnemonicsCache, MnemonicsCacheType};
 
 /// Holds state information and configurations
 /// required in the API and business logic operations.
@@ -13,8 +17,9 @@ use tera::Context;
 /// | TWK_THEME                 | theme                    |
 /// | DISPLAY_TIME_OF_THE_DAY   | display_time_of_the_day  |
 /// | TASKDATA                  | task_storage_path        |
+/// | TWK_CONFIG_FOLDER         | app_config_path          |
 /// 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AppState {
     pub font: Option<String>,
     pub fallback_family: String,
@@ -22,6 +27,10 @@ pub struct AppState {
     pub display_time_of_the_day: i32,
     pub task_storage_path: PathBuf,
     pub task_hooks_path: Option<PathBuf>,
+    pub app_config_path: PathBuf,
+    pub app_cache_path: PathBuf,
+    pub app_cache: Arc<RwLock<MnemonicsCacheType>>,
+    // Here must be cache object for mnemonics
 }
 
 impl Default for AppState {
@@ -45,6 +54,41 @@ impl Default for AppState {
             .expect("Storage path cannot be found");
         let task_hooks_path = Some(home_dir.clone().join("hooks"));
 
+        let standard_project_dirs = ProjectDirs::from("", "",  "Taskwarrior-Web");
+        
+        let mut app_config_path: Option<PathBuf> = match env::var("TWK_CONFIG_FOLDER") {
+            Ok(p) => {
+                let app_config_path: Result<PathBuf, _> = p.try_into();
+                match app_config_path {
+                    Ok(x) => Some(x),
+                    Err(_) => None
+                }
+            },
+            Err(_) => None,
+        };
+        if app_config_path.is_none() && standard_project_dirs.is_some() {
+            if let Some(ref proj_dirs) = standard_project_dirs {
+                app_config_path = Some(proj_dirs.config_dir().to_path_buf());
+            }
+        }
+
+        let app_config_path = app_config_path.expect("Configuration file found");
+        let app_cache_path =  match standard_project_dirs {
+            Some(p) => Some(p.cache_dir().to_path_buf()),
+            None => None,
+        }.expect("Cache folder not usable.");
+
+        // initialize cache.
+        // ensure, the folder exists.
+        create_dir_all(app_cache_path.as_path()).expect("Cache folder cannot be created.");
+        let cache_path = app_cache_path.join("mnemonics.cache");
+        info!("Cache file to store mnemonics is placed at {:?}", &cache_path);
+        let mut cache = FileMnemonicsCache::new(Arc::new(Mutex::new(cache_path)));
+        cache.load().map_err(|e| {
+            tracing::error!("Cannot parse the configuration file, error: {}", e.to_string());
+            e
+        }).expect("Configuration file exists, but is not parsable!");
+
         Self {
             font: font,
             fallback_family: "monospace".to_string(),
@@ -52,6 +96,9 @@ impl Default for AppState {
             display_time_of_the_day: display_time_of_the_day,
             task_storage_path: task_storage_path,
             task_hooks_path: task_hooks_path,
+            app_config_path: app_config_path,
+            app_cache_path: app_cache_path,
+            app_cache: Arc::new(RwLock::new(cache)),
         }
     }
 }
