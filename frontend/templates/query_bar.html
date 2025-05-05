@@ -1,0 +1,42 @@
+
+<div class="flex flex-wrap gap-2 p-4 bg-accent-content">
+    <div class="join">
+        <button
+                id="query-btn-back"
+                class="btn btn-warning btn-xs join-item"
+                hx-get="tasks"
+                hx-trigger="click,keyup[key=='Escape'] from:#task-inp"
+                hx-target="#list-of-tasks"
+                hx-include="[id='filtering']"
+        ><span><span class="shortcut_key opacity-50">ESC</span></span></button>
+        <label for="query-inp" class="hidden"></label>
+        <input type="text" id="query-inp"
+               class="input input-xs input-accent join-item"
+               placeholder="Custom queries"
+               hx-trigger="changes delay:2s"
+               hx-target="#list-of-tasks"
+               hx-include="[id='filtering']"
+               hx-swap="innerHTML"
+               autofocus
+               autocomplete="off"
+               onkeyup="processPanelShortcut(event, 'query')"
+        />
+    </div>
+    {% for shortcut, query in custom_queries_map %}
+    <div class="mb-2">
+        <div class="flex gap-2">
+            <button id="querys_{{shortcut}}"
+            class="btn btn-xs btn-info shrink"
+            hx-get="tasks?filter={{ query.query }}&custom_query={{query.description | urlencode}}"
+            hx-target="#list-of-tasks"
+            hx-include="[id='filtering']"
+            hx-swap="innerHTML"
+            >
+            <span class="kbd kbd-xs bg-primary">{{ shortcut }}</span>
+            {{ query.description }}
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+

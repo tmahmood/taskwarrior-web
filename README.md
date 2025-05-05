@@ -78,12 +78,12 @@ It is recommend to specify the corresponding volume in order to persist the data
 
 In order to configure the environment variables and contexts for `timewarrior-web`, docker environments can be specified:
 
-| Docker environment               | Shell environment       | Purpose 
-| -------------------------------- | ----------------------- | ---------------------------------------------------------|
+| Docker environment               | Shell environment       | Purpose                                                  |
+| -------------------------------- | ----------------------- | -------------------------------------------------------- |
 | TASK_WEB_TWK_SERVER_PORT         | TWK_SERVER_PORT         | Specifies the server port (see "Ports")                  |
 | TASK_WEB_DISPLAY_TIME_OF_THE_DAY | DISPLAY_TIME_OF_THE_DAY | Displays a time of the day widget in case of value `1`   |
 | TASK_WEB_TWK_USE_FONT            | TWK_USE_FONT            | Font to be used. If not, browsers default fonts are used |
-| TASK_WEB_TWK_THEME               | TWK_THEME               | Defines the theme to be used (see "Themes")              | 
+| TASK_WEB_TWK_THEME               | TWK_THEME               | Defines the theme to be used (see "Themes")              |
 
 ## Hooks
 
@@ -219,17 +219,63 @@ Keyboard shortcut is `u`
 This will bring up undo confirmation dialog
 ![Undo](./screenshots/undo.png)
 
+## Custom queries
+
+Task organization is a pretty personal thing. And depending on the project or individual base, custom workflows and reportings are required.
+Create a configuration file under Linux in `$HOME/.config/taskwarrior-web/config.toml` or under Windows in `%APPDATA%\taskwarrior-web\config.toml` and add custom queries.
+
+A configuration file can look like:
+
+```toml
+[custom_queries]
+
+[custom_queries.completed_last_week]
+query = "end.after:today-1wk and status:completed"
+description = "completed last 7days"
+
+[custom_queries.due_today]
+query = "due:today"
+description = "to be done today"
+fixed_key = "ni" # this will override randomly generated key
+```
+
+Following options for each query definition is available:
+| property    | mandatory | meaning                                                                |
+| ----------- | --------- | ---------------------------------------------------------------------- |
+| query       |     X     | specifies the query to be executed on `taskwarrior`.                   |
+| description |     X     | description to be shown in the Web-UI for recognizing the right query. |
+| fixed_key   |           | Can be specified as two characters which will hardcode the shortcut.   |
+
+The query can be selected via keyboard shortcuts or via click on the right buttons.
+In order to select custom queries with the keyboard, first type in `q` as key for queries.
+A list is shown with available custom queries:
+![Custom query selections](./screenshots/custom_queries_selection.png)
+
+On each custom query, either a pre-defined shortcut key is shown or an automatic and cached shortcut is shown.
+The right one is typed and automatically the custom query is set:
+
+![Custom query list](./screenshots/custom_queries_list.png)
+
+As soon as one of the other reports like `next`, `pending` or others are selected, the custom query is unset and `taskwarrior-web` standard reports are shown.
+
+Beside of a configuration file, it is possible to configure via environment variables as well:
+```shell
+env TWK_custom_queries__one_query__fixed_key=ni TWK_custom_queries__one_query__query="end.after:today-1wk and status:completed" TWK_custom_queries__one_query__description="completed last 7days" RUST_LOG="INFO" cargo run
+```
+
+The same way it is possible to configure the docker container accordingly.
+
 ## Switch theme
 
 It is possible to switch the theme, which is saved in local storage too.
 
 For this following three symbols are used (left of the command bar):
 
-| Symbol | Purpose                               |
-|--------|---------------------------------------|
-|   ⚹    | Auto Mode or forced mode from server |  
-|   ☽    | Dark mode                            |
-|   🌣    | Light mode                           |
+| Symbol | Purpose                              |
+| ------ | ------------------------------------ |
+| ⚹      | Auto Mode or forced mode from server |
+| ☽      | Dark mode                            |
+| 🌣      | Light mode                           |
 
 # WIP warning
 
@@ -243,11 +289,11 @@ there will be errors, as no checks, and there may not be any error messages in c
   - [x] Hiding empty columns
   - [ ] Temporary highlight last modified row, if visible
 - [x] Make the mnemonics same for tags on refresh
-- [ ] Modification
-  - [ ] Deleting
+- [x] Modification
+  - [x] Deleting
 - [ ] Following Context
 - [ ] Error handling
-  - [ ] Retaining input in case of error
+  - [x] Retaining input in case of error
   - [ ] Finetune error handling
 - [ ] Add more tests
 - [ ] Convert to desktop app using Tauri

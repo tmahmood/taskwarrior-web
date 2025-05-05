@@ -121,6 +121,7 @@ pub struct TaskQuery {
     project: Option<String>,
     filter: Option<String>,
     new_entry: Option<String>,
+    custom_query: Option<String>,
 }
 
 impl Default for TaskQuery {
@@ -133,6 +134,7 @@ impl Default for TaskQuery {
             project: None,
             filter: None,
             new_entry: None,
+            custom_query: None,
         }
     }
 }
@@ -153,6 +155,7 @@ impl TaskQuery {
             project: None,
             filter: None,
             new_entry: None,
+            custom_query: None,
         }
     }
 
@@ -165,10 +168,22 @@ impl TaskQuery {
             project: None,
             filter: None,
             new_entry: None,
+            custom_query: None,
         }
     }
 
     pub fn update(&mut self, params: TWGlobalState) {
+        if params.report.as_ref().is_none() && params.status.as_ref().is_none() {
+            if params.custom_query.as_ref().is_some_and(|f| !f.is_empty()) {
+                self.report = TaskReport::NotSet;
+                self.custom_query = params.custom_query;
+                self.filter = params.filter;
+            }
+        } else {
+            self.custom_query = None;
+            self.filter = None;
+        }
+
         if let Some(rep) = params.report {
             self.report = rep.into();
             self.status = TaskStatus::NotSet;
@@ -220,7 +235,10 @@ impl TaskQuery {
         let mut export_suffix = vec![];
         let mut export_prefix = vec![];
         if let Some(f) = &self.filter.clone() {
-            export_prefix.push(f.clone());
+            let task_filter = shell_words::split(f);
+            if let Ok(task_filter) = task_filter {
+                export_prefix.extend(task_filter);
+            }
         }
         match &self.report {
             TaskReport::NotSet => {}
@@ -287,6 +305,9 @@ impl TaskQuery {
     }
     pub fn new_entry(&self) -> &Option<String> {
         &self.new_entry
+    }
+    pub fn custom_query(&self) -> &Option<String> {
+        &self.custom_query
     }
 }
 

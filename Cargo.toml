@@ -28,6 +28,7 @@ serde_path_to_error = "0.1.17"
 shell-words = "1.1.0"
 directories = "6.0.0"
 toml = "0.8.22"
+config = { version = "0.15.11", default-features = false, features = ["toml"] }
 
 [dev-dependencies]
 tempfile = "3.19.1"

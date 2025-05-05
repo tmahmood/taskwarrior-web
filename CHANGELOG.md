@@ -1,3 +1,17 @@
+## Sun 04, May, 2025
+- [x] Remember shortcuts for project and tags in a cache file.
+  Default cache path: $HOME/.cache/taskwarrior-web/mnemonics.cache
+
+## Thu 01, May, 2025
+- [x] Improved CI pipeline in order to increase continues quality checks.
+- [x] Improved mobile view: proper scaling of the pages as well as headers are now really sticky, not fixed anymore. This ensures, that the header does not cover any tasks on small displays.
+
+## Tue 29, April, 2025
+- [x] Rework of task modifications.
+- [x] Adding absolute dates in task details.
+- [x] Added possibility to delete tasks.
+- [x] For denotation its now possible to select specific annotations.
+
 ## Fri 28, March, 2025
 - [x] Font's can be customized
 - [x] Removed packaged font

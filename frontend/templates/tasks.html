@@ -19,11 +19,17 @@
             <!-- TAG LIST -->
         <div class="pl-2 flex justify-center join">
                 {% for f in current_filter %}
-                <button class="btn btn-xs join-item {% if f is starting_with('project:') %}btn-accent{% else %}btn-neutral {% endif %}"
+                <button class="btn btn-xs join-item {% if f is starting_with('project:') %}btn-accent{% elif f is starting_with('custom_query:') %}btn-info{% else %}btn-neutral {% endif %}"
                         hx-include="[id='filtering']"
                         hx-get="tasks?query={{ f | replace(from='+', to='%2B') }}"
                         hx-target="#list-of-tasks">
+                    {% if f is starting_with('project:') %}
                     {{ remove_project_tag(task=f) }}
+                    {% elif f is starting_with('custom_query:') %}
+                    {{ strip_prefix(string=f, prefix="custom_query:")}}
+                    {% else %}
+                    {{ f }}
+                    {% endif %}
                 </button>
                 {% endfor %}
                 <button class="btn btn-disabled btn-xs btn-neutral join-item"></button>
@@ -48,56 +54,10 @@
 
             <div class="grid grid-cols-1 w-full ">
                 <div id="tags_map_drawer" class="pt-4 hidden mb-2">
-                    <div class="flex flex-wrap gap-2 p-4 bg-accent-content">
-                        <div class="join">
-                            <button
-                                    id="tag-btn-back"
-                                    class="btn btn-warning btn-xs join-item"
-                                    hx-get="tasks"
-                                    hx-trigger="click,keyup[key=='Escape'] from:#task-inp"
-                                    hx-target="#list-of-tasks"
-                                    hx-include="[id='filtering']"
-                            ><span><span class="shortcut_key opacity-50">ESC</span></span></button>
-                            <label for="tag-inp" class="hidden"></label>
-                            <input type="text" id="tag-inp"
-                                class="input input-xs input-accent join-item"
-                                autocomplete="off"
-                                placeholder="Tag Bar"
-                                hx-trigger="changes delay:2s"
-                                hx-target="#list-of-tasks"
-                                hx-include="[id='filtering']"
-                                hx-swap="innerHTML"
-                                autofocus
-                                onkeyup="if (this.value.length >= 2) { document.getElementById(this.value).click() }"
-                            />
-                        </div>
-                        {% for tag, shortcut in tags_map %}
-                        {% if tag is keyword_tag %}
-                        {% endif %}
-                        {% if tag is user_tag %}
-                        {% endif %}
-                        <div class="mb-2">
-                            <div class="flex gap-2">
-                                <button id="{{shortcut}}"
-                                        {% if tag is starting_with('+') %}
-                                        class="btn btn-xs btn-neutral shrink"
-                                        hx-get="tasks?query={{ tag | replace(from='+', to='%2B') }}"
-                                        {% elif tag is starting_with('@') %}
-                                        class="btn btn-xs btn-info shrink"
-                                        hx-get="tasks?query={{ tag | trim_start_matches(pat='@') }}"
-                                        {% else %}
-                                        class="btn btn-xs btn-accent shrink"
-                                        hx-get="tasks?query={% if tag is starting_with('project:') %}{{ tag }}{% else %}project:{{tag}}{% endif %}"
-                                        {% endif %}
-                                        hx-target="#list-of-tasks"
-                                        hx-include="[id='filtering']"
-                                        hx-swap="innerHTML" >
-                                    <span class="kbd kbd-xs bg-primary">{{ shortcut }}</span> {{ tag | trim_start_matches(pat='@') | trim_start_matches(pat='project:') }}
-                                </button>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
+                    {% include "tag_bar.html" %}
+                </div>
+                <div id="querys_map_drawer" class="pt-4 hidden mb-2">
+                    {% include "query_bar.html" %}
                 </div>
                 <div class="p-1">
                     {% for task in tasks %}

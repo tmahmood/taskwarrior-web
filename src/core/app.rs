@@ -3,7 +3,7 @@ use directories::ProjectDirs;
 use tera::Context;
 use tracing::info;
 
-use super::cache::{FileMnemonicsCache, MnemonicsCacheType};
+use super::{cache::{FileMnemonicsCache, MnemonicsCacheType}, config::AppSettings};
 
 /// Holds state information and configurations
 /// required in the API and business logic operations.
@@ -30,6 +30,7 @@ pub struct AppState {
     pub app_config_path: PathBuf,
     pub app_cache_path: PathBuf,
     pub app_cache: Arc<RwLock<MnemonicsCacheType>>,
+    pub app_config: Arc<AppSettings>,
     // Here must be cache object for mnemonics
 }
 
@@ -56,6 +57,7 @@ impl Default for AppState {
 
         let standard_project_dirs = ProjectDirs::from("", "",  "Taskwarrior-Web");
         
+        // Overall determination of the configuration files.
         let mut app_config_path: Option<PathBuf> = match env::var("TWK_CONFIG_FOLDER") {
             Ok(p) => {
                 let app_config_path: Result<PathBuf, _> = p.try_into();
@@ -72,7 +74,25 @@ impl Default for AppState {
             }
         }
 
-        let app_config_path = app_config_path.expect("Configuration file found");
+        let app_config_path = app_config_path.expect("Configuration path not found");
+        create_dir_all(app_config_path.as_path()).expect("Config folder cannot be created.");
+        let app_config_path = app_config_path.join("config.toml");
+        let app_settings = match AppSettings::new(&app_config_path.as_path()) {
+            Ok(s) => Ok(s),
+            Err(e) => {
+                match e {
+                    config::ConfigError::Foreign(_) => {
+                        info!("Configuration file could not be found ({}). Fallback to default.", e.to_string());
+                        Ok(AppSettings::default())
+                    },
+                    _ => {
+                        Err(e)
+                    },
+                }
+            },
+        }.expect("Proper configuration file does not exist");
+
+        // Overall determination of the cache folder.
         let app_cache_path =  match standard_project_dirs {
             Some(p) => Some(p.cache_dir().to_path_buf()),
             None => None,
@@ -89,6 +109,10 @@ impl Default for AppState {
             e
         }).expect("Configuration file exists, but is not parsable!");
 
+        // Now ensure, that fixed keys are directly assigned to the custom queries.
+        // For this, we need also to ensure, that conflicting cache entries are removed!
+        app_settings.register_shortcuts(&mut cache);
+
         Self {
             font: font,
             fallback_family: "monospace".to_string(),
@@ -99,6 +123,7 @@ impl Default for AppState {
             app_config_path: app_config_path,
             app_cache_path: app_cache_path,
             app_cache: Arc::new(RwLock::new(cache)),
+            app_config: Arc::new(app_settings)
         }
     }
 }

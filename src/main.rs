@@ -4,7 +4,6 @@ use axum::response::{Html, Response};
 use axum::routing::post;
 use axum::{routing::get, Form, Router};
 use indexmap::IndexMap;
-use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::string::ToString;
@@ -12,6 +11,7 @@ use taskchampion::Uuid;
 use taskwarrior_web::backend::task::{get_project_list, TaskOperation};
 use taskwarrior_web::core::app::{get_default_context, AppState};
 use taskwarrior_web::core::cache::MnemonicsType;
+use taskwarrior_web::core::config::CustomQuery;
 use taskwarrior_web::core::errors::FormValidation;
 use taskwarrior_web::core::utils::{make_shortcut, make_shortcut_cache};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
@@ -27,6 +27,7 @@ use taskwarrior_web::{
     task_query_merge_previous_params, task_query_previous_params, FlashMsg, FlashMsgRoles, NewTask,
     TWGlobalState, TaskActions, TEMPLATES,
 };
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::{error, info, trace, Level};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -70,10 +71,8 @@ async fn main() {
         .with_state(app_settings)
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new()
-                    .level(Level::INFO))
-                .on_response(DefaultOnResponse::new()
-                    .level(Level::INFO))
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
         );
 
     // run our app with hyper, listening globally on port 3000
@@ -213,6 +212,7 @@ fn get_tasks_view_data(
     app_state: &State<AppState>,
 ) -> TaskViewDataRetType {
     let mut tag_map: HashMap<String, String> = HashMap::new();
+    let mut custom_queries_map: HashMap<String, CustomQuery> = HashMap::new();
     let mut task_shortcut_map: HashMap<String, String> = HashMap::new();
     let mut shortcuts = HashSet::new();
     let task_list: Vec<taskwarrior_web::backend::task::Task> = tasks
@@ -223,15 +223,7 @@ fn get_tasks_view_data(
                     if !tasks::is_tag_keyword(v) {
                         *v = format!("+{}", v);
                     }
-                    let shortcut_match = app_state
-                        .app_cache
-                        .read()
-                        .unwrap()
-                        .get(MnemonicsType::TAG, v);
-                    let shortcut = match shortcut_match {
-                        Some(p) => p,
-                        None => make_shortcut_cache(MnemonicsType::TAG, v, app_state),
-                    };
+                    let shortcut = make_shortcut_cache(MnemonicsType::TAG, v, app_state);
                     tag_map.insert(v.clone(), shortcut);
                 });
             }
@@ -244,19 +236,11 @@ fn get_tasks_view_data(
                         total_parts.push(part);
                         let project_name = &total_parts.join(".");
                         let s = format!("project:{}", project_name);
-                        let shortcut_cache = app_state
-                            .app_cache
-                            .read()
-                            .unwrap()
-                            .get(MnemonicsType::PROJECT, &project_name);
-                        let shortcut = match shortcut_cache {
-                            Some(p) => p,
-                            None => make_shortcut_cache(
-                                MnemonicsType::PROJECT,
-                                &project_name,
-                                app_state,
-                            ),
-                        };
+                        let shortcut = make_shortcut_cache(
+                            MnemonicsType::PROJECT,
+                            &project_name,
+                            app_state,
+                        );
                         tag_map.insert(s, shortcut);
                     }
                 }
@@ -293,12 +277,22 @@ fn get_tasks_view_data(
         }
     }
 
+    // prepare custom queries
+    for custom_query in &app_state.app_config.custom_queries {
+        let shortcut = match custom_query.1.fixed_key.clone() {
+            Some(s) => s,
+            None => make_shortcut_cache(MnemonicsType::CustomQuery, &custom_query.0, app_state),
+        };
+        custom_queries_map.insert(shortcut, custom_query.1.clone());
+    }
+
     TaskViewDataRetType {
         tasks,
         task_list,
         shortcuts,
         tag_map,
         task_shortcut_map,
+        custom_queries_map,
     }
 }
 
@@ -319,6 +313,7 @@ async fn front_page(app_state: State<AppState>) -> Html<String> {
         shortcuts: _,
         task_list,
         task_shortcut_map,
+        custom_queries_map,
     } = get_tasks_view_data(tasks, &filters, &app_state);
     let mut ctx = get_default_context(&app_state);
     ctx.insert("tasks_db", &tasks);
@@ -326,6 +321,7 @@ async fn front_page(app_state: State<AppState>) -> Html<String> {
     ctx.insert("current_filter", &tq.as_filter_text());
     ctx.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     ctx.insert("tags_map", &tag_map);
+    ctx.insert("custom_queries_map", &custom_queries_map);
     ctx.insert("task_shortcuts", &task_shortcut_map);
     let t: Option<(&TaskUUID, &taskwarrior_web::backend::task::Task)> =
         tasks.iter().find(|(_, task)| task.start.is_some());
@@ -374,12 +370,16 @@ fn get_tasks_view_plain(
             filter_ar.push(filter.to_string());
         }
     }
+    if let Some(custom_query) = tq.custom_query() {
+        filter_ar.push(format!("custom_query:{}", custom_query));
+    }
     let TaskViewDataRetType {
         tasks,
         tag_map,
         shortcuts: _,
         task_list,
         task_shortcut_map,
+        custom_queries_map,
     } = get_tasks_view_data(tasks, &filter_ar, &app_state);
     trace!("{:?}", tag_map);
     let mut ctx_b = get_default_context(&app_state);
@@ -388,6 +388,7 @@ fn get_tasks_view_plain(
     ctx_b.insert("current_filter", &filter_ar);
     ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
     ctx_b.insert("tags_map", &tag_map);
+    ctx_b.insert("custom_queries_map", &custom_queries_map);
     ctx_b.insert("task_shortcuts", &task_shortcut_map);
     if let Some(msg) = flash_msg {
         msg.to_context(&mut ctx_b);
