@@ -59,10 +59,11 @@ That should do it.
 
 The docker shares following directories as volumes to store data:
 
-| Volume path       | Purpose                                        |
-| ----------------- | ---------------------------------------------- |
-| /app/taskdata     | Stores task data (mostly taskchampion.sqlite3) |
-| /app/.timewarrior | Stores timewarrior data                        |
+| Volume path                  | Purpose                                        |
+| -----------------            | ---------------------------------------------- |
+| /app/taskdata                | Stores task data (mostly taskchampion.sqlite3) |
+| /app/.timewarrior            | Stores timewarrior data                        |
+| /app/.config/taskwarrior-web | Stores taskwarrior-web configuration file      |
 
 It is recommend to specify the corresponding volume in order to persist the data.
 
@@ -114,17 +115,13 @@ That should be it! Now you have the server running at `localhost:3000` accessibl
 
 ### Troubleshooting
 
-if you are receiving the following error in step 5
-
+By default the log level is set to `INFO`. If a more detailed log is required, the application can be run with DEBUG or even TRACE messages.
+For debug messages, just set the environment "RUST_LOG" to "DEBUG":
 ```shell
-
-  thread 'main' panicked at build.rs:7:19:
-  called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
-  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
+env RUST_LOG="DEBUG" cargo run
 ```
 
-It's because, `tailwindcss-cli` is missing
+If a fine granular configuration is desired - the application log itself is captured with the name `taskwarrior_web`.
 
 ## Customizing
 
@@ -260,7 +257,7 @@ As soon as one of the other reports like `next`, `pending` or others are selecte
 
 Beside of a configuration file, it is possible to configure via environment variables as well:
 ```shell
-env TWK_custom_queries__one_query__fixed_key=ni TWK_custom_queries__one_query__query="end.after:today-1wk and status:completed" TWK_custom_queries__one_query__description="completed last 7days" RUST_LOG="INFO" cargo run
+env TWK_custom_queries__one_query__fixed_key=ni TWK_custom_queries__one_query__query="end.after:today-1wk and status:completed" TWK_custom_queries__one_query__description="completed last 7days" cargo run
 ```
 
 The same way it is possible to configure the docker container accordingly.

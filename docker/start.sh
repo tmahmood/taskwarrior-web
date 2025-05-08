@@ -17,4 +17,7 @@ if [[ ! -f "$TASKRC" ]]; then
 fi
 
 cd $HOME/bin
-exec ./taskwarrior-web
+exec ./taskwarrior-web &
+pid=$!
+trap 'kill -SIGTERM $pid; wait $pid' SIGTERM
+wait $pidh

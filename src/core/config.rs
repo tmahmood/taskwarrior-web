@@ -15,6 +15,7 @@ pub struct CustomQuery {
 
 #[derive(serde::Deserialize, Clone, Debug)]
 pub struct AppSettings {
+    #[serde(default)]
     pub custom_queries: HashMap<String, CustomQuery>,
 }
 
