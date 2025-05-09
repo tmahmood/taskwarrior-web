@@ -29,6 +29,7 @@ lazy_static::lazy_static! {
         tera.register_function("date", get_date());
         tera.register_function("obj", obj());
         tera.register_function("remove_project_tag", remove_project_from_tag());
+        tera.register_function("strip_prefix", strip_prefix());
         tera.register_filter("update_unique_tags", update_unique_tags());
         tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
         tera.register_tester("keyword_tag", is_tag_keyword_tests());
@@ -86,7 +87,7 @@ impl FlashMsg {
         Self {
             msg: msg.to_string(),
             timeout,
-            role: role
+            role: role,
         }
     }
 
@@ -118,6 +119,7 @@ pub struct TWGlobalState {
     filter_value: Option<String>,
     task_entry: Option<String>,
     action: Option<TaskActions>,
+    custom_query: Option<String>,
 }
 
 impl TWGlobalState {
@@ -188,6 +190,7 @@ impl Default for TWGlobalState {
             filter_value: None,
             task_entry: None,
             action: None,
+            custom_query: None,
         }
     }
 }
@@ -224,6 +227,19 @@ fn remove_project_from_tag() -> impl tera::Function {
                 .unwrap()
                 .to_string();
             Ok(tera::to_value(pname).unwrap())
+        },
+    )
+}
+
+fn strip_prefix() -> impl tera::Function {
+    Box::new(
+        move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+            let pname =
+                tera::from_value::<String>(args.get("string").clone().unwrap().clone()).unwrap();
+            let pprefix =
+                tera::from_value::<String>(args.get("prefix").clone().unwrap().clone()).unwrap();
+
+            Ok(tera::to_value(pname.strip_prefix(&pprefix).unwrap().to_string()).unwrap())
         },
     )
 }
@@ -314,8 +330,7 @@ impl DeltaNow {
         let time = chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y%m%dT%H%M%SZ")
             .unwrap_or_else(|_|
                 // Try taskchampions variant.
-                chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y-%m-%dT%H:%M:%SZ").unwrap()
-            )
+                chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y-%m-%dT%H:%M:%SZ").unwrap())
             .and_utc();
         let now = chrono::prelude::Utc::now();
         let delta = now - time;

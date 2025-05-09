@@ -22,6 +22,7 @@ use crate::backend::task::{
 
 };
 use crate::core::app::{get_default_context, AppState};
+use crate::core::config::CustomQuery;
 use crate::core::errors::{FieldError, FormValidation};
 use crate::core::utils::make_shortcut;
 use crate::{NewTask, TWGlobalState, TaskUpdateStatus, TEMPLATES};
@@ -745,4 +746,5 @@ pub struct TaskViewDataRetType {
     pub shortcuts: HashSet<String>,
     pub task_list: Vec<crate::backend::task::Task>,
     pub task_shortcut_map: HashMap<String, String>,
+    pub custom_queries_map: HashMap<String, CustomQuery>,
 }

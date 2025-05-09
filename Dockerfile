@@ -26,11 +26,12 @@ RUN echo "NoExtract = !usr/share/doc/timew/*" >> /etc/pacman.conf \
  && pacman -S --noconfirm task timew cronie vi \
  && pacman -S --noconfirm python-pip \
  && useradd -m -d /app task && passwd -d task \
- && chown -R task:task /app && chmod -R 775 /app \
  && mkdir -p /app/bin \
  && mkdir -p /app/taskdata \
  && mkdir -p /app/.task/hooks \
  && mkdir -p /app/.timewarrior/data/ \
+ && mkdir -p /app/.config/taskwarrior-web/ \
+ && chown -R task:task /app && chmod -R 775 /app \
  && systemctl enable cronie.service \
  && cp /usr/share/doc/timew/ext/on-modify.timewarrior /app/.task/hooks/on-modify.timewarrior \
  && chmod +x /app/.task/hooks/on-modify.timewarrior \
@@ -67,6 +68,7 @@ EXPOSE 3000
 # Taskwarrior data volume
 VOLUME /app/taskdata/
 VOLUME /app/.timewarrior/
+VOLUME /app/.config/taskwarrior-web/
 
 ENV TASKRC="/app/.taskrc"
 ENV TASKDATA="/app/taskdata"

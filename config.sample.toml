@@ -1,0 +1,8 @@
+[custom_queries]
+
+[custom_queries.one_query]
+description = "report of something"
+
+[custom_queries.two_query]
+description = "report of another thing"
+fixed_key = "n" # this will override randomly generated key

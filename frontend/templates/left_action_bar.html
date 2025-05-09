@@ -1,8 +1,11 @@
 <div class="pl-2 pr-2 py-1.5 rounded-sm text-xs flex bg-base-100 gap-2 items-center flex-wrap">
 
     <div class="join" id="tag_search_bar">
-        <button class="btn btn-neutral btn-xs join-item" id="tag-selection-toggle" onclick="window['toggleTagPanel']()">
+        <button class="btn btn-neutral btn-xs join-item" id="tag-selection-toggle" onclick="window['togglePanel']('tag')">
         <span><span class="shortcut_key opacity-50">t</span>ags</span>
+        </button>
+        <button class="btn btn-neutral btn-xs join-item" id="query-selection-toggle" onclick="window['togglePanel']('query')">
+        <span><span class="shortcut_key opacity-50">q</span>ueries</span>
         </button>
         <span class="btn btn-neutral btn-xs join-item" id="task_action_bar">
             <button hx-get="task_action_bar" hx-target="#task_action_bar" hx-swap="outerHTML"
