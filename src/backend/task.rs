@@ -74,13 +74,13 @@ impl TryFrom<&str> for TaskProperties {
     }
 }
 
-pub fn convert_task_status(task_status: String) -> taskchampion::Status {
-    match task_status.as_str() {
+pub fn convert_task_status(task_status: &str) -> taskchampion::Status {
+    match task_status {
         "pending" => taskchampion::Status::Pending,
         "completed" => taskchampion::Status::Completed,
         "deleted" => taskchampion::Status::Deleted,
         "recurring" => taskchampion::Status::Recurring,
-        &_ => taskchampion::Status::Unknown(task_status),
+        &_ => taskchampion::Status::Unknown(task_status.into()),
     }
 }
 

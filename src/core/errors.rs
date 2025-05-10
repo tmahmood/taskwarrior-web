@@ -105,6 +105,8 @@ impl FormValidation {
         }
     }
 
+    /// Check if any validation errors occured or if no errors were recognized.
+    /// If everything went fine, `is_success` returns `true`.
     pub fn is_success(&self) -> bool {
         self.success
     }
@@ -121,6 +123,9 @@ impl FormValidation {
         self
     }
 
+    /// Checks whether errors occured for given `field`.
+    /// If at least one error to the given `field`, a `true` 
+    /// is returned.
     pub fn has_error(&self, field: &str) -> bool {
         self.fields.contains_key(field)
     }

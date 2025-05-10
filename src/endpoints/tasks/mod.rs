@@ -10,16 +10,19 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
 use std::str::FromStr;
-use taskchampion::{Operations, Status, Tag, Uuid};
+use task_modify::{
+    task_apply_depends, task_apply_description, task_apply_priority, task_apply_recur,
+    task_apply_status, task_apply_tag_add, task_apply_tag_remove, task_apply_timestamps,
+};
+use taskchampion::{Operations, Replica, Status, Tag, Uuid};
 use tera::Context;
 use tracing::{debug, error, info, trace};
 
 pub mod task_query_builder;
 
 use crate::backend::task::{
-    denotate_task, 
-    convert_task_status, execute_hooks, get_replica, get_task, Annotation, TaskEvent, TaskProperties,
-
+    convert_task_status, denotate_task, execute_hooks, get_replica, get_task, Annotation,
+    TaskEvent, TaskProperties,
 };
 use crate::core::app::{get_default_context, AppState};
 use crate::core::config::CustomQuery;
@@ -27,6 +30,8 @@ use crate::core::errors::{FieldError, FormValidation};
 use crate::core::utils::make_shortcut;
 use crate::{NewTask, TWGlobalState, TaskUpdateStatus, TEMPLATES};
 use task_query_builder::TaskQuery;
+
+pub(crate) mod task_modify;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct Task {
@@ -120,6 +125,7 @@ fn read_task_file(
 
 fn parse_apply_additions(
     t: &mut taskchampion::Task,
+    replica: &mut Replica,
     mut ops: &mut Vec<taskchampion::Operation>,
     additional: &String,
     validation_result: &mut FormValidation,
@@ -138,35 +144,31 @@ fn parse_apply_additions(
 
                 // it might be a task operation if it starts with +/- without a value.
                 if b1.0.starts_with("+") && b1.1.is_none() {
-                    let tag_name = b1.0.strip_prefix("+").unwrap();
-                    match &Tag::from_str(tag_name).map_err(|p| FieldError {
-                        field: "additional".to_string(),
-                        message: p.to_string(),
-                    }) {
-                        Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
-                            field: "additional".to_string(),
-                            message: p.to_string(),
-                        }) {
-                            Ok(_) => (),
-                            Err(e) => validation_result.push(e),
-                        },
-                        Err(e) => validation_result.push(e.to_owned()),
-                    };
+                    task_apply_tag_add(t, ops, validation_result, b1);
                 } else if b1.0.starts_with("-") && b1.1.is_none() {
-                    let tag_name = b1.0.strip_prefix("-").unwrap();
-                    match &Tag::from_str(tag_name).map_err(|p| FieldError {
-                        field: "additional".to_string(),
-                        message: p.to_string(),
-                    }) {
-                        Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
-                            field: "additional".to_string(),
-                            message: p.to_string(),
-                        }) {
-                            Ok(_) => (),
-                            Err(e) => validation_result.push(e),
-                        },
-                        Err(e) => validation_result.push(e.to_owned()),
-                    };
+                    task_apply_tag_remove(t, ops, validation_result, b1);
+                } else if b1.0.to_lowercase().as_str() == "depends" {
+                    task_apply_depends(t, replica, ops, validation_result, b1);
+                } else if b1.0.to_lowercase().trim() == "description" {
+                    task_apply_description(t, ops, validation_result, b1);
+                } else if b1.0.to_lowercase().trim() == "priority" {
+                    task_apply_priority(t, ops, validation_result, b1);
+                } else if ["entry", "wait", "due"].contains(&b1.0.to_lowercase().trim()) {
+                    task_apply_timestamps(t, ops, validation_result, b1);
+                } else if b1.0.to_lowercase().trim() == "status" {
+                    task_apply_status(t, ops, validation_result, b1);
+                } else if b1.0.to_lowercase().trim() == "recur" {
+                    task_apply_recur(t, ops, validation_result, b1);
+                } else if ["start", "stop", "done", "end", "modified"]
+                    .contains(&b1.0.to_lowercase().trim())
+                {
+                    validation_result.push(FieldError {
+                        field: "additional".into(),
+                        message: format!(
+                            "Manual modification of the field {} is not allowed.",
+                            b1.0
+                        ),
+                    });
                 } else if let Ok(_) = TaskProperties::try_from(b1.0.as_str()) {
                     match t.set_value(b1.0, b1.1, &mut ops).map_err(|p| FieldError {
                         field: "additional".to_string(),
@@ -280,7 +282,13 @@ pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidati
     }
 
     if let Some(additional) = task.additional() {
-        parse_apply_additions(&mut t, &mut ops, additional, &mut validation_result);
+        parse_apply_additions(
+            &mut t,
+            &mut replica,
+            &mut ops,
+            additional,
+            &mut validation_result,
+        );
     }
 
     match validation_result.is_success() {
@@ -329,6 +337,7 @@ pub fn run_modify_command(
     let old_task = t.clone();
     parse_apply_additions(
         &mut t,
+        &mut replica,
         &mut ops,
         &cmd_text.to_string(),
         &mut validation_result,
@@ -422,12 +431,10 @@ pub fn change_task_status(
     let mut ops = Operations::new();
     ops.push(taskchampion::Operation::UndoPoint);
 
-    let mut t = replica
-        .get_task(task.uuid)?
-        .expect("Task does not exist");
+    let mut t = replica.get_task(task.uuid)?.expect("Task does not exist");
 
     let old_task = t.clone();
-    let task_status = convert_task_status(task.status);
+    let task_status = convert_task_status(&task.status);
 
     // Stop tasks.
     if t.is_active() {
@@ -481,7 +488,11 @@ pub fn fetch_active_task() -> Result<Option<Task>, anyhow::Error> {
     }
 }
 
-pub fn toggle_task_active(task_uuid: Uuid, task_status: String, app_state: &AppState) -> Result<bool, anyhow::Error> {
+pub fn toggle_task_active(
+    task_uuid: Uuid,
+    task_status: String,
+    app_state: &AppState,
+) -> Result<bool, anyhow::Error> {
     let mut replica = get_replica(&app_state.task_storage_path)?;
     let mut ops = Operations::new();
     ops.push(taskchampion::Operation::UndoPoint);
@@ -543,7 +554,7 @@ pub fn toggle_task_active(task_uuid: Uuid, task_status: String, app_state: &AppS
 
 /// Read / Retrieve task by UUID
 /// via task command line.
-/// This is required required in order to get 
+/// This is required required in order to get
 /// priority information.
 pub fn get_task_details(uuid: String) -> Result<crate::backend::task::Task, anyhow::Error> {
     debug!("uuid: {}", uuid);
@@ -558,7 +569,7 @@ pub fn get_task_details(uuid: String) -> Result<crate::backend::task::Task, anyh
     }
 }
 
-/// Update / Prepares a task detail page considering 
+/// Update / Prepares a task detail page considering
 /// Annotation sort and sort of task dependency list.
 /// Annotations are sorted creation time descending (newest on top).
 pub fn get_task_details_form(
@@ -747,4 +758,295 @@ pub struct TaskViewDataRetType {
     pub task_list: Vec<crate::backend::task::Task>,
     pub task_shortcut_map: HashMap<String, String>,
     pub custom_queries_map: HashMap<String, CustomQuery>,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{env, str::FromStr};
+
+    use chrono::{Datelike, Days, Month, Months, Timelike, Utc};
+    use taskchampion::{Status, Tag, Uuid};
+    use tempfile::{tempdir, TempDir};
+
+    use crate::{
+        backend::task::get_replica, core::app::AppState, endpoints::tasks::run_modify_command,
+        NewTask,
+    };
+
+    use super::task_add;
+
+    fn get_random_appstate() -> (TempDir, AppState) {
+        let tmp_dir = tempdir().expect("Cannot create a tempdir.");
+        env::set_var(
+            "TASKDATA",
+            tmp_dir.as_ref().to_str().expect("Cannot get path"),
+        );
+        let app_state = AppState::default();
+
+        (tmp_dir, app_state)
+    }
+
+    #[test]
+    fn test_task_add() {
+        let (tmp_dir, app_state) = get_random_appstate();
+        let task_name = Uuid::new_v4();
+
+        let task = NewTask {
+            description: task_name.clone().to_string(),
+            tags: Some("+twk development".into()),
+            project: Some("TWK".into()),
+            filter_value: None,
+            additional: Some("priority:H".into()),
+        };
+        let result = task_add(&task, &app_state);
+        assert_eq!(result.is_ok(), true);
+        let mut replica =
+            get_replica(&app_state.task_storage_path).expect("Cannot retrieve replica");
+        let tasks = replica.all_tasks().expect("Cannot retrieve tasks");
+        let our_task = tasks
+            .iter()
+            .find(|p| p.1.get_description() == &task_name.to_string());
+        assert_eq!(our_task.is_some(), true);
+        let our_task = our_task.expect("Cannot unwrap task");
+        // compare the data.
+        let task_map = our_task.1.clone().into_task_data();
+        assert_eq!(task_map.get("project"), Some("TWK"));
+        let tags: Vec<Tag> = our_task.1.get_tags().collect();
+        assert_eq!(tags.contains(&Tag::from_str("twk").unwrap()), true);
+        assert_eq!(tags.contains(&Tag::from_str("development").unwrap()), true);
+        assert_eq!(task_map.get("priority"), Some("H"));
+
+        let _ = tmp_dir.close();
+    }
+
+    #[test]
+    fn test_task_add_fail() {
+        let (tmp_dir, app_state) = get_random_appstate();
+        let task_name = Uuid::new_v4();
+
+        let task = NewTask {
+            description: task_name.clone().to_string(),
+            tags: Some("+twk development".into()),
+            project: Some("TWK".into()),
+            filter_value: None,
+            additional: Some("priority:H due:\"".into()),
+        };
+        let result = task_add(&task, &app_state);
+        assert_eq!(result.is_ok(), false);
+        let result = result.unwrap_err();
+        assert_eq!(result.is_success(), false);
+        assert_eq!(result.has_error("additional"), true);
+
+        let _ = tmp_dir.close();
+    }
+
+    #[test]
+    fn test_task_modify_successful() {
+        let (tmp_dir, app_state) = get_random_appstate();
+        let task_name = Uuid::new_v4();
+
+        let task = NewTask {
+            description: task_name.clone().to_string(),
+            tags: Some("+twk development".into()),
+            project: Some("TWK".into()),
+            filter_value: None,
+            additional: Some("priority:H".into()),
+        };
+        let result = task_add(&task, &app_state);
+        assert_eq!(result.is_ok(), true);
+        let mut replica =
+            get_replica(&app_state.task_storage_path).expect("Cannot retrieve replica");
+        let tasks = replica.all_tasks().expect("Cannot retrieve tasks");
+        let our_task_1 = tasks
+            .iter()
+            .find(|p| p.1.get_description() == &task_name.to_string());
+        assert_eq!(our_task_1.is_some(), true);
+        let our_task_1 = our_task_1.expect("Cannot unwrap task");
+
+        // create a second one.
+        let task_name_2 = Uuid::new_v4();
+
+        let task = NewTask {
+            description: task_name_2.clone().to_string(),
+            tags: Some("+twk development".into()),
+            project: Some("TWK".into()),
+            filter_value: None,
+            additional: Some("priority:H".into()),
+        };
+        let result = task_add(&task, &app_state);
+        assert_eq!(result.is_ok(), true);
+        let tasks = replica.all_tasks().expect("Cannot retrieve tasks");
+        let our_task_2 = tasks
+            .iter()
+            .find(|p| p.1.get_description() == &task_name_2.to_string());
+        assert_eq!(our_task_2.is_some(), true);
+
+        let dt_wait = Utc::now().checked_add_days(Days::new(15)).unwrap();
+        let dt_wait_str = dt_wait.format("%Y-%m-%d").to_string();
+        let dt_wait = dt_wait
+            .with_hour(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap()
+            .with_nanosecond(0)
+            .unwrap();
+        let dt_due = Utc::now().checked_add_days(Days::new(60)).unwrap();
+        let dt_due_str = dt_due.format("%Y-%m-%d").to_string();
+        let dt_due = dt_due
+            .with_hour(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap()
+            .with_nanosecond(0)
+            .unwrap();
+
+        // Now modify!
+        let cmd_text = format!(
+            "wait:{} due:{} +concert -twk \"description:This is a title with spaces\" depends:{} project:{}  status:completed",
+            dt_wait_str,
+            dt_due_str,
+            task_name_2.to_string(),
+            "KWT"
+        );
+        let result = run_modify_command(our_task_1.0.clone(), &cmd_text, &app_state);
+        assert_eq!(result.is_ok(), true);
+        let updated_task = replica.get_task(our_task_1.0.clone());
+        assert_eq!(updated_task.is_ok(), true);
+        let updated_task = updated_task.unwrap();
+        assert_eq!(updated_task.is_some(), true);
+        let updated_task = updated_task.unwrap();
+
+        // Compare the data.
+        assert_eq!(
+            updated_task.get_description(),
+            "This is a title with spaces"
+        );
+        assert_eq!(updated_task.get_value("project"), Some("KWT"));
+        assert_eq!(updated_task.get_due(), Some(dt_due));
+        assert_eq!(updated_task.get_wait(), Some(dt_wait));
+        assert_eq!(updated_task.is_waiting(), true);
+        assert_eq!(updated_task.get_dependencies().count(), 1);
+        assert_eq!(updated_task.get_status(), Status::Completed);
+        assert_eq!(updated_task.get_dependencies().next(), Some(task_name_2));
+        let set_tags = vec![
+            "concert",
+            "development",
+            "WAITING",
+            "COMPLETED",
+            "UNBLOCKED",
+        ];
+        for tag in updated_task.get_tags() {
+            let tag_name = tag.to_string();
+            println!("Comparing {} in {:?}", tag_name, set_tags);
+            assert_eq!(set_tags.contains(&tag_name.as_str()), true);
+        }
+
+        let _ = tmp_dir.close();
+    }
+
+    #[test]
+    fn test_task_modify_breakit() {
+        let (tmp_dir, app_state) = get_random_appstate();
+        let task_name = Uuid::new_v4();
+
+        let task = NewTask {
+            description: task_name.clone().to_string(),
+            tags: Some("+twk development".into()),
+            project: Some("TWK".into()),
+            filter_value: None,
+            additional: Some("priority:H".into()),
+        };
+        let result = task_add(&task, &app_state);
+        assert_eq!(result.is_ok(), true);
+        let mut replica =
+            get_replica(&app_state.task_storage_path).expect("Cannot retrieve replica");
+        let tasks = replica.all_tasks().expect("Cannot retrieve tasks");
+        let our_task_1 = tasks
+            .iter()
+            .find(|p| p.1.get_description() == &task_name.to_string());
+        assert_eq!(our_task_1.is_some(), true);
+        let our_task_1 = our_task_1.expect("Cannot unwrap task");
+
+        // Now modify!
+        let cmd_text = format!(
+            "wait:{} due:{} +concert -twk +d/c -e/b +WAITING -PENDING start \"description:This is a title with spaces\" depends:{} project:{}",
+            "abc",
+            "def",
+            String::from("ec2c596f-5fa3-442c-80ee-98b087e32bbd"),
+            ""
+        );
+        let result = run_modify_command(our_task_1.0.clone(), &cmd_text, &app_state);
+
+        let result = result.unwrap_err();
+        println!("{:?}", result);
+
+        assert_eq!(result.is_success(), false);
+        assert_eq!(result.has_error("additional"), true);
+        let add_errors = result.fields.get("additional");
+        assert_eq!(add_errors.is_some(), true);
+        let add_errors = add_errors.unwrap();
+        assert_eq!(add_errors.len(), 7);
+
+        let mut keywords = vec![
+            "wait",
+            "due",
+            "start",
+            "tag",
+            "tag",
+            "Synthetic",
+            "Synthetic",
+        ];
+        for err in add_errors {
+            assert_eq!(&err.field, "additional");
+            let p = keywords.iter().position(|p| err.message.contains(*p));
+            assert_eq!(p.is_some(), true);
+            let p = p.unwrap();
+            let _ = keywords.remove(p);
+        }
+        assert_eq!(keywords.is_empty(), true);
+
+        let _ = tmp_dir.close();
+    }
+
+    #[test]
+    fn test_task_add_recur() {
+        let (tmp_dir, app_state) = get_random_appstate();
+        let task_name = Uuid::new_v4();
+        let dt_wait = Utc::now()
+            .with_day(1)
+            .unwrap()
+            .checked_add_months(Months::new(1))
+            .unwrap();
+
+        let task = NewTask {
+            description: task_name.clone().to_string(),
+            tags: Some("+twk development".into()),
+            project: Some("TWK".into()),
+            filter_value: None,
+            additional: Some(format!(
+                "priority:H recur:monthly due:{}",
+                dt_wait.format("%Y-%m-%d")
+            )),
+        };
+        let result = task_add(&task, &app_state);
+        assert_eq!(result.is_ok(), true);
+        let mut replica =
+            get_replica(&app_state.task_storage_path).expect("Cannot retrieve replica");
+        let tasks = replica.all_tasks().expect("Cannot retrieve tasks");
+        let our_task = tasks
+            .iter()
+            .find(|p| p.1.get_description() == &task_name.to_string());
+        assert_eq!(our_task.is_some(), true);
+        let our_task = our_task.expect("Cannot unwrap task");
+        // compare the data.
+        assert_eq!(our_task.1.get_status(), Status::Recurring);
+        assert_eq!(our_task.1.get_value("rtype"), Some("periodic"));
+        assert_eq!(our_task.1.get_value("recur"), Some("monthly"));
+
+        let _ = tmp_dir.close();
+    }
 }

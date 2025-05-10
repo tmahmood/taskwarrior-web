@@ -5,11 +5,11 @@
 
         <table class="table table-pin-rows table-xs mt-2">
             <tbody>
-                {% for vv in undo_report %}
-                    {% for operation in vv.1 %}
+                {% for kv, vv in undo_report %}
+                    {% for operation in vv %}
                     {% if loop.first %}
                     <tr class="bg-base-200 text-lg">
-                        <td colspan="3">{{ vv.0 }}</td>
+                        <td colspan="3">{{ kv }}</td>
                     </tr>
                     <tr class="bg-base-300">
                         <th></th>
