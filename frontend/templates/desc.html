@@ -1,7 +1,7 @@
 {% macro desc(task) %}
     {% if task.annotations %}
     <p>
-        <strong>{{ task.description }}</strong>
+        <strong>{{ task.description | linkify | safe }}</strong>
     </p>
     <ul class="pl-4 text-sm">
         {% for annotation in task.annotations %}
@@ -12,7 +12,7 @@
     </ul>
     {% else %}
     <p>
-        {{ task.description }}
+        {{ task.description | linkify | safe }}
     </p>
     {% endif %}
 {% endmacro desc %}
