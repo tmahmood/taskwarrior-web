@@ -258,10 +258,18 @@ fn linkify_text() -> impl tera::Filter {
             for span in lfy.spans(&base_text) {
                 let txt = match span.kind() {
                     Some(link) if *link == LinkKind::Url => {
-                        format!("<a class=\"link\" href=\"{}\">{}</a>", span.as_str(), span.as_str())
+                        format!(
+                            "<a class=\"link\" href=\"{}\">{}</a>",
+                            span.as_str(),
+                            span.as_str()
+                        )
                     }
                     Some(link) if *link == LinkKind::Email => {
-                        format!("<a class=\"link\" href=\"mailto:{}\">{}</a>", span.as_str(), span.as_str())
+                        format!(
+                            "<a class=\"link\" href=\"mailto:{}\">{}</a>",
+                            span.as_str(),
+                            span.as_str()
+                        )
                     }
                     Some(_) => escape_html(span.as_str()),
                     None => escape_html(span.as_str()),
@@ -532,8 +540,7 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         assert_eq!(
             result.unwrap(),
-            tera::to_value("This &lt;a href=&quot;<a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
+            tera::to_value("This &lt;a href=&quot;<a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
         );
-
     }
 }
