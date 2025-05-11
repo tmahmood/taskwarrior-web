@@ -762,7 +762,7 @@ pub struct TaskViewDataRetType {
 mod tests {
     use std::{env, str::FromStr};
 
-    use chrono::{Datelike, Days, Month, Months, Timelike, Utc};
+    use chrono::{Datelike, Days, Months, Timelike, Utc};
     use taskchampion::{Status, Tag, Uuid};
     use tempfile::{tempdir, TempDir};
 
