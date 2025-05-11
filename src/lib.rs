@@ -258,10 +258,10 @@ fn linkify_text() -> impl tera::Filter {
             for span in lfy.spans(&base_text) {
                 let txt = match span.kind() {
                     Some(link) if *link == LinkKind::Url => {
-                        format!("<a href=\"{}\">{}</a>", span.as_str(), span.as_str())
+                        format!("<a class=\"link\" href=\"{}\">{}</a>", span.as_str(), span.as_str())
                     }
                     Some(link) if *link == LinkKind::Email => {
-                        format!("<a href=\"mailto:{}\">{}</a>", span.as_str(), span.as_str())
+                        format!("<a class=\"link\" href=\"mailto:{}\">{}</a>", span.as_str(), span.as_str())
                     }
                     Some(_) => escape_html(span.as_str()),
                     None => escape_html(span.as_str()),
@@ -516,7 +516,7 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         assert_eq!(
             result.unwrap(),
-            tera::to_value("This is <a href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
+            tera::to_value("This is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
         );
 
         let value = tera::to_value("This is twk@twk-test.github.com a test").unwrap();
@@ -524,7 +524,7 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         assert_eq!(
             result.unwrap(),
-            tera::to_value("This is <a href=\"mailto:twk@twk-test.github.com\">twk@twk-test.github.com</a> a test").unwrap()
+            tera::to_value("This is <a class=\"link\" href=\"mailto:twk@twk-test.github.com\">twk@twk-test.github.com</a> a test").unwrap()
         );
 
         let value = tera::to_value("This <a href=\"https://very-important-url.tld\">very important</a> is https://very-important-url.tld a test").unwrap();
@@ -532,7 +532,7 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         assert_eq!(
             result.unwrap(),
-            tera::to_value("This &lt;a href=&quot;<a href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
+            tera::to_value("This &lt;a href=&quot;<a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
         );
 
     }

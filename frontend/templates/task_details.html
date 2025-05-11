@@ -267,7 +267,7 @@ Dates should be given in format yyyy-mm-dd."
                     {% for annotation in task.annotations %}
                     <tr>
                         <th>{{date(date=annotation.entry) }}</th>
-                        <td>{{ annotation.description }}</td>
+                        <td>{{ annotation.description | linkify | safe }}</td>
                         {% if annotate_shortcuts %}
                         <td>
                           <button

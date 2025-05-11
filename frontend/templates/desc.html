@@ -6,7 +6,7 @@
     <ul class="pl-4 text-sm">
         {% for annotation in task.annotations %}
         <li class="list-outside">
-            [{{date(date=annotation.entry) }}] {{ annotation.description }}
+            [{{date(date=annotation.entry) }}] {{ annotation.description | linkify | safe }}
         </li>
         {% endfor %}
     </ul>

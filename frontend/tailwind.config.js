@@ -3,6 +3,9 @@ module.exports = {
     content: [
         "templates/*.html",
         "src/*.ts",
+    ],
+    safelist: [
+        'link'
     ]
 }
 
