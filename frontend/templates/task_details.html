@@ -1,6 +1,6 @@
 {% import "desc.html" as desc %}
 <div class="modal-box max-w-3xl" id="task-details-modal-box">
-  <h2 class="text-lg font-bold text-neutral-content-200">Task: {{ task.description }}</h2>
+  <h2 class="text-lg font-bold text-neutral-content-200">Task: {{ task.description | linkify | safe }}</h2>
   <div class="join mb-3">
     <button
       class="btn btn-xs btn-warning join-item"
@@ -267,7 +267,7 @@ Dates should be given in format yyyy-mm-dd."
                     {% for annotation in task.annotations %}
                     <tr>
                         <th>{{date(date=annotation.entry) }}</th>
-                        <td>{{ annotation.description }}</td>
+                        <td>{{ annotation.description | linkify | safe }}</td>
                         {% if annotate_shortcuts %}
                         <td>
                           <button
