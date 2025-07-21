@@ -43,7 +43,7 @@ async fn main() {
 
     let addr = format!(
         "{}:{}",
-        env::var("TWK_SERVER_ADDR").unwrap_or("0.0.0.0".to_string())
+        env::var("TWK_SERVER_ADDR").unwrap_or("0.0.0.0".to_string()),
         env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
     );
 
