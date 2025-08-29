@@ -1,3 +1,14 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{Html, Response};
@@ -30,6 +41,7 @@ use taskwarrior_web::{
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::{error, info, trace, Level};
 use tracing_subscriber::layer::SubscriberExt;
+
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[tokio::main]
@@ -298,14 +310,11 @@ fn get_tasks_view_data(
 
 async fn front_page(app_state: State<AppState>) -> Html<String> {
     let tq = TaskQuery::new(TWGlobalState::default());
-    let tasks = match list_tasks(&tq) {
-        Ok(e) => e,
-        Err(e) => {
-            error!("Cannot read task list, error: {:?}", e);
-            let x: IndexMap<TaskUUID, taskwarrior_web::backend::task::Task> = IndexMap::new();
-            x
-        }
-    };
+    let tasks = list_tasks(&tq).unwrap_or_else(|e| {
+        error!("Cannot read task list, error: {:?}", e);
+        let x: IndexMap<TaskUUID, taskwarrior_web::backend::task::Task> = IndexMap::new();
+        x
+    });
     let filters = tq.as_filter_text();
     let TaskViewDataRetType {
         tasks,
