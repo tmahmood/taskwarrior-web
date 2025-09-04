@@ -17,6 +17,10 @@ use std::str::FromStr;
 
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
+
+#[cfg(test)]
+mod tests;
+use chrono::TimeZone;
 use chrono::{DateTime, TimeDelta};
 use linkify::LinkKind;
 use rand::distr::{Alphanumeric, SampleString};
@@ -24,6 +28,7 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use taskchampion::Uuid;
 use tera::{escape_html, Context};
 use tracing::{trace, warn};
+
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
@@ -37,6 +42,7 @@ lazy_static::lazy_static! {
         tera.register_function("project_name", get_project_name_link());
         tera.register_function("date_proper", get_date_proper());
         tera.register_function("timer_value", get_timer());
+        tera.register_function("datetime_iso", get_datetime_iso());
         tera.register_function("date", get_date());
         tera.register_function("obj", obj());
         tera.register_function("remove_project_tag", remove_project_from_tag());
@@ -367,6 +373,17 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
     )
 }
 
+#[cfg(not(test))]
+#[allow(dead_code)]
+fn get_utc_now() -> DateTime<Utc> {
+    chrono::prelude::Utc::now()
+}
+#[cfg(test)]
+#[allow(dead_code)]
+fn get_utc_now() -> DateTime<Utc> {
+    chrono::Utc.with_ymd_and_hms(2025, 5, 1, 3, 55, 0).unwrap()
+}
+
 pub struct DeltaNow {
     pub now: DateTime<chrono::Utc>,
     pub delta: TimeDelta,
@@ -380,7 +397,7 @@ impl DeltaNow {
                 // Try taskchampions variant.
                 chrono::prelude::NaiveDateTime::parse_from_str(time, "%Y-%m-%dT%H:%M:%SZ").unwrap())
             .and_utc();
-        let now = chrono::prelude::Utc::now();
+        let now = get_utc_now();
         let delta = now - time;
         Self { now, delta, time }
     }
@@ -420,6 +437,22 @@ fn get_date_proper() -> impl tera::Function {
                 format!("{}m", sign * num_minutes)
             };
             Ok(tera::to_value(s).unwrap())
+        },
+    )
+}
+
+fn get_datetime_iso() -> impl tera::Function {
+    Box::new(
+        move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
+            let date_time_str = args.get("datetime").unwrap().as_str().unwrap();
+            // we are working with utc time
+            let date_time = chrono::prelude::NaiveDateTime::parse_from_str(date_time_str, "%Y%m%dT%H%M%SZ")
+            .unwrap_or_else(|_|
+                // Try taskchampions variant.
+                chrono::prelude::NaiveDateTime::parse_from_str(date_time_str, "%Y-%m-%dT%H:%M:%SZ").unwrap()
+            )
+            .and_utc();
+            Ok(tera::to_value(date_time.to_rfc3339()).unwrap())
         },
     )
 }
@@ -485,7 +518,7 @@ fn get_timer() -> impl tera::Function {
 
             let s = if delta.num_hours() > 0 {
                 format!(
-                    "{:>02}:{:>02}",
+                    "{:>02}:{:>02}:00",
                     delta.num_hours(),
                     delta.num_minutes() - (delta.num_hours() * 60)
                 )
@@ -497,7 +530,7 @@ fn get_timer() -> impl tera::Function {
                     num_seconds % 60
                 )
             } else {
-                format!("{}s", num_seconds)
+                format!("00:00:{:>02}", num_seconds)
             };
             Ok(tera::to_value(s).unwrap())
         },
