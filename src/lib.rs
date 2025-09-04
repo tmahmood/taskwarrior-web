@@ -1,5 +1,15 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+
 #![feature(exit_status_error)]
-#![feature(let_chains)]
 
 use std::collections::HashMap;
 use std::fmt;
@@ -7,16 +17,18 @@ use std::str::FromStr;
 
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
-use chrono::{DateTime, TimeDelta, Utc};
+
+#[cfg(test)]
+mod tests;
+use chrono::TimeZone;
+use chrono::{DateTime, TimeDelta};
+use linkify::LinkKind;
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use taskchampion::Uuid;
-use tera::Context;
-use tracing::warn;
-#[cfg(test)]
-mod tests;
-#[cfg(test)]
-use chrono::TimeZone;
+use tera::{escape_html, Context};
+use tracing::{trace, warn};
+
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
@@ -35,6 +47,7 @@ lazy_static::lazy_static! {
         tera.register_function("obj", obj());
         tera.register_function("remove_project_tag", remove_project_from_tag());
         tera.register_function("strip_prefix", strip_prefix());
+        tera.register_filter("linkify", linkify_text());
         tera.register_filter("update_unique_tags", update_unique_tags());
         tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
         tera.register_tester("keyword_tag", is_tag_keyword_tests());
@@ -245,6 +258,42 @@ fn strip_prefix() -> impl tera::Function {
                 tera::from_value::<String>(args.get("prefix").clone().unwrap().clone()).unwrap();
 
             Ok(tera::to_value(pname.strip_prefix(&pprefix).unwrap().to_string()).unwrap())
+        },
+    )
+}
+
+fn linkify_text() -> impl tera::Filter {
+    Box::new(
+        move |value: &tera::Value,
+              _args: &HashMap<String, tera::Value>|
+              -> tera::Result<tera::Value> {
+            let lfy = linkify::LinkFinder::new();
+            let base_text = tera::from_value::<String>(value.clone())?;
+            trace!("Need to linkify {}", base_text);
+            let mut new_text = String::new();
+            for span in lfy.spans(&base_text) {
+                let txt = match span.kind() {
+                    Some(link) if *link == LinkKind::Url => {
+                        format!(
+                            "<a class=\"link\" href=\"{}\">{}</a>",
+                            span.as_str(),
+                            span.as_str()
+                        )
+                    }
+                    Some(link) if *link == LinkKind::Email => {
+                        format!(
+                            "<a class=\"link\" href=\"mailto:{}\">{}</a>",
+                            span.as_str(),
+                            span.as_str()
+                        )
+                    }
+                    Some(_) => escape_html(span.as_str()),
+                    None => escape_html(span.as_str()),
+                };
+                new_text.push_str(&txt);
+            }
+
+            Ok(tera::to_value(new_text)?)
         },
     )
 }
@@ -486,4 +535,55 @@ fn get_timer() -> impl tera::Function {
             Ok(tera::to_value(s).unwrap())
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+
+    use serde_json::value::Value;
+    use tera::Filter;
+
+    use super::*;
+
+    #[test]
+    fn test_tera_linkify_text() {
+        let filter = linkify_text();
+        let value = tera::to_value("This is a test").unwrap();
+        let args: HashMap<String, Value> = HashMap::new();
+        let result = filter.filter(&value, &args);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(result.unwrap(), tera::to_value("This is a test").unwrap());
+
+        let value = tera::to_value("This is very-important-url.tld a test").unwrap();
+        let result = filter.filter(&value, &args);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(
+            result.unwrap(),
+            tera::to_value("This is very-important-url.tld a test").unwrap()
+        );
+
+        let value = tera::to_value("This is https://very-important-url.tld a test").unwrap();
+        let result = filter.filter(&value, &args);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(
+            result.unwrap(),
+            tera::to_value("This is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
+        );
+
+        let value = tera::to_value("This is twk@twk-test.github.com a test").unwrap();
+        let result = filter.filter(&value, &args);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(
+            result.unwrap(),
+            tera::to_value("This is <a class=\"link\" href=\"mailto:twk@twk-test.github.com\">twk@twk-test.github.com</a> a test").unwrap()
+        );
+
+        let value = tera::to_value("This <a href=\"https://very-important-url.tld\">very important</a> is https://very-important-url.tld a test").unwrap();
+        let result = filter.filter(&value, &args);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(
+            result.unwrap(),
+            tera::to_value("This &lt;a href=&quot;<a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
+        );
+    }
 }

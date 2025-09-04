@@ -1,3 +1,13 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 use std::collections::HashMap;
 
 use axum::{
@@ -105,6 +115,8 @@ impl FormValidation {
         }
     }
 
+    /// Check if any validation errors occured or if no errors were recognized.
+    /// If everything went fine, `is_success` returns `true`.
     pub fn is_success(&self) -> bool {
         self.success
     }
@@ -121,6 +133,9 @@ impl FormValidation {
         self
     }
 
+    /// Checks whether errors occured for given `field`.
+    /// If at least one error to the given `field`, a `true` 
+    /// is returned.
     pub fn has_error(&self, field: &str) -> bool {
         self.fields.contains_key(field)
     }
