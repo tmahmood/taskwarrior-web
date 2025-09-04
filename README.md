@@ -2,7 +2,24 @@
 
 
 
-# NEW!
+# Current Update
+
+Hey! 
+
+Now the program is MIT licensed. Thanks to [monofox](https://github.com/monofox) for reminding me of it. And I
+appreciate his awesome contributions!
+
+
+Even though currently the program is not being updated, I have not given up on it. I will try to get some updates in eventually. Meantime, I may not be able to rectify any issues, but will do my best to give suggestions.
+
+I would appreciate if you can support the development effort
+[Buy me a coffee!](https://tmahmood.gumroad.com/coffee)
+
+I will be working on 
+- UI update on Sync
+- Respecting context set in TW
+
+# Past Update
 
 - Updated to tailwindcss 4 and using daisyui for UI components.
 - Cleaned-up code a bit to make it easier to manage
