@@ -13,7 +13,9 @@ appreciate his awesome contributions!
 Even though currently the program is not being updated, I have not given up on it. I will try to get some updates in eventually. Meantime, I may not be able to rectify any issues, but will do my best to give suggestions.
 
 I would appreciate if you can support the development effort
-[Buy me a coffee!](https://tmahmood.gumroad.com/coffee) | ![COFEE](./131084.png)
+
+[Buy me a coffee!](https://tmahmood.gumroad.com/coffee)
+
 
 I will be working on 
 - UI update on Sync
