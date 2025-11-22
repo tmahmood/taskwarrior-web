@@ -8,19 +8,19 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{Html, Response};
 use axum::routing::post;
-use axum::{routing::get, Form, Router};
+use axum::{Form, Router, routing::get};
 use indexmap::IndexMap;
+use listenfd::ListenFd;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::string::ToString;
 use taskchampion::Uuid;
-use taskwarrior_web::backend::task::{get_project_list, TaskOperation};
-use taskwarrior_web::core::app::{get_default_context, AppState};
+use taskwarrior_web::backend::task::{TaskOperation, get_project_list};
+use taskwarrior_web::core::app::{AppState, get_default_context};
 use taskwarrior_web::core::cache::MnemonicsType;
 use taskwarrior_web::core::config::CustomQuery;
 use taskwarrior_web::core::errors::FormValidation;
@@ -28,35 +28,53 @@ use taskwarrior_web::core::utils::{make_shortcut, make_shortcut_cache};
 use taskwarrior_web::endpoints::tasks::task_query_builder::TaskQuery;
 use taskwarrior_web::endpoints::tasks::{self, change_task_status, display_task_details};
 use taskwarrior_web::endpoints::tasks::{
-    api_denotate_task_entry, display_task_delete, get_task_details, get_task_details_form,
+    TaskUUID, TaskViewDataRetType, fetch_active_task, list_tasks, run_annotate_command,
+    run_denotate_command, run_modify_command, task_add, task_undo, toggle_task_active,
 };
 use taskwarrior_web::endpoints::tasks::{
-    fetch_active_task, list_tasks, run_annotate_command, run_denotate_command, run_modify_command,
-    task_add, task_undo, toggle_task_active, TaskUUID, TaskViewDataRetType,
+    api_denotate_task_entry, display_task_delete, get_task_details, get_task_details_form,
 };
 use taskwarrior_web::{
-    task_query_merge_previous_params, task_query_previous_params, FlashMsg, FlashMsgRoles, NewTask,
-    TWGlobalState, TaskActions, TEMPLATES,
+    FlashMsg, FlashMsgRoles, NewTask, TEMPLATES, TWGlobalState, TaskActions,
+    task_query_merge_previous_params, task_query_previous_params,
 };
+use tokio::net::TcpListener;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
-use tracing::{error, info, trace, Level};
+use tracing::{Level, error, info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 
 use tracing_subscriber::util::SubscriberInitExt;
 
-#[tokio::main]
-async fn main() {
-    // initialize tracing
-    init_tracing();
-    match dotenvy::dotenv() {
-        Ok(_) => {}
-        Err(_) => {}
+async fn reload_listener(app: Router) -> anyhow::Result<()> {
+    let mut listenfd = ListenFd::from_env();
+    let listener = match listenfd.take_tcp_listener(0)? {
+        // if we are given a tcp listener on listen fd 0, we use that one
+        Some(listener) => {
+            listener.set_nonblocking(true)?;
+            TcpListener::from_std(listener)?
+        }
+        // otherwise fall back to local listening
+        None => {
+            let addr = format!(
+                "0.0.0.0:{}",
+                env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
+            );
+            TcpListener::bind(addr).await?
+        }
     };
 
-    let addr = format!(
-        "0.0.0.0:{}",
-        env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
-    );
+    info!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // initialize tracing
+    init_tracing();
+    if dotenvy::dotenv().is_err() {
+        tracing::warn!("failed to initialize env")
+    };
 
     let app_settings = AppState::default();
 
@@ -80,6 +98,7 @@ async fn main() {
         .route("/tag_bar", get(get_tag_bar))
         .route("/task_action_bar", get(get_task_action_bar))
         .route("/bars", get(get_bar))
+        .route("/sync", get(check_and_sync))
         .with_state(app_settings)
         .layer(
             TraceLayer::new_for_http()
@@ -88,9 +107,8 @@ async fn main() {
         );
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    info!("Application is listening on address: {}", addr);
-    axum::serve(listener, app).await.unwrap();
+    reload_listener(app).await?;
+    Ok(())
 }
 
 fn init_tracing() {
@@ -105,10 +123,8 @@ fn init_tracing() {
 
 async fn get_active_task(app_state: State<AppState>) -> Html<String> {
     let mut ctx = get_default_context(&app_state);
-    if let Ok(v) = fetch_active_task() {
-        if let Some(v) = v {
-            ctx.insert("active_task", &v);
-        }
+    if let Ok(Some(v)) = fetch_active_task() {
+        ctx.insert("active_task", &v)
     }
     Html(TEMPLATES.render("active_task.html", &ctx).unwrap())
 }
@@ -116,6 +132,17 @@ async fn get_active_task(app_state: State<AppState>) -> Html<String> {
 async fn get_task_action_bar(app_state: State<AppState>) -> Html<String> {
     let ctx = get_default_context(&app_state);
     Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
+}
+
+async fn check_and_sync(app_state: State<AppState>) -> Html<String> {
+    // will perform a sync operation
+    if app_state.sync_interval > 0 {
+        // TODO: check sync status
+
+        // TODO: Show update available message, need a direct keyboard shortcut to perform update
+        return Html("Task Update available".to_string());
+    }
+    Html("".to_string())
 }
 
 async fn get_bar(
@@ -183,16 +210,15 @@ async fn display_task_add_window(
     let tq: TaskQuery = params
         .filter_value()
         .clone()
-        .and_then(|v| {
-            if v == "" {
-                Some(TaskQuery::default())
+        .map(|v| {
+            if v.is_empty() {
+                TaskQuery::default()
             } else {
-                Some(serde_json::from_str(&v).unwrap_or(TaskQuery::default()))
+                serde_json::from_str(&v).unwrap_or(TaskQuery::default())
             }
         })
-        .or(Some(TaskQuery::default()))
-        .unwrap();
-    let project_list = get_project_list(&app_state.task_storage_path).unwrap_or(Vec::new());
+        .unwrap_or(TaskQuery::default());
+    let project_list = get_project_list(&app_state.task_storage_path).unwrap_or_default();
     let mut ctx = get_default_context(&app_state);
     let new_task = NewTask::new(
         None,
@@ -241,18 +267,15 @@ fn get_tasks_view_data(
             }
             if let Some(project) = &task.project {
                 // the project is not in the map, so all of it can be added
-                if let None = tag_map.get(project) {
+                if !tag_map.contains_key(project) {
                     let parts: Vec<_> = project.split('.').collect();
                     let mut total_parts = vec![];
                     for part in parts {
                         total_parts.push(part);
                         let project_name = &total_parts.join(".");
                         let s = format!("project:{}", project_name);
-                        let shortcut = make_shortcut_cache(
-                            MnemonicsType::PROJECT,
-                            &project_name,
-                            app_state,
-                        );
+                        let shortcut =
+                            make_shortcut_cache(MnemonicsType::PROJECT, project_name, app_state);
                         tag_map.insert(s, shortcut);
                     }
                 }

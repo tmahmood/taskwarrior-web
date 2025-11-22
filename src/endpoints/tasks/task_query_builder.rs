@@ -8,13 +8,12 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
+use crate::TWGlobalState;
+use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
 use std::process::Command;
-use serde::{Deserialize, Serialize};
 use tracing::log::trace;
-use crate::TWGlobalState;
 
 pub enum TQUpdateTypes {
     Priority(String),
@@ -33,13 +32,17 @@ pub enum TaskReport {
 
 impl Display for TaskReport {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            TaskReport::Next => "next",
-            TaskReport::New => "new",
-            TaskReport::Ready => "ready",
-            TaskReport::All => "all",
-            TaskReport::NotSet => ""
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                TaskReport::Next => "next",
+                TaskReport::New => "new",
+                TaskReport::Ready => "ready",
+                TaskReport::All => "all",
+                TaskReport::NotSet => "",
+            }
+        )
     }
 }
 
@@ -50,11 +53,10 @@ impl From<String> for TaskReport {
             "new" => TaskReport::New,
             "next" => TaskReport::Next,
             "all" => TaskReport::All,
-            _ => TaskReport::NotSet
+            _ => TaskReport::NotSet,
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 pub enum TaskPriority {
@@ -73,19 +75,23 @@ impl From<String> for TaskPriority {
             "priority:H" => TaskPriority::High,
             "priority:M" => TaskPriority::Medium,
             "priority:L" => TaskPriority::Low,
-            _ => TaskPriority::NotSet
+            _ => TaskPriority::NotSet,
         }
     }
 }
 
 impl Display for TaskPriority {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            TaskPriority::High => "priority:H",
-            TaskPriority::Medium => "priority:M",
-            TaskPriority::Low => "priority:L",
-            TaskPriority::NotSet => ""
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                TaskPriority::High => "priority:H",
+                TaskPriority::Medium => "priority:M",
+                TaskPriority::Low => "priority:L",
+                TaskPriority::NotSet => "",
+            }
+        )
     }
 }
 
@@ -106,19 +112,23 @@ impl From<String> for TaskStatus {
             "status:pending" => TaskStatus::Pending,
             "status:completed" => TaskStatus::Completed,
             "status:waiting" => TaskStatus::Waiting,
-            _ => TaskStatus::NotSet
+            _ => TaskStatus::NotSet,
         }
     }
 }
 
 impl Display for TaskStatus {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            TaskStatus::Pending => "status:pending",
-            TaskStatus::Completed => "status:completed",
-            TaskStatus::Waiting => "status:waiting",
-            TaskStatus::NotSet => ""
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                TaskStatus::Pending => "status:pending",
+                TaskStatus::Completed => "status:completed",
+                TaskStatus::Waiting => "status:waiting",
+                TaskStatus::NotSet => "",
+            }
+        )
     }
 }
 
@@ -213,6 +223,8 @@ impl TaskQuery {
 
         if let Some(t) = params.query {
             if t.starts_with("project:") {
+                // already have a project set,
+                // so do not set project
                 if self.project == Some(t.clone()) {
                     self.project = None;
                 } else {
@@ -253,15 +265,11 @@ impl TaskQuery {
         }
         match &self.report {
             TaskReport::NotSet => {}
-            v => {
-                export_suffix.push(v.to_string())
-            }
+            v => export_suffix.push(v.to_string()),
         }
         match &self.priority {
             TaskPriority::NotSet => {}
-            v => {
-                export_prefix.push(v.to_string())
-            }
+            v => export_prefix.push(v.to_string()),
         }
         if let Some(p) = self.project.clone() {
             export_prefix.push(p)
@@ -271,9 +279,7 @@ impl TaskQuery {
         }
         match &self.status {
             TaskStatus::NotSet => {}
-            v => {
-                export_prefix.push(v.to_string())
-            }
+            v => export_prefix.push(v.to_string()),
         }
         if let Some(e) = self.new_entry.clone() {
             export_prefix.push(e);
@@ -324,5 +330,3 @@ impl TaskQuery {
 
 #[cfg(test)]
 mod tests;
-
-

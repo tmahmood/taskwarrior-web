@@ -8,7 +8,6 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 #![feature(exit_status_error)]
 
 use std::collections::HashMap;
@@ -20,9 +19,9 @@ use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
 use chrono::{DateTime, TimeDelta};
 use linkify::LinkKind;
 use rand::distr::{Alphanumeric, SampleString};
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use taskchampion::Uuid;
-use tera::{escape_html, Context};
+use tera::{Context, escape_html};
 use tracing::{trace, warn};
 
 lazy_static::lazy_static! {

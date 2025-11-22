@@ -37,6 +37,7 @@ use super::{
 /// | DISPLAY_TIME_OF_THE_DAY   | display_time_of_the_day  |
 /// | TASKDATA                  | task_storage_path        |
 /// | TWK_CONFIG_FOLDER         | app_config_path          |
+/// | TWK_SYNC                  | interval in seconds      |
 ///
 #[derive(Clone)]
 pub struct AppState {
@@ -50,6 +51,7 @@ pub struct AppState {
     pub app_cache_path: PathBuf,
     pub app_cache: Arc<RwLock<MnemonicsCacheType>>,
     pub app_config: Arc<AppSettings>,
+    pub sync_interval: i64,
     // Here must be cache object for mnemonics
 }
 
@@ -66,10 +68,15 @@ impl Default for AppState {
             .parse::<i32>()
             .unwrap_or(0);
 
-        let home_dir = home_dir().unwrap_or(PathBuf::default());
+        let home_dir = home_dir().unwrap_or_default();
         let home_dir = home_dir.join(".task");
         let task_storage_path =
             env::var("TASKDATA").unwrap_or(home_dir.to_str().unwrap_or("").to_string());
+        let sync_interval = if let Ok(sync_interval) = env::var("TWK_SYNC") {
+            i64::from_str(&sync_interval).unwrap_or_default()
+        } else {
+            0
+        };
         let task_storage_path =
             PathBuf::from_str(&task_storage_path).expect("Storage path cannot be found");
         let task_hooks_path = Some(home_dir.clone().join("hooks"));
@@ -78,25 +85,20 @@ impl Default for AppState {
 
         // Overall determination of the configuration files.
         let mut app_config_path: Option<PathBuf> = match env::var("TWK_CONFIG_FOLDER") {
-            Ok(p) => {
-                let app_config_path: Result<PathBuf, _> = p.try_into();
-                match app_config_path {
-                    Ok(x) => Some(x),
-                    Err(_) => None,
-                }
-            }
+            Ok(p) => Some(p.into()),
             Err(_) => None,
         };
-        if app_config_path.is_none() && standard_project_dirs.is_some() {
-            if let Some(ref proj_dirs) = standard_project_dirs {
-                app_config_path = Some(proj_dirs.config_dir().to_path_buf());
-            }
+        if app_config_path.is_none()
+            && standard_project_dirs.is_some()
+            && let Some(ref proj_dirs) = standard_project_dirs
+        {
+            app_config_path = Some(proj_dirs.config_dir().to_path_buf());
         }
 
         let app_config_path = app_config_path.expect("Configuration path not found");
         create_dir_all(app_config_path.as_path()).expect("Config folder cannot be created.");
         let app_config_path = app_config_path.join("config.toml");
-        let app_settings = match AppSettings::new(&app_config_path.as_path()) {
+        let app_settings = match AppSettings::new(app_config_path.as_path()) {
             Ok(s) => Ok(s),
             Err(e) => match e {
                 config::ConfigError::Foreign(_) => {
@@ -112,11 +114,9 @@ impl Default for AppState {
         .expect("Proper configuration file does not exist");
 
         // Overall determination of the cache folder.
-        let app_cache_path = match standard_project_dirs {
-            Some(p) => Some(p.cache_dir().to_path_buf()),
-            None => None,
-        }
-        .expect("Cache folder not usable.");
+        let app_cache_path = standard_project_dirs
+            .map(|p| p.cache_dir().to_path_buf())
+            .expect("Cache folder not usable.");
 
         // initialize cache.
         // ensure, the folder exists.
@@ -129,12 +129,11 @@ impl Default for AppState {
         let mut cache = FileMnemonicsCache::new(Arc::new(Mutex::new(cache_path)));
         cache
             .load()
-            .map_err(|e| {
+            .inspect_err(|e| {
                 tracing::error!(
                     "Cannot parse the configuration file, error: {}",
                     e.to_string()
                 );
-                e
             })
             .expect("Configuration file exists, but is not parsable!");
 
@@ -153,6 +152,7 @@ impl Default for AppState {
             app_cache_path,
             app_cache: Arc::new(RwLock::new(cache)),
             app_config: Arc::new(app_settings),
+            sync_interval,
         }
     }
 }

@@ -8,24 +8,31 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 use std::{
-    collections::HashMap, io::Write, os::unix::fs::PermissionsExt, path::PathBuf, process::{Command, Stdio}
+    collections::HashMap,
+    fmt::Display,
+    io::Write,
+    os::unix::fs::PermissionsExt,
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
 };
 
+use crate::{
+    backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde},
+    core::app::AppState,
+};
 use anyhow::Error;
-use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc, offset::LocalResult};
 use serde::{Deserialize, Serialize};
 use taskchampion::{Operation, Operations, Replica, StorageConfig, Uuid};
 use tracing::{debug, error, info};
-use crate::{backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde}, core::app::AppState};
 
 use crate::core::errors::AppError;
 
 #[cfg(windows)]
-const LINE_ENDING: &'static str = "\r\n";
+const LINE_ENDING: &str = "\r\n";
 #[cfg(not(windows))]
-const LINE_ENDING: &'static str = "\n";
+const LINE_ENDING: &str = "\n";
 
 #[derive(Clone, Debug)]
 pub enum TaskProperties {
@@ -41,9 +48,9 @@ pub enum TaskProperties {
     PROJECT,
 }
 
-impl ToString for TaskProperties {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for TaskProperties {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             TaskProperties::DESCRIPTION => "description".to_string(),
             TaskProperties::DUE => "due".to_string(),
             TaskProperties::MODIFIED => "modified".to_string(),
@@ -54,7 +61,8 @@ impl ToString for TaskProperties {
             TaskProperties::END => "end".to_string(),
             TaskProperties::ENTRY => "entry".to_string(),
             TaskProperties::PROJECT => "project".to_string(),
-        }
+        };
+        write!(f, "{}", s)
     }
 }
 
@@ -107,12 +115,13 @@ pub enum TaskEvent {
     OnModify,
 }
 
-impl ToString for TaskEvent {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for TaskEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             TaskEvent::OnAdd => "on-add".to_string(),
             TaskEvent::OnModify => "on-modify".to_string(),
-        }
+        };
+        write!(f, "{}", s)
     }
 }
 
@@ -230,10 +239,8 @@ impl From<taskchampion::Task> for Task {
             .map(|p| p.to_string())
             .collect();
         let deps: Vec<Uuid> = value.get_dependencies().collect();
-        let mut annotations: Vec<Annotation> = value
-            .get_annotations()
-            .map(|p| Annotation::from(p))
-            .collect();
+        let mut annotations: Vec<Annotation> =
+            value.get_annotations().map(Annotation::from).collect();
         annotations.sort();
         annotations.reverse();
         let uda: HashMap<String, String> = value
@@ -299,7 +306,7 @@ pub struct TaskOperation {
 }
 
 /// Get a replica access to the taskchampion database stored in `taskdb`
-pub fn get_replica(taskdb: &PathBuf) -> Result<Replica, anyhow::Error> {
+pub fn get_replica(taskdb: &Path) -> Result<Replica, anyhow::Error> {
     // Create a new Replica, storing data on disk.
     let storage = StorageConfig::OnDisk {
         taskdb_dir: taskdb.to_path_buf(),
@@ -343,69 +350,69 @@ pub fn execute_hooks(
 
     // find scripts and execute.
     let hooks_dir = hooks_dir.as_ref().unwrap();
-    let paths = std::fs::read_dir(&hooks_dir)?;
+    let paths = std::fs::read_dir(hooks_dir)?;
     for path in paths {
-        if let Ok(entry) = path {
-            if let Ok(meta) = entry.metadata() {
-                let permissions = meta.permissions();
-                let is_executable = permissions.mode() & 0o111 != 0;
-                if meta.is_file()
-                    && entry
-                        .file_name()
-                        .to_str()
-                        .unwrap()
-                        .starts_with(&event_type.to_string())
-                    && is_executable
-                {
-                    debug!(
-                        "Hook {:?} will be executed with stdin: {}",
-                        &entry.file_name().to_str(),
-                        &args
-                    );
-                    let child = Command::new(entry.path())
-                        .stdin(Stdio::piped())
-                        .stdout(Stdio::piped())
-                        .spawn();
-                    match child {
-                        Ok(mut child) => {
-                            let child_stdin = child.stdin.as_mut().unwrap();
-                            let _ = child_stdin.write_all(args.as_bytes());
+        if let Ok(entry) = path
+            && let Ok(meta) = entry.metadata()
+        {
+            let permissions = meta.permissions();
+            let is_executable = permissions.mode() & 0o111 != 0;
+            if meta.is_file()
+                && entry
+                    .file_name()
+                    .to_str()
+                    .unwrap()
+                    .starts_with(&event_type.to_string())
+                && is_executable
+            {
+                debug!(
+                    "Hook {:?} will be executed with stdin: {}",
+                    &entry.file_name().to_str(),
+                    &args
+                );
+                let child = Command::new(entry.path())
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn();
+                match child {
+                    Ok(mut child) => {
+                        let child_stdin = child.stdin.as_mut().unwrap();
+                        let _ = child_stdin.write_all(args.as_bytes());
 
-                            let cmd = child.wait_with_output();
-                            match cmd {
-                                Ok(o) => {
-                                    let output = [o.stdout.as_slice()].concat();
-                                    let output = String::from_utf8(output)
-                                        .unwrap_or("Output no valid UTF-8".to_string());
-                                    info!(
-                                        "Hook {:?} called, exit status: {}",
-                                        &entry.file_name().to_str(),
-                                        o.status
-                                    );
-                                    debug!(
-                                        "Hook {:?} output was {:?}",
-                                        &entry.file_name().to_str(),
-                                        output
-                                    );
-                                }
-                                Err(e) => {
-                                    error!(
-                                        "Hook {:?} failed with error {}",
-                                        &entry.file_name().to_str(),
-                                        e.to_string()
-                                    );
-                                }
+                        let cmd = child.wait_with_output();
+                        match cmd {
+                            Ok(o) => {
+                                let output = [o.stdout.as_slice()].concat();
+                                let output = String::from_utf8(output)
+                                    .unwrap_or("Output no valid UTF-8".to_string());
+                                info!(
+                                    "Hook {:?} called, exit status: {}",
+                                    &entry.file_name().to_str(),
+                                    o.status
+                                );
+                                debug!(
+                                    "Hook {:?} output was {:?}",
+                                    &entry.file_name().to_str(),
+                                    output
+                                );
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Hook {:?} failed with error {}",
+                                    &entry.file_name().to_str(),
+                                    e.to_string()
+                                );
                             }
                         }
-                        Err(e) => {
-                            error!(
-                                "Hook {:?} failed with error {}",
-                                &entry.file_name().to_str(),
-                                e.to_string()
-                            );
-                        }
-                    };
-                }
+                    }
+                    Err(e) => {
+                        error!(
+                            "Hook {:?} failed with error {}",
+                            &entry.file_name().to_str(),
+                            e.to_string()
+                        );
+                    }
+                };
             }
         }
     }
@@ -431,7 +438,7 @@ pub fn get_project_list(taskdb: &PathBuf) -> Result<Vec<String>, AppError> {
 
 /// Get a list of tags used in any of current worksets replica content.
 #[allow(dead_code)]
-fn get_tag_list(taskdb: &PathBuf) -> Result<Vec<String>, AppError> {
+fn get_tag_list(taskdb: &Path) -> Result<Vec<String>, AppError> {
     let mut replica = get_replica(taskdb)?;
     let mut tags: Vec<String> = vec![];
 
@@ -447,33 +454,38 @@ fn get_tag_list(taskdb: &PathBuf) -> Result<Vec<String>, AppError> {
     Ok(tags)
 }
 
-
-pub fn get_undo_operations(taskdb: &PathBuf) -> Result<HashMap<Uuid, Vec<TaskOperation>>, AppError> {
+pub fn get_undo_operations(taskdb: &Path) -> Result<HashMap<Uuid, Vec<TaskOperation>>, AppError> {
     let mut replica = get_replica(taskdb)?;
     let ops = replica.get_undo_operations()?;
     let mut converted_ops: HashMap<Uuid, Vec<TaskOperation>> = HashMap::new();
     for e in ops {
         let converted_entry = match e {
-            Operation::Create { uuid } => Some((uuid.clone(), TaskOperation {
-                operation: "Create".to_string(),
+            Operation::Create { uuid } => Some((
                 uuid,
-                property: None,
-                old_value: None,
-                value: None,
-                timestamp: None,
-                old_task: None,
-                is_tag_change: false,
-            })),
-            Operation::Delete { uuid, old_task } => Some((uuid.clone(), TaskOperation {
-                operation: "Delete".to_string(),
+                TaskOperation {
+                    operation: "Create".to_string(),
+                    uuid,
+                    property: None,
+                    old_value: None,
+                    value: None,
+                    timestamp: None,
+                    old_task: None,
+                    is_tag_change: false,
+                },
+            )),
+            Operation::Delete { uuid, old_task } => Some((
                 uuid,
-                property: None,
-                old_value: None,
-                value: None,
-                timestamp: None,
-                old_task: Some(old_task),
-                is_tag_change: false,
-            })),
+                TaskOperation {
+                    operation: "Delete".to_string(),
+                    uuid,
+                    property: None,
+                    old_value: None,
+                    value: None,
+                    timestamp: None,
+                    old_task: Some(old_task),
+                    is_tag_change: false,
+                },
+            )),
             Operation::Update {
                 uuid,
                 property,
@@ -489,16 +501,19 @@ pub fn get_undo_operations(taskdb: &PathBuf) -> Result<HashMap<Uuid, Vec<TaskOpe
                         .to_string(),
                     false => property,
                 };
-                Some((uuid.clone(), TaskOperation {
-                    operation: "Modified".to_string(),
+                Some((
                     uuid,
-                    property: Some(property),
-                    old_value,
-                    value,
-                    timestamp: Some(timestamp),
-                    old_task: None,
-                    is_tag_change: *is_tag_change,
-                }))
+                    TaskOperation {
+                        operation: "Modified".to_string(),
+                        uuid,
+                        property: Some(property),
+                        old_value,
+                        value,
+                        timestamp: Some(timestamp),
+                        old_task: None,
+                        is_tag_change: *is_tag_change,
+                    },
+                ))
             }
             Operation::UndoPoint => None,
         };
@@ -513,9 +528,14 @@ pub fn get_undo_operations(taskdb: &PathBuf) -> Result<HashMap<Uuid, Vec<TaskOpe
     Ok(converted_ops)
 }
 
-pub fn get_task(taskdb: &PathBuf, task_id: Uuid) -> Result<Option<Task>, anyhow::Error> {
+pub fn get_task(taskdb: &Path, task_id: Uuid) -> Result<Option<Task>, anyhow::Error> {
     let mut replica = get_replica(taskdb)?;
-    let idx: Option<i64> = replica.working_set().unwrap().by_uuid(task_id).map(|p| Some(p as i64)).unwrap_or(None);
+    let idx: Option<i64> = replica
+        .working_set()
+        .unwrap()
+        .by_uuid(task_id)
+        .map(|p| Some(p as i64))
+        .unwrap_or(None);
     let x: Option<Task> = replica.get_task(task_id).map(|t| {
         if let Some(t_fine) = t {
             let mut task = Task::from(t_fine);
@@ -528,8 +548,11 @@ pub fn get_task(taskdb: &PathBuf, task_id: Uuid) -> Result<Option<Task>, anyhow:
     Ok(x)
 }
 
-
-pub fn denotate_task(task_id: Uuid, anno: &Annotation, app_state: &AppState) -> Result<Task, anyhow::Error> {
+pub fn denotate_task(
+    task_id: Uuid,
+    anno: &Annotation,
+    app_state: &AppState,
+) -> Result<Task, anyhow::Error> {
     let mut replica = get_replica(&app_state.task_storage_path)?;
     let mut ops = Operations::new();
     let mut task = replica.get_task(task_id)?.expect("Could not found task");
@@ -539,7 +562,11 @@ pub fn denotate_task(task_id: Uuid, anno: &Annotation, app_state: &AppState) -> 
 
     match replica.commit_operations(ops) {
         Ok(_) => {
-            info!("Removed task {} annotation {}", task_id.to_string(), anno.entry);
+            info!(
+                "Removed task {} annotation {}",
+                task_id.to_string(),
+                anno.entry
+            );
             // execute hooks.
             let ct: crate::backend::task::Task = task.into();
             let _ = execute_hooks(
