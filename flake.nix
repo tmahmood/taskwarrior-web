@@ -85,7 +85,7 @@
 
             cargoHash = "sha256-8eudwEVFDCmFbereV3f8ABOaXjjg4XxuAheO6dNPLqA=";
 
-            nativeBuildInputs = [];
+            nativeBuildInputs = [ pkgs.makeWrapper ];
 
             buildInputs = with pkgs; [
               sqlite
@@ -98,6 +98,11 @@
               rm build.rs # Skip the build.rs entirely since we built frontend separately
               mkdir -p $out/dist
               cp -r ${frontend}/* $out
+            '';
+
+            postFixup = ''
+              wrapProgram $out/bin/taskwarrior-web \
+                --set TASK_WEB_STATICS_DIR "$out/dist"
             '';
 
             meta = with lib; {
