@@ -102,7 +102,7 @@
 
             postFixup = ''
               wrapProgram $out/bin/taskwarrior-web \
-                --set TASK_WEB_STATICS_DIR "$out/dist"
+                --set TWK_STATICS_DIR "$out/dist"
             '';
 
             meta = with lib; {

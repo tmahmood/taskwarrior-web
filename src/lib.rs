@@ -26,7 +26,7 @@ use tera::{Context, escape_html};
 use tracing::{trace, warn};
 
 pub fn get_statics_dir() -> String {
-    std::env::var("TASK_WEB_STATICS_DIR")
+    std::env::var("TWK_STATICS_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("dist"))
         .to_string_lossy()
