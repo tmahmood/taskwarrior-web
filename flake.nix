@@ -45,7 +45,7 @@
               substituteInPlace rollup.config.js \
                 --replace-fail 'frontend/src/main.ts' 'src/main.ts'
 
-              node_modules/.bin/rollup rollup.config.js
+              node_modules/.bin/rollup -c rollup.config.js
 
               cp -r templates dist/
 
