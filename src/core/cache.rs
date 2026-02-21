@@ -215,10 +215,7 @@ mod tests {
         assert_eq!(read_result.is_ok(), true);
         let read_result = read_result.expect("Could not read from file");
         assert!(read_result > 0);
-        assert_eq!(
-            buf,
-            String::from("[tags]\npersonal = \"xz\"\n")
-        );
+        assert_eq!(buf, String::from("[tags]\npersonal = \"xz\"\n"));
         assert_eq!(
             mock.insert(MnemonicsType::PROJECT, "taskwarrior", "xz", false)
                 .is_ok(),
@@ -297,15 +294,15 @@ mod tests {
         assert_eq!(read_result.is_ok(), true);
         let read_result = read_result.expect("Could not read from file");
         assert!(read_result > 0);
-        assert_eq!(
-            buf,
-            String::from("[custom_queries]\none_query = \"ad\"\n")
-        );
+        assert_eq!(buf, String::from("[custom_queries]\none_query = \"ad\"\n"));
 
         // Delete again.
-        assert_eq!(mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok(), true);
+        assert_eq!(
+            mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok(),
+            true
+        );
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
-        
+
         // Test overwriting of queries.
         file1.reopen().expect("Cannot reopen");
         let _ = file1.as_file().set_len(0);
@@ -321,7 +318,10 @@ mod tests {
             true
         );
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
-        assert_eq!(mock.get(MnemonicsType::CustomQuery, "second_query"), Some(String::from("ad")));
+        assert_eq!(
+            mock.get(MnemonicsType::CustomQuery, "second_query"),
+            Some(String::from("ad"))
+        );
         // Ensure, an error is produced in case its not overwritten.
         assert_eq!(
             mock.insert(MnemonicsType::CustomQuery, "one_query", "ad", false)

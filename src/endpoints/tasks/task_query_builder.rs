@@ -255,40 +255,44 @@ impl TaskQuery {
 
     pub fn get_query(&self, with_export: bool) -> Vec<String> {
         let mut output = vec![];
-        let mut export_suffix = vec![];
         let mut export_prefix = vec![];
-        if let Some(f) = &self.filter.clone() {
-            let task_filter = shell_words::split(f);
-            if let Ok(task_filter) = task_filter {
-                export_prefix.extend(task_filter);
-            }
+
+        if let Some(filter) = self.filter.as_ref()
+            && let Ok(task_filter) = shell_words::split(filter)
+        {
+            export_prefix.extend(task_filter);
         }
-        match &self.report {
-            TaskReport::NotSet => {}
-            v => export_suffix.push(v.to_string()),
+
+        if !matches!(&self.report, TaskReport::NotSet) {
+            export_prefix.push(self.report.to_string())
         }
-        match &self.priority {
-            TaskPriority::NotSet => {}
-            v => export_prefix.push(v.to_string()),
+
+        if !matches!(&self.priority, TaskPriority::NotSet) {
+            export_prefix.push(self.priority.to_string());
         }
-        if let Some(p) = self.project.clone() {
-            export_prefix.push(p)
+
+        if let Some(p) = &self.project {
+            export_prefix.push(p.clone())
         }
+
         if self.tags.len() > 0 {
             export_prefix.extend(self.tags.clone())
         }
-        match &self.status {
-            TaskStatus::NotSet => {}
-            v => export_prefix.push(v.to_string()),
+
+        if !matches!(&self.status, TaskStatus::NotSet) {
+            export_prefix.push(self.status.to_string())
         }
+
         if let Some(e) = self.new_entry.clone() {
             export_prefix.push(e);
         }
+
         output.extend(export_prefix);
+
         if with_export {
-            output.extend(vec!["export".to_string()]);
+            output.push("export".to_string());
         }
-        output.extend(export_suffix);
+
         output
     }
 

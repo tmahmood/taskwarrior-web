@@ -71,11 +71,23 @@ impl Default for FormValidation {
 
 impl std::fmt::Display for FormValidation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let field_list: Vec<String> = self.fields.values().map(|f| {
-            let msg_list: Vec<String> = f.iter().map(|x| format!("{}={}", x.field.to_string(), x.message.to_string())).collect();
-            msg_list.join(", ")
-        }).collect();
-        write!(f, "FormValidation error was {:?}, affected fields: {}", self.success, field_list.join("; "))
+        let field_list: Vec<String> = self
+            .fields
+            .values()
+            .map(|f| {
+                let msg_list: Vec<String> = f
+                    .iter()
+                    .map(|x| format!("{}={}", x.field.to_string(), x.message.to_string()))
+                    .collect();
+                msg_list.join(", ")
+            })
+            .collect();
+        write!(
+            f,
+            "FormValidation error was {:?}, affected fields: {}",
+            self.success,
+            field_list.join("; ")
+        )
     }
 }
 
@@ -95,13 +107,17 @@ impl std::error::Error for FormValidation {
 
 impl From<anyhow::Error> for FormValidation {
     fn from(value: anyhow::Error) -> Self {
-        Self::default().set_error(Some(&value.to_string())).to_owned()
+        Self::default()
+            .set_error(Some(&value.to_string()))
+            .to_owned()
     }
 }
 
 impl From<taskchampion::Error> for FormValidation {
     fn from(value: taskchampion::Error) -> Self {
-        Self::default().set_error(Some(&value.to_string())).to_owned()
+        Self::default()
+            .set_error(Some(&value.to_string()))
+            .to_owned()
     }
 }
 
@@ -134,10 +150,9 @@ impl FormValidation {
     }
 
     /// Checks whether errors occured for given `field`.
-    /// If at least one error to the given `field`, a `true` 
+    /// If at least one error to the given `field`, a `true`
     /// is returned.
     pub fn has_error(&self, field: &str) -> bool {
         self.fields.contains_key(field)
     }
-
 }

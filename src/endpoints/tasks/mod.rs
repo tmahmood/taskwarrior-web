@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::io::Write;
 use std::process::Command;
 use std::str::FromStr;
 use task_modify::{

@@ -289,4 +289,3 @@ mod tests {
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "third_query"), None);
     }
 }
-

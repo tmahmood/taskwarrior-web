@@ -8,8 +8,6 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-
 pub(crate) mod task_status_serde {
     use serde::{self, Deserialize, Deserializer, Serializer};
 
@@ -131,8 +129,8 @@ pub(crate) mod task_date_format_mandatory {
         D: Deserializer<'de>,
     {
         let date_str = String::deserialize(deserializer)?;
-        let date_obj = NaiveDateTime::parse_from_str(&date_str, FORMAT)
-            .map_err(serde::de::Error::custom)?;
+        let date_obj =
+            NaiveDateTime::parse_from_str(&date_str, FORMAT).map_err(serde::de::Error::custom)?;
         Ok(DateTime::<Utc>::from_naive_utc_and_offset(date_obj, Utc))
     }
 }
