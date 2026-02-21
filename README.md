@@ -86,7 +86,8 @@ It is recommend to specify the corresponding volume in order to persist the data
 In order to configure the environment variables and contexts for `timewarrior-web`, docker environments can be specified:
 
 | Docker environment               | Shell environment       | Purpose                                                  |
-| -------------------------------- | ----------------------- | -------------------------------------------------------- |
+|----------------------------------| ----------------------- |----------------------------------------------------------|
+|                                  | TWK_SERVER_ADDR         | Specifies the server addr                                |
 | TASK_WEB_TWK_SERVER_PORT         | TWK_SERVER_PORT         | Specifies the server port (see "Ports")                  |
 | TASK_WEB_DISPLAY_TIME_OF_THE_DAY | DISPLAY_TIME_OF_THE_DAY | Displays a time of the day widget in case of value `1`   |
 | TASK_WEB_TWK_USE_FONT            | TWK_USE_FONT            | Font to be used. If not, browsers default fonts are used |
