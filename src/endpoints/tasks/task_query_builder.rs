@@ -263,10 +263,6 @@ impl TaskQuery {
             export_prefix.extend(task_filter);
         }
 
-        if !matches!(&self.report, TaskReport::NotSet) {
-            export_prefix.push(self.report.to_string())
-        }
-
         if !matches!(&self.priority, TaskPriority::NotSet) {
             export_prefix.push(self.priority.to_string());
         }
@@ -291,6 +287,10 @@ impl TaskQuery {
 
         if with_export {
             output.push("export".to_string());
+        }
+
+        if !matches!(&self.report, TaskReport::NotSet) {
+            output.push(self.report.to_string())
         }
 
         output

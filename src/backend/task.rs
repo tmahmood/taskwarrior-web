@@ -17,17 +17,14 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{
-    backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde},
-    core::app::AppState,
-};
+use crate::backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde};
+use crate::core::app::AppState;
+use crate::core::errors::AppError;
 use anyhow::Error;
 use chrono::{DateTime, TimeZone, Utc, offset::LocalResult};
 use serde::{Deserialize, Serialize};
 use taskchampion::{Operation, Operations, Replica, StorageConfig, Uuid};
 use tracing::{debug, error, info};
-
-use crate::core::errors::AppError;
 
 #[cfg(windows)]
 const LINE_ENDING: &str = "\r\n";

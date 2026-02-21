@@ -7,8 +7,19 @@
  *
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 use super::*;
+
+fn parse_text_and_assert_query(query_text: &str, expected: &[&str]) {
+    let task_query = serde_json::from_str::<TaskQuery>(query_text).unwrap();
+    let result = task_query.get_query(true);
+    assert_eq!(result, expected)
+}
+
+fn assert_filter_text(twg_global_state: TWGlobalState, expected: &[&str]) {
+    let mut task_query = TaskQuery::new(twg_global_state).as_filter_text();
+    task_query.sort();
+    assert_eq!(task_query, expected)
+}
 
 #[test]
 fn modifying_existing_task_query() {
@@ -31,49 +42,50 @@ fn modifying_existing_task_query() {
 
 #[test]
 fn with_priority_string_with_status() {
-    let p = TWGlobalState {
-        query: Some("priority:H".to_string()),
-        report: None,
-        status: Some("pending".to_string()),
-        ..TWGlobalState::default()
-    };
-    let task_query = TaskQuery::new(p);
-    assert_eq!(
-        &task_query.as_filter_text().join(" "),
-        "priority:H status:pending"
+    assert_filter_text(
+        TWGlobalState {
+            query: Some("priority:H".to_string()),
+            report: None,
+            status: Some("pending".to_string()),
+            ..TWGlobalState::default()
+        },
+        &["priority:H", "status:pending"],
     )
 }
 
 #[test]
 fn with_priority_string_with_no_status() {
-    let p = TWGlobalState {
-        query: Some("priority:H".to_string()),
-        report: None,
-        ..TWGlobalState::default()
-    };
-    let task_query = TaskQuery::new(p);
-    assert_eq!(&task_query.as_filter_text().join(" "), "next priority:H")
+    assert_filter_text(
+        TWGlobalState {
+            query: Some("priority:H".to_string()),
+            report: None,
+            ..TWGlobalState::default()
+        },
+        &["next", "priority:H"],
+    );
 }
 
 #[test]
 fn with_empty_search_param() {
-    let p = TWGlobalState {
-        report: None,
-        ..TWGlobalState::default()
-    };
-    let task_query = TaskQuery::new(p);
-    assert_eq!(&task_query.as_filter_text().join(" "), "next")
+    assert_filter_text(
+        TWGlobalState {
+            report: None,
+            ..TWGlobalState::default()
+        },
+        &["next"],
+    )
 }
 
 #[test]
 fn when_containing_status() {
-    let p = TWGlobalState {
-        report: None,
-        status: Some("completed".to_string()),
-        ..TWGlobalState::default()
-    };
-    let query = TaskQuery::new(p).as_filter_text();
-    assert_eq!(&query.join(" "), "status:completed")
+    assert_filter_text(
+        TWGlobalState {
+            report: None,
+            status: Some("completed".to_string()),
+            ..TWGlobalState::default()
+        },
+        &["status:completed"],
+    )
 }
 
 #[test]
@@ -88,7 +100,20 @@ fn error_condition_for_pending_tasks() {
   "new_entry": null,
   "custom_query": null
 }"#;
-    let task_query = serde_json::from_str::<TaskQuery>(query_text).unwrap();
-    let result = task_query.get_query(true);
-    assert_eq!(result, ["next", "export"])
+    parse_text_and_assert_query(query_text, &["export", "next"])
+}
+
+#[test]
+fn error_with_default_queryset() {
+    let query_text = r#"{
+        "status": "NotSet",
+        "priority": "NotSet",
+        "report": "Ready",
+        "tags": [],
+        "project": null,
+        "filter": null,
+        "new_entry": null,
+        "custom_query": null
+    }"#;
+    parse_text_and_assert_query(query_text, &["export", "ready"])
 }

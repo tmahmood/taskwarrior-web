@@ -57,8 +57,8 @@ async fn reload_listener(app: Router) -> anyhow::Result<()> {
         None => {
             let addr = format!(
                 "{}:{}",
-              env::var("TWK_SERVER_ADDR").unwrap_or("0.0.0.0".to_string()),
-              env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
+                env::var("TWK_SERVER_ADDR").unwrap_or("0.0.0.0".to_string()),
+                env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
             );
             TcpListener::bind(addr).await?
         }
@@ -76,7 +76,6 @@ async fn main() -> anyhow::Result<()> {
     if dotenvy::dotenv().is_err() {
         tracing::warn!("failed to initialize env")
     };
-
 
     let app_settings = AppState::default();
 
