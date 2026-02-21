@@ -120,13 +120,13 @@ impl Default for AppState {
 
         // initialize cache.
         // ensure, the folder exists.
-        create_dir_all(app_cache_path.as_path()).expect("Cache folder cannot be created.");
+        create_dir_all(&app_cache_path).expect("Cache folder cannot be created.");
         let cache_path = app_cache_path.join("mnemonics.cache");
         info!(
             "Cache file to store mnemonics is placed at {:?}",
             &cache_path
         );
-        let mut cache = FileMnemonicsCache::new(Arc::new(Mutex::new(cache_path)));
+        let mut cache = FileMnemonicsCache::new(Arc::new(Mutex::new(cache_path.clone())));
         cache
             .load()
             .inspect_err(|e| {

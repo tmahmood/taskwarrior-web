@@ -316,7 +316,7 @@ fn get_tasks_view_data(
     for custom_query in &app_state.app_config.custom_queries {
         let shortcut = match custom_query.1.fixed_key.clone() {
             Some(s) => s,
-            None => make_shortcut_cache(MnemonicsType::CustomQuery, &custom_query.0, app_state),
+            None => make_shortcut_cache(MnemonicsType::CustomQuery, custom_query.0, app_state),
         };
         custom_queries_map.insert(shortcut, custom_query.1.clone());
     }

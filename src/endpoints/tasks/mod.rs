@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::io::Write;
 use std::process::Command;
 use std::str::FromStr;
 use task_modify::{
@@ -90,13 +91,13 @@ pub struct Task {
 pub fn fetch_task_from_cmd(task_query: &TaskQuery) -> Result<String, anyhow::Error> {
     let mut task = task_query.build();
     trace!("{:?}", task.get_args());
-    return match task.output() {
+    match task.output() {
         Ok(v) => Ok(String::from_utf8(v.stdout.to_vec())?),
         Err(e) => {
             error!("{}", e);
             anyhow::bail!("Failed to read tasks")
         }
-    };
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
@@ -111,7 +112,7 @@ impl From<TaskUUID> for Uuid {
 fn read_task_file(
     task_query: &TaskQuery,
 ) -> Result<IndexMap<TaskUUID, crate::backend::task::Task>, anyhow::Error> {
-    let content = fetch_task_from_cmd(&task_query)?;
+    let content = fetch_task_from_cmd(task_query)?;
     let jd = &mut serde_json::Deserializer::from_str(&content);
     let result: Result<Vec<crate::backend::task::Task>, _> = serde_path_to_error::deserialize(jd);
     match result {

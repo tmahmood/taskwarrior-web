@@ -15,11 +15,12 @@ use tracing::{error, trace};
 use super::{app::AppState, cache::MnemonicsType};
 
 pub fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
-    let alpha = Alphanumeric::default();
     let mut len = 2;
     let mut tries = 0;
     loop {
-        let shortcut = alpha.sample_string(&mut rand::rng(), len).to_lowercase();
+        let shortcut = Alphanumeric
+            .sample_string(&mut rand::rng(), len)
+            .to_lowercase();
         if !shortcuts.contains(&shortcut) {
             shortcuts.insert(shortcut.clone());
             return shortcut;
@@ -36,7 +37,6 @@ pub fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
 }
 
 pub fn make_shortcut_cache(mn_type: MnemonicsType, key: &str, app_state: &AppState) -> String {
-    let alpha = Alphanumeric::default();
     let mut len = 2;
     let mut tries = 0;
     // Check if available in cache.
@@ -50,7 +50,9 @@ pub fn make_shortcut_cache(mn_type: MnemonicsType, key: &str, app_state: &AppSta
     }
 
     loop {
-        let shortcut = alpha.sample_string(&mut rand::rng(), len).to_lowercase();
+        let shortcut = Alphanumeric
+            .sample_string(&mut rand::rng(), len)
+            .to_lowercase();
         let shortcut_insert =
             app_state
                 .app_cache
@@ -60,9 +62,7 @@ pub fn make_shortcut_cache(mn_type: MnemonicsType, key: &str, app_state: &AppSta
         if shortcut_insert.is_ok() {
             trace!(
                 "Searching shortcut for type {:?} with key {} and found {}",
-                &mn_type,
-                key,
-                &shortcut
+                &mn_type, key, &shortcut
             );
             return shortcut;
         } else {
