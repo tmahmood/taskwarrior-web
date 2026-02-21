@@ -12,6 +12,7 @@
 
 use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
@@ -24,9 +25,17 @@ use taskchampion::Uuid;
 use tera::{Context, escape_html};
 use tracing::{trace, warn};
 
+pub fn get_statics_dir() -> String {
+    std::env::var("TWK_STATICS_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("dist"))
+        .to_string_lossy()
+        .to_string()
+}
+
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: tera::Tera = {
-        let mut tera = match tera::Tera::new("dist/templates/**/*") {
+        let mut tera = match tera::Tera::new(format!("{}/templates/**/*", get_statics_dir()).as_str()) {
             Ok(t) => t,
             Err(e) => {
                 warn!("Parsing error(s): {}", e);

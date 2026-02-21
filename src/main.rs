@@ -35,7 +35,7 @@ use taskwarrior_web::endpoints::tasks::{
     api_denotate_task_entry, display_task_delete, get_task_details, get_task_details_form,
 };
 use taskwarrior_web::{
-    FlashMsg, FlashMsgRoles, NewTask, TEMPLATES, TWGlobalState, TaskActions,
+    FlashMsg, FlashMsgRoles, NewTask, TEMPLATES, TWGlobalState, TaskActions, get_statics_dir,
     task_query_merge_previous_params, task_query_previous_params,
 };
 use tokio::net::TcpListener;
@@ -83,7 +83,10 @@ async fn main() -> anyhow::Result<()> {
     // build our application with a route
     let app = Router::new()
         .route("/", get(front_page))
-        .nest_service("/dist", tower_http::services::ServeDir::new("./dist"))
+        .nest_service(
+            "/dist",
+            tower_http::services::ServeDir::new(get_statics_dir()),
+        )
         .route("/tasks", get(tasks_display))
         .route("/tasks", post(do_task_actions))
         .route("/tasks/undo/report", get(get_undo_report))

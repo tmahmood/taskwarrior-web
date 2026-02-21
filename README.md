@@ -91,6 +91,7 @@ In order to configure the environment variables and contexts for `timewarrior-we
 | TASK_WEB_DISPLAY_TIME_OF_THE_DAY | DISPLAY_TIME_OF_THE_DAY | Displays a time of the day widget in case of value `1`   |
 | TASK_WEB_TWK_USE_FONT            | TWK_USE_FONT            | Font to be used. If not, browsers default fonts are used |
 | TASK_WEB_TWK_THEME               | TWK_THEME               | Defines the theme to be used (see "Themes")              |
+| TASK_WEB_TWK_STATICS_DIR         | TWK_STATICS_DIR         | Sets the statics web assets dir. Defaults to `./dist/` |
 
 ## Hooks
 
