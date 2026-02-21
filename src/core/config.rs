@@ -1,6 +1,19 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 use std::collections::HashMap;
 
-use super::{cache::{MnemonicsCache, MnemonicsType}, errors::FieldError};
+use super::{
+    cache::{MnemonicsCache, MnemonicsType},
+    errors::FieldError,
+};
 
 pub trait ValidateSetting {
     fn validate(&self) -> Vec<FieldError>;
@@ -13,7 +26,7 @@ pub struct CustomQuery {
     pub fixed_key: Option<String>,
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct AppSettings {
     #[serde(default)]
     pub custom_queries: HashMap<String, CustomQuery>,
@@ -48,21 +61,14 @@ impl AppSettings {
     }
 }
 
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            custom_queries: Default::default(),
-        }
-    }
-}
-
 impl AppSettings {
     pub fn register_shortcuts(&self, cache: &mut dyn MnemonicsCache) {
         for f in &self.custom_queries {
             if let Some(fixed_key) = &f.1.fixed_key {
-                cache.get(MnemonicsType::CustomQuery, f.0).is_some_and(|f| f != *fixed_key).then(|| {
-                    cache.remove(MnemonicsType::CustomQuery, f.0)
-                });
+                cache
+                    .get(MnemonicsType::CustomQuery, f.0)
+                    .is_some_and(|f| f != *fixed_key)
+                    .then(|| cache.remove(MnemonicsType::CustomQuery, f.0));
                 let _ = cache.insert(MnemonicsType::CustomQuery, f.0, fixed_key, true);
             }
         }
@@ -130,7 +136,11 @@ impl ValidateSetting for AppSettings {
 
 #[cfg(test)]
 mod tests {
-    use std::{io::{Seek, Write}, path::PathBuf, sync::{Arc, Mutex}};
+    use std::{
+        io::{Seek, Write},
+        path::PathBuf,
+        sync::{Arc, Mutex},
+    };
 
     use crate::core::cache::FileMnemonicsCache;
 
@@ -145,49 +155,58 @@ mod tests {
 
     #[test]
     fn test_config_file() {
-        let mut file1 = NamedTempFile::with_suffix(".toml").expect("Cannot create named temp files.");
+        let mut file1 =
+            NamedTempFile::with_suffix(".toml").expect("Cannot create named temp files.");
         // let file1_pb = PathBuf::from(file1.path());
         let _ = file1.as_file().set_len(0);
         let _ = file1.seek(std::io::SeekFrom::Start(0));
-        let data = String::from("[custom_queries]\n\n[custom_queries.one_query]\nquery = \"end:20250502T043247Z limit:5\"\ndescription = \"report of something\"\n\n[custom_queries.two_query]\nquery = \"limit:1\"\ndescription = \"report of another thing\"\nfixed_key = \"ni\" # this will override randomly generated key\n\n");
+        let data = String::from(
+            "[custom_queries]\n\n[custom_queries.one_query]\nquery = \"end:20250502T043247Z limit:5\"\ndescription = \"report of something\"\n\n[custom_queries.two_query]\nquery = \"limit:1\"\ndescription = \"report of another thing\"\nfixed_key = \"ni\" # this will override randomly generated key\n\n",
+        );
         let _ = file1.write_all(data.as_bytes());
         let _ = file1.flush();
-        
+
         let appconf = AppSettings::new(file1.path());
         println!("{:?}", appconf);
-        assert_eq!(appconf.is_ok(), true);
+        assert!(appconf.is_ok());
         let appconf = appconf.unwrap();
         assert_eq!(appconf.custom_queries.len(), 2);
-        assert_eq!(appconf.custom_queries.contains_key("one_query"), true);
-        assert_eq!(appconf.custom_queries.contains_key("two_query"), true);
+        assert!(appconf.custom_queries.contains_key("one_query"));
+        assert!(appconf.custom_queries.contains_key("two_query"));
     }
 
     #[test]
     fn test_config_file_syntax() {
-        let mut file1 = NamedTempFile::with_suffix(".toml").expect("Cannot create named temp files.");
+        let mut file1 =
+            NamedTempFile::with_suffix(".toml").expect("Cannot create named temp files.");
         // let file1_pb = PathBuf::from(file1.path());
         let _ = file1.as_file().set_len(0);
         let _ = file1.seek(std::io::SeekFrom::Start(0));
-        let data = String::from("[custom_queries]\nquery = \"end:20250502T043247Z limit:5\"\ndescription = \"report of something\"\n");
+        let data = String::from(
+            "[custom_queries]\nquery = \"end:20250502T043247Z limit:5\"\ndescription = \"report of something\"\n",
+        );
         let _ = file1.write_all(data.as_bytes());
         let _ = file1.flush();
-        
+
         let appconf = AppSettings::new(file1.path());
-        assert_eq!(appconf.is_err(), true);
+        assert!(appconf.is_err());
     }
 
     #[test]
     fn test_config_file_validation() {
-        let mut file1 = NamedTempFile::with_suffix(".toml").expect("Cannot create named temp files.");
+        let mut file1 =
+            NamedTempFile::with_suffix(".toml").expect("Cannot create named temp files.");
         // let file1_pb = PathBuf::from(file1.path());
         let _ = file1.as_file().set_len(0);
         let _ = file1.seek(std::io::SeekFrom::Start(0));
-        let data = String::from("[custom_queries]\n\n[custom_queries.one_query]\nquery = \"end:20250502T043247Z limit:5\"\ndescription = \"report of something\"\nfixed_key = \"ni\"\n\n[custom_queries.two_query]\nquery = \"limit:1\"\ndescription = \"report of another thing\"\nfixed_key = \"ni\" # this will override randomly generated key\n\n");
+        let data = String::from(
+            "[custom_queries]\n\n[custom_queries.one_query]\nquery = \"end:20250502T043247Z limit:5\"\ndescription = \"report of something\"\nfixed_key = \"ni\"\n\n[custom_queries.two_query]\nquery = \"limit:1\"\ndescription = \"report of another thing\"\nfixed_key = \"ni\" # this will override randomly generated key\n\n",
+        );
         let _ = file1.write_all(data.as_bytes());
         let _ = file1.flush();
-        
+
         let appconf = AppSettings::new(file1.path());
-        assert_eq!(appconf.is_err(), true);
+        assert!(appconf.is_err());
     }
 
     #[test]
@@ -195,22 +214,34 @@ mod tests {
         let mut appconf = AppSettings::default();
 
         appconf.custom_queries.insert(
-            String::from("two_query"), 
-            CustomQuery { query: String::from("limit:1"), description: String::from("report of another thing"), fixed_key: Some(String::from("ni")) }
+            String::from("two_query"),
+            CustomQuery {
+                query: String::from("limit:1"),
+                description: String::from("report of another thing"),
+                fixed_key: Some(String::from("ni")),
+            },
         );
         assert_eq!(appconf.custom_queries.len(), 1);
 
         appconf.custom_queries.insert(
-            String::from("third_query"), 
-            CustomQuery { query: String::from("limit:10"), description: String::from("Simple query"), fixed_key: Some(String::from("ni")) }
+            String::from("third_query"),
+            CustomQuery {
+                query: String::from("limit:10"),
+                description: String::from("Simple query"),
+                fixed_key: Some(String::from("ni")),
+            },
         );
         let valid = appconf.validate();
         assert_eq!(valid.len(), 1);
 
         // Lets add further query with only a fixed_key with less than one char.
         appconf.custom_queries.insert(
-            String::from("fourth_query"), 
-            CustomQuery { query: String::from("project:TWK"), description: String::from("Simple query #4"), fixed_key: Some(String::from("n")) }
+            String::from("fourth_query"),
+            CustomQuery {
+                query: String::from("project:TWK"),
+                description: String::from("Simple query #4"),
+                fixed_key: Some(String::from("n")),
+            },
         );
         let valid = appconf.validate();
         assert_eq!(valid.len(), 2);
@@ -226,21 +257,35 @@ mod tests {
         let mut mock = FileMnemonicsCache::new(file_mtx);
 
         let result = mock.insert(MnemonicsType::CustomQuery, "two_query", "ad", false);
-        assert_eq!(result.is_ok(), true);
-        assert_eq!(mock.get(MnemonicsType::CustomQuery, "two_query"), Some(String::from("ad")));
+        assert!(result.is_ok());
+        assert_eq!(
+            mock.get(MnemonicsType::CustomQuery, "two_query"),
+            Some(String::from("ad"))
+        );
 
         appconf.custom_queries.insert(
-            String::from("two_query"), 
-            CustomQuery { query: String::from("limit:1"), description: String::from("report of another thing"), fixed_key: Some(String::from("ni")) }
+            String::from("two_query"),
+            CustomQuery {
+                query: String::from("limit:1"),
+                description: String::from("report of another thing"),
+                fixed_key: Some(String::from("ni")),
+            },
         );
         appconf.custom_queries.insert(
-            String::from("third_query"), 
-            CustomQuery { query: String::from("limit:10"), description: String::from("Simple query"), fixed_key: None }
+            String::from("third_query"),
+            CustomQuery {
+                query: String::from("limit:10"),
+                description: String::from("Simple query"),
+                fixed_key: None,
+            },
         );
 
         appconf.register_shortcuts(&mut mock);
 
-        assert_eq!(mock.get(MnemonicsType::CustomQuery, "two_query"), Some(String::from("ni")));
+        assert_eq!(
+            mock.get(MnemonicsType::CustomQuery, "two_query"),
+            Some(String::from("ni"))
+        );
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "third_query"), None);
     }
 }

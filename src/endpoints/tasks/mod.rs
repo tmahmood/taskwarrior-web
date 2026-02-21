@@ -1,7 +1,17 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+use axum::Form;
 use axum::extract::{Path, State};
 use axum::http::header;
 use axum::http::{Response, StatusCode};
-use axum::Form;
 use chrono::Utc;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -21,14 +31,14 @@ use tracing::{debug, error, info, trace};
 pub mod task_query_builder;
 
 use crate::backend::task::{
-    convert_task_status, denotate_task, execute_hooks, get_replica, get_task, Annotation,
-    TaskEvent, TaskProperties,
+    Annotation, TaskEvent, TaskProperties, convert_task_status, denotate_task, execute_hooks,
+    get_replica, get_task,
 };
-use crate::core::app::{get_default_context, AppState};
+use crate::core::app::{AppState, get_default_context};
 use crate::core::config::CustomQuery;
 use crate::core::errors::{FieldError, FormValidation};
 use crate::core::utils::make_shortcut;
-use crate::{NewTask, TWGlobalState, TaskUpdateStatus, TEMPLATES};
+use crate::{NewTask, TEMPLATES, TWGlobalState, TaskUpdateStatus};
 use task_query_builder::TaskQuery;
 
 pub(crate) mod task_modify;
@@ -80,13 +90,13 @@ pub struct Task {
 pub fn fetch_task_from_cmd(task_query: &TaskQuery) -> Result<String, anyhow::Error> {
     let mut task = task_query.build();
     trace!("{:?}", task.get_args());
-    return match task.output() {
+    match task.output() {
         Ok(v) => Ok(String::from_utf8(v.stdout.to_vec())?),
         Err(e) => {
             error!("{}", e);
             anyhow::bail!("Failed to read tasks")
         }
-    };
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Hash, Eq, PartialEq)]
@@ -101,7 +111,7 @@ impl From<TaskUUID> for Uuid {
 fn read_task_file(
     task_query: &TaskQuery,
 ) -> Result<IndexMap<TaskUUID, crate::backend::task::Task>, anyhow::Error> {
-    let content = fetch_task_from_cmd(&task_query)?;
+    let content = fetch_task_from_cmd(task_query)?;
     let jd = &mut serde_json::Deserializer::from_str(&content);
     let result: Result<Vec<crate::backend::task::Task>, _> = serde_path_to_error::deserialize(jd);
     match result {
@@ -127,10 +137,10 @@ fn parse_apply_additions(
     t: &mut taskchampion::Task,
     replica: &mut Replica,
     mut ops: &mut Vec<taskchampion::Operation>,
-    additional: &String,
+    additional: &str,
     validation_result: &mut FormValidation,
 ) {
-    let task_additions = shell_words::split(&additional).map_err(|e| FieldError {
+    let task_additions = shell_words::split(additional).map_err(|e| FieldError {
         field: "additional".to_string(),
         message: e.to_string(),
     });
@@ -169,8 +179,8 @@ fn parse_apply_additions(
                             b1.0
                         ),
                     });
-                } else if let Ok(_) = TaskProperties::try_from(b1.0.as_str()) {
-                    match t.set_value(b1.0, b1.1, &mut ops).map_err(|p| FieldError {
+                } else if TaskProperties::try_from(b1.0.as_str()).is_ok() {
+                    match t.set_value(b1.0, b1.1, ops).map_err(|p| FieldError {
                         field: "additional".to_string(),
                         message: p.to_string(),
                     }) {
@@ -201,14 +211,14 @@ fn parse_apply_additions(
 pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidation> {
     let mut validation_result = FormValidation::default();
     let mut replica = get_replica(&app_state.task_storage_path)
-        .map_err(|err| <anyhow::Error as Into<FormValidation>>::into(err))?;
+        .map_err(<anyhow::Error as Into<FormValidation>>::into)?;
     let uuid = Uuid::new_v4();
     let mut ops = Operations::new();
     ops.push(taskchampion::Operation::UndoPoint);
 
     let mut t = replica
         .create_task(uuid, &mut ops)
-        .map_err(|err| <taskchampion::Error as Into<FormValidation>>::into(err))?;
+        .map_err(<taskchampion::Error as Into<FormValidation>>::into)?;
     match t
         .set_description(task.description.to_string(), &mut ops)
         .map_err(|p| FieldError {
@@ -245,7 +255,7 @@ pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidati
         Err(e) => validation_result.push(e),
     };
     if let Some(tags) = task.tags()
-        && tags.trim().len() > 0
+        && !tags.trim().is_empty()
     {
         for tag in tags.split(&[' ', '+', '-']) {
             if !tag.trim().is_empty() {
@@ -265,7 +275,10 @@ pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidati
             }
         }
     }
-    if let Some(project) = task.project() {
+    if let Some(mut project) = task.project().clone() {
+        if project.starts_with("project:") {
+            project = project.replace("project:", "")
+        }
         match t
             .set_value(
                 TaskProperties::PROJECT.to_string(),
@@ -273,7 +286,7 @@ pub fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidati
                 &mut ops,
             )
             .map_err(|p| FieldError {
-                field: TaskProperties::PROJECT.to_string().to_string(),
+                field: TaskProperties::PROJECT.to_string(),
                 message: p.to_string(),
             }) {
             Ok(_) => (),
@@ -762,27 +775,25 @@ pub struct TaskViewDataRetType {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, str::FromStr};
+    use std::str::FromStr;
 
     use chrono::{Datelike, Days, Months, Timelike, Utc};
     use taskchampion::{Status, Tag, Uuid};
-    use tempfile::{tempdir, TempDir};
+    use tempfile::{TempDir, tempdir};
 
     use crate::{
-        backend::task::get_replica, core::app::AppState, endpoints::tasks::run_modify_command,
-        NewTask,
+        NewTask, backend::task::get_replica, core::app::AppState,
+        endpoints::tasks::run_modify_command,
     };
 
     use super::task_add;
 
     fn get_random_appstate() -> (TempDir, AppState) {
         let tmp_dir = tempdir().expect("Cannot create a tempdir.");
-        env::set_var(
-            "TASKDATA",
-            tmp_dir.as_ref().to_str().expect("Cannot get path"),
-        );
-        let app_state = AppState::default();
-
+        let app_state = AppState {
+            task_storage_path: tmp_dir.path().to_path_buf(),
+            ..AppState::default()
+        };
         (tmp_dir, app_state)
     }
 

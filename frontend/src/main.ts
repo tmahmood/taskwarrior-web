@@ -1,8 +1,18 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 import 'htmx.org';
 import 'hyperscript.org';
 import * as _hyperscript from "hyperscript.org";
 import hotkeys from "hotkeys-js";
-import * as theme from "./theme.ts";
+import * as theme from "./theme";
 
 _hyperscript.browserInit();
 
@@ -176,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }, 1000
     )
 
-    let day_progress = setInterval(
+    let dayProgress = setInterval(
         () => {
             const dd = document.getElementById('time_of_the_day');
             if (dd === undefined || dd === null) {
@@ -184,11 +194,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             // <progress id="time_of_the_day" class="fill-amber-200 bg-blue-900 w-full shadow-inner shadow-blue-950" max="100" value=""></progress>
             const now = new Date();
-            const total_minutes_passed = now.getMinutes() + (now.getHours() * 60);
-            const total_minutes_in_day = 24 * 60;
-            const hours_left = 24 - now.getHours();
-            dd.style.width = total_minutes_passed * 100 / total_minutes_in_day + "%";
-            dd.children[0].children[0].innerHTML = hours_left + "h";
+            const totalMinutesPassed = now.getMinutes() + (now.getHours() * 60);
+            const totalMinutesInDay = 24 * 60;
+            const hoursLeft = 24 - now.getHours();
+            dd.style.width = totalMinutesPassed * 100 / totalMinutesInDay + "%";
+            dd.children[0].children[0].innerHTML = hoursLeft + "h";
         }, 1000
     )
 });

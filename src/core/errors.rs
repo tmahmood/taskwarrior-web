@@ -1,3 +1,13 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 use std::collections::HashMap;
 
 use axum::{
@@ -61,11 +71,23 @@ impl Default for FormValidation {
 
 impl std::fmt::Display for FormValidation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let field_list: Vec<String> = self.fields.values().map(|f| {
-            let msg_list: Vec<String> = f.iter().map(|x| format!("{}={}", x.field.to_string(), x.message.to_string())).collect();
-            msg_list.join(", ")
-        }).collect();
-        write!(f, "FormValidation error was {:?}, affected fields: {}", self.success, field_list.join("; "))
+        let field_list: Vec<String> = self
+            .fields
+            .values()
+            .map(|f| {
+                let msg_list: Vec<String> = f
+                    .iter()
+                    .map(|x| format!("{}={}", x.field.to_string(), x.message.to_string()))
+                    .collect();
+                msg_list.join(", ")
+            })
+            .collect();
+        write!(
+            f,
+            "FormValidation error was {:?}, affected fields: {}",
+            self.success,
+            field_list.join("; ")
+        )
     }
 }
 
@@ -85,13 +107,17 @@ impl std::error::Error for FormValidation {
 
 impl From<anyhow::Error> for FormValidation {
     fn from(value: anyhow::Error) -> Self {
-        Self::default().set_error(Some(&value.to_string())).to_owned()
+        Self::default()
+            .set_error(Some(&value.to_string()))
+            .to_owned()
     }
 }
 
 impl From<taskchampion::Error> for FormValidation {
     fn from(value: taskchampion::Error) -> Self {
-        Self::default().set_error(Some(&value.to_string())).to_owned()
+        Self::default()
+            .set_error(Some(&value.to_string()))
+            .to_owned()
     }
 }
 
@@ -124,10 +150,9 @@ impl FormValidation {
     }
 
     /// Checks whether errors occured for given `field`.
-    /// If at least one error to the given `field`, a `true` 
+    /// If at least one error to the given `field`, a `true`
     /// is returned.
     pub fn has_error(&self, field: &str) -> bool {
         self.fields.contains_key(field)
     }
-
 }

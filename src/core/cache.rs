@@ -1,3 +1,13 @@
+/*
+ * Copyright 2025 Tarin Mahmood
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -205,10 +215,7 @@ mod tests {
         assert_eq!(read_result.is_ok(), true);
         let read_result = read_result.expect("Could not read from file");
         assert!(read_result > 0);
-        assert_eq!(
-            buf,
-            String::from("[tags]\npersonal = \"xz\"\n")
-        );
+        assert_eq!(buf, String::from("[tags]\npersonal = \"xz\"\n"));
         assert_eq!(
             mock.insert(MnemonicsType::PROJECT, "taskwarrior", "xz", false)
                 .is_ok(),
@@ -287,15 +294,15 @@ mod tests {
         assert_eq!(read_result.is_ok(), true);
         let read_result = read_result.expect("Could not read from file");
         assert!(read_result > 0);
-        assert_eq!(
-            buf,
-            String::from("[custom_queries]\none_query = \"ad\"\n")
-        );
+        assert_eq!(buf, String::from("[custom_queries]\none_query = \"ad\"\n"));
 
         // Delete again.
-        assert_eq!(mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok(), true);
+        assert_eq!(
+            mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok(),
+            true
+        );
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
-        
+
         // Test overwriting of queries.
         file1.reopen().expect("Cannot reopen");
         let _ = file1.as_file().set_len(0);
@@ -311,7 +318,10 @@ mod tests {
             true
         );
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
-        assert_eq!(mock.get(MnemonicsType::CustomQuery, "second_query"), Some(String::from("ad")));
+        assert_eq!(
+            mock.get(MnemonicsType::CustomQuery, "second_query"),
+            Some(String::from("ad"))
+        );
         // Ensure, an error is produced in case its not overwritten.
         assert_eq!(
             mock.insert(MnemonicsType::CustomQuery, "one_query", "ad", false)
