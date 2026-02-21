@@ -56,6 +56,7 @@ async fn reload_listener(app: Router) -> anyhow::Result<()> {
         // otherwise fall back to local listening
         None => {
             let addr = format!(
+                "{}:{}",
               env::var("TWK_SERVER_ADDR").unwrap_or("0.0.0.0".to_string()),
               env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
             );
@@ -63,8 +64,8 @@ async fn reload_listener(app: Router) -> anyhow::Result<()> {
         }
     };
 
-    info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    info!("listening on {}", listener.local_addr()?);
+    axum::serve(listener, app).await?;
     Ok(())
 }
 
