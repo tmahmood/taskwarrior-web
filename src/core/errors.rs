@@ -8,7 +8,7 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use axum::{
     http::StatusCode,
@@ -40,9 +40,9 @@ where
     }
 }
 
-impl ToString for AppError {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+impl Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -77,7 +77,7 @@ impl std::fmt::Display for FormValidation {
             .map(|f| {
                 let msg_list: Vec<String> = f
                     .iter()
-                    .map(|x| format!("{}={}", x.field.to_string(), x.message.to_string()))
+                    .map(|x| format!("{}={}", x.field, x.message))
                     .collect();
                 msg_list.join(", ")
             })
@@ -122,7 +122,14 @@ impl From<taskchampion::Error> for FormValidation {
 }
 
 impl FormValidation {
-    pub fn push(&mut self, error: FieldError) -> () {
+    pub fn with_error(msg: &str) -> Self {
+        FormValidation {
+            fields: HashMap::new(),
+            msg: Some(msg.to_string()),
+            success: false,
+        }
+    }
+    pub fn push(&mut self, error: FieldError) {
         self.success = false;
         if let Some(val) = self.fields.get_mut(&error.field) {
             val.push(error);

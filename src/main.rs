@@ -183,7 +183,7 @@ async fn display_flash_message(
 }
 
 async fn get_undo_report(app_state: State<AppState>) -> Html<String> {
-    match taskwarrior_web::backend::task::get_undo_operations(&app_state.task_storage_path) {
+    match taskwarrior_web::backend::task::get_undo_operations(&app_state.task_storage_path).await {
         Ok(s) => {
             let mut ctx = get_default_context(&app_state);
             let number_operations: i64 = s.values().map(|f| f.len() as i64).sum();
@@ -219,7 +219,9 @@ async fn display_task_add_window(
             }
         })
         .unwrap_or(TaskQuery::default());
-    let project_list = get_project_list(&app_state.task_storage_path).unwrap_or_default();
+    let project_list = get_project_list(&app_state.task_storage_path)
+        .await
+        .unwrap_or_default();
     let mut ctx = get_default_context(&app_state);
     let new_task = NewTask::new(
         None,
@@ -286,9 +288,9 @@ fn get_tasks_view_data(
             let shortcut = make_shortcut(&mut shortcuts);
             let uuid = task.uuid.to_string();
             task_shortcut_map.insert(uuid, shortcut);
-            if task.annotations.is_some() {
-                task.annotations.as_mut().unwrap().sort();
-                task.annotations.as_mut().unwrap().reverse();
+            if let Some(task_annotation) = &mut task.annotations {
+                task_annotation.sort();
+                task_annotation.reverse();
             }
             task.clone()
         })
@@ -413,9 +415,9 @@ fn get_tasks_view_plain(
         task_list,
         task_shortcut_map,
         custom_queries_map,
-    } = get_tasks_view_data(tasks, &filter_ar, &app_state);
+    } = get_tasks_view_data(tasks, &filter_ar, app_state);
     trace!("{:?}", tag_map);
-    let mut ctx_b = get_default_context(&app_state);
+    let mut ctx_b = get_default_context(app_state);
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &filter_ar);
@@ -442,7 +444,7 @@ async fn create_new_task(
     } else {
         TaskQuery::default()
     };
-    match task_add(&new_task, &app_state) {
+    match task_add(&new_task, &app_state).await {
         Ok(_) => {
             let flash_msg = FlashMsg::new("New task created", None, FlashMsgRoles::Success);
             Response::builder()
@@ -454,7 +456,9 @@ async fn create_new_task(
                 .unwrap()
         }
         Err(e) => {
-            let project_list = get_project_list(&app_state.task_storage_path).unwrap_or(Vec::new());
+            let project_list = get_project_list(&app_state.task_storage_path)
+                .await
+                .unwrap_or(Vec::new());
             let mut ctx = get_default_context(&app_state);
             ctx.insert("new_task", &new_task);
             ctx.insert("project_list", &project_list);
@@ -476,7 +480,7 @@ async fn do_task_actions(
     let fm = match multipart.action().clone().unwrap() {
         TaskActions::StatusUpdate => {
             if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
-                match change_task_status(task.clone(), &app_state) {
+                match change_task_status(task.clone(), &app_state).await {
                     Ok(_) => FlashMsg::new(
                         &format!("Task [{}] was updated", task.uuid),
                         None,
@@ -496,9 +500,9 @@ async fn do_task_actions(
             }
         }
         TaskActions::ToggleTimer => {
-            let task_uuid = multipart.uuid().clone().unwrap();
+            let task_uuid = (*multipart.uuid()).unwrap();
             let task_status = multipart.status().clone().unwrap_or("start".to_string());
-            match toggle_task_active(task_uuid, task_status, &app_state) {
+            match toggle_task_active(task_uuid, task_status, &app_state).await {
                 Ok(v) => {
                     if v {
                         FlashMsg::new(
@@ -581,7 +585,8 @@ async fn update_task_details(
 ) -> Response<String> {
     let cmd = multipart.task_entry().clone().unwrap();
     match get_task_details(task_id.to_string()) {
-        Ok(mut task) => match run_modify_command(multipart.uuid().unwrap(), &cmd, &app_state) {
+        Ok(mut task) => match run_modify_command(multipart.uuid().unwrap(), &cmd, &app_state).await
+        {
             Ok(()) => {
                 let flash_msg = FlashMsg::new("Task updated", None, FlashMsgRoles::Success);
                 Response::builder()
@@ -597,7 +602,7 @@ async fn update_task_details(
                     .unwrap()
             }
             Err(e) => {
-                let tasks_deps = get_task_details_form(&mut task, &app_state);
+                let tasks_deps = get_task_details_form(&mut task, &app_state).await;
                 let mut ctx = get_default_context(&app_state);
                 ctx.insert("tasks_db", &tasks_deps);
                 ctx.insert("task", &task);

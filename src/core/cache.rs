@@ -18,7 +18,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MnemonicsType {
     PROJECT,
     TAG,
@@ -52,7 +52,7 @@ pub struct MnemonicsTable {
 }
 
 impl MnemonicsTable {
-    pub fn get(&self, mn_type: MnemonicsType) -> &HashMap<String, String> {
+    pub const fn get(&self, mn_type: MnemonicsType) -> &HashMap<String, String> {
         match mn_type {
             MnemonicsType::PROJECT => &self.projects,
             MnemonicsType::TAG => &self.tags,
@@ -100,9 +100,8 @@ impl FileMnemonicsCache {
             let mut buf = String::new();
             let _ = file_obj.read_to_string(&mut buf);
             if !buf.is_empty() {
-                let x: MnemonicsTable = toml::from_str(&buf).map_err(|p| {
-                    anyhow!("Could not parse configuration file: {}!", p.to_string())
-                })?;
+                let x: MnemonicsTable = toml::from_str(&buf)
+                    .map_err(|p| anyhow!("Could not parse configuration file: {}!", p))?;
                 self.map = x;
             }
         }
@@ -123,9 +122,9 @@ impl MnemonicsCache for FileMnemonicsCache {
             .map
             .get(mn_type.clone())
             .iter()
-            .filter(|p| p.0 != &key)
+            .filter(|p| p.0 != key)
             .find(|p| p.1.as_str().eq(value));
-        if let Some(x) = x.clone() {
+        if let Some(x) = x {
             if ovrrde {
                 let key_dlt = x.0.clone();
                 self.map.remove(mn_type.clone(), &key_dlt);
@@ -161,7 +160,7 @@ impl MnemonicsCache for FileMnemonicsCache {
     }
 
     fn remove(&mut self, mn_type: MnemonicsType, key: &str) -> Result<(), anyhow::Error> {
-        self.map.remove(mn_type, &key);
+        self.map.remove(mn_type, key);
         self.save()?;
         Ok(())
     }
@@ -199,10 +198,9 @@ mod tests {
 
         let mut mock = FileMnemonicsCache::new(file_mtx);
         assert_eq!(mock.get(MnemonicsType::PROJECT, "personal"), None);
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::TAG, "personal", "xz", false)
-                .is_ok(),
-            true
+                .is_ok()
         );
         assert_eq!(
             mock.get(MnemonicsType::TAG, "personal"),
@@ -212,38 +210,32 @@ mod tests {
         file1.reopen().expect("Cannot reopen");
         let mut buf = String::new();
         let read_result = file1.read_to_string(&mut buf);
-        assert_eq!(read_result.is_ok(), true);
+        assert!(read_result.is_ok());
         let read_result = read_result.expect("Could not read from file");
         assert!(read_result > 0);
         assert_eq!(buf, String::from("[tags]\npersonal = \"xz\"\n"));
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::PROJECT, "taskwarrior", "xz", false)
-                .is_ok(),
-            false
+                .is_err(),
         );
-        assert_eq!(mock.remove(MnemonicsType::TAG, "personal").is_ok(), true);
+        assert!(mock.remove(MnemonicsType::TAG, "personal").is_ok());
         assert_eq!(mock.get(MnemonicsType::TAG, "personal"), None);
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::PROJECT, "taskwarrior", "xz", false)
                 .is_ok(),
-            true
         );
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::TAG, "personal", "xz", false)
-                .is_ok(),
-            false
+                .is_err(),
         );
-        assert_eq!(
-            mock.remove(MnemonicsType::PROJECT, "taskwarrior").is_ok(),
-            true
-        );
+        assert!(mock.remove(MnemonicsType::PROJECT, "taskwarrior").is_ok());
         file1.reopen().expect("Cannot reopen");
         let _ = file1.as_file().set_len(0);
         let _ = file1.seek(std::io::SeekFrom::Start(0));
         let data = String::from("[tags]\npersonal = \"xz\"\n\n[projects]\n");
         let _ = file1.write_all(data.as_bytes());
         let _ = file1.flush();
-        assert_eq!(mock.load().is_ok(), true);
+        assert!(mock.load().is_ok());
         assert_eq!(
             mock.get(MnemonicsType::TAG, "personal"),
             Some(String::from("xz"))
@@ -254,16 +246,16 @@ mod tests {
         let data = String::from("**********");
         let _ = file1.write_all(data.as_bytes());
         let _ = file1.flush();
-        assert_eq!(mock.load().is_ok(), false);
+        assert!(mock.load().is_err());
         // Empty file cannot be parsed, but should not through an error!
         let _ = file1.as_file().set_len(0);
         let _ = file1.seek(std::io::SeekFrom::Start(0));
         let _ = file1.flush();
-        assert_eq!(mock.load().is_ok(), true);
+        assert!(mock.load().is_ok());
         // If the configuration file does not exist yet (close will delete),
         // it is fine as well.
         let _ = file1.close();
-        assert_eq!(mock.load().is_ok(), true);
+        assert!(mock.load().is_ok());
     }
 
     #[test]
@@ -278,10 +270,9 @@ mod tests {
 
         // Insert a one_query shortcut and verify, that the query shortcut
         // is saved.
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::CustomQuery, "one_query", "ad", false)
-                .is_ok(),
-            true
+                .is_ok()
         );
         assert_eq!(
             mock.get(MnemonicsType::CustomQuery, "one_query"),
@@ -291,16 +282,13 @@ mod tests {
         // Save to file and ensure, its proper written.
         let mut buf = String::new();
         let read_result = file1.read_to_string(&mut buf);
-        assert_eq!(read_result.is_ok(), true);
+        assert!(read_result.is_ok());
         let read_result = read_result.expect("Could not read from file");
         assert!(read_result > 0);
         assert_eq!(buf, String::from("[custom_queries]\none_query = \"ad\"\n"));
 
         // Delete again.
-        assert_eq!(
-            mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok(),
-            true
-        );
+        assert!(mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok());
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
 
         // Test overwriting of queries.
@@ -310,12 +298,11 @@ mod tests {
         let data = String::from("[custom_queries]\none_query = \"ad\"\n");
         let _ = file1.write_all(data.as_bytes());
         let _ = file1.flush();
-        assert_eq!(mock.load().is_ok(), true);
+        assert!(mock.load().is_ok());
         // Add a second query and ensure, that the one_query gets removed.
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::CustomQuery, "second_query", "ad", true)
-                .is_ok(),
-            true
+                .is_ok()
         );
         assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
         assert_eq!(
@@ -323,10 +310,9 @@ mod tests {
             Some(String::from("ad"))
         );
         // Ensure, an error is produced in case its not overwritten.
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::CustomQuery, "one_query", "ad", false)
-                .is_err(),
-            true
+                .is_err()
         );
     }
 
@@ -336,14 +322,10 @@ mod tests {
         let file_mtx = Arc::new(Mutex::new(x));
 
         let mut mock = FileMnemonicsCache::new(file_mtx);
-        assert_eq!(
+        assert!(
             mock.insert(MnemonicsType::TAG, "personal", "xz", false)
-                .is_ok(),
-            false
+                .is_err()
         );
-        assert_eq!(
-            mock.remove(MnemonicsType::PROJECT, "taskwarrior").is_ok(),
-            false
-        );
+        assert!(mock.remove(MnemonicsType::PROJECT, "taskwarrior").is_err());
     }
 }

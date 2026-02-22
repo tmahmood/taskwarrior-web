@@ -36,11 +36,11 @@ impl Display for TaskReport {
             f,
             "{}",
             match self {
-                TaskReport::Next => "next",
-                TaskReport::New => "new",
-                TaskReport::Ready => "ready",
-                TaskReport::All => "all",
-                TaskReport::NotSet => "",
+                Self::Next => "next",
+                Self::New => "new",
+                Self::Ready => "ready",
+                Self::All => "all",
+                Self::NotSet => "",
             }
         )
     }
@@ -49,11 +49,11 @@ impl Display for TaskReport {
 impl From<String> for TaskReport {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "ready" => TaskReport::Ready,
-            "new" => TaskReport::New,
-            "next" => TaskReport::Next,
-            "all" => TaskReport::All,
-            _ => TaskReport::NotSet,
+            "ready" => Self::Ready,
+            "new" => Self::New,
+            "next" => Self::Next,
+            "all" => Self::All,
+            _ => Self::NotSet,
         }
     }
 }
@@ -69,13 +69,10 @@ pub enum TaskPriority {
 impl From<String> for TaskPriority {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "H" => TaskPriority::High,
-            "M" => TaskPriority::Medium,
-            "L" => TaskPriority::Low,
-            "priority:H" => TaskPriority::High,
-            "priority:M" => TaskPriority::Medium,
-            "priority:L" => TaskPriority::Low,
-            _ => TaskPriority::NotSet,
+            "M" | "priority:M" => Self::Medium,
+            "L" | "priority:L" => Self::Low,
+            "H" | "priority:H" => Self::High,
+            _ => Self::NotSet,
         }
     }
 }
@@ -86,10 +83,10 @@ impl Display for TaskPriority {
             f,
             "{}",
             match self {
-                TaskPriority::High => "priority:H",
-                TaskPriority::Medium => "priority:M",
-                TaskPriority::Low => "priority:L",
-                TaskPriority::NotSet => "",
+                Self::High => "priority:H",
+                Self::Medium => "priority:M",
+                Self::Low => "priority:L",
+                Self::NotSet => "",
             }
         )
     }
@@ -106,13 +103,10 @@ pub enum TaskStatus {
 impl From<String> for TaskStatus {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "pending" => TaskStatus::Pending,
-            "completed" => TaskStatus::Completed,
-            "waiting" => TaskStatus::Waiting,
-            "status:pending" => TaskStatus::Pending,
-            "status:completed" => TaskStatus::Completed,
-            "status:waiting" => TaskStatus::Waiting,
-            _ => TaskStatus::NotSet,
+            "waiting" | "status:waiting" => Self::Waiting,
+            "pending" | "status:pending" => Self::Pending,
+            "completed" | "status:completed" => Self::Completed,
+            _ => Self::NotSet,
         }
     }
 }
@@ -123,10 +117,10 @@ impl Display for TaskStatus {
             f,
             "{}",
             match self {
-                TaskStatus::Pending => "status:pending",
-                TaskStatus::Completed => "status:completed",
-                TaskStatus::Waiting => "status:waiting",
-                TaskStatus::NotSet => "",
+                Self::Pending => "status:pending",
+                Self::Completed => "status:completed",
+                Self::Waiting => "status:waiting",
+                Self::NotSet => "",
             }
         )
     }
@@ -271,7 +265,7 @@ impl TaskQuery {
             export_prefix.push(p.clone())
         }
 
-        if self.tags.len() > 0 {
+        if !self.tags.is_empty() {
             export_prefix.extend(self.tags.clone())
         }
 

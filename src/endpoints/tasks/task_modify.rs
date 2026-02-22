@@ -10,39 +10,44 @@
 
 use std::str::FromStr;
 
-use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
-use taskchampion::{Replica, Tag, Uuid};
-
 use crate::{
     backend::task::convert_task_status,
     core::errors::{FieldError, FormValidation},
 };
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+use taskchampion::storage::Storage;
+use taskchampion::{Replica, Tag, Uuid};
 
-pub(crate) fn task_apply_tag_add(
-    t: &mut taskchampion::Task,
-    mut ops: &mut Vec<taskchampion::Operation>,
+pub fn task_apply_tag_add(
+    task: &mut taskchampion::Task,
+    ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
-    b1: (String, Option<String>),
+    b1: &(String, Option<String>),
 ) {
     let tag_name = b1.0.strip_prefix("+").unwrap();
-    match &Tag::from_str(tag_name).map_err(|p| FieldError {
-        field: "additional".to_string(),
-        message: p.to_string(),
-    }) {
-        Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
-            field: "additional".to_string(),
-            message: p.to_string(),
-        }) {
-            Ok(_) => (),
-            Err(e) => validation_result.push(e),
-        },
-        Err(e) => validation_result.push(e.to_owned()),
+    let tag = match Tag::from_str(tag_name) {
+        Ok(tag) => tag,
+        Err(err) => {
+            validation_result.push(
+                FieldError {
+                    field: "additional".to_string(),
+                    message: err.to_string(),
+                }
+            );
+            return
+        }
     };
+    if let Err(err) = task.add_tag(&tag, ops) {
+        validation_result.push(FieldError {
+            field: "additional".to_string(),
+            message: err.to_string(),
+        })
+    }
 }
 
-pub(crate) fn task_apply_tag_remove(
+pub fn task_apply_tag_remove(
     t: &mut taskchampion::Task,
-    mut ops: &mut Vec<taskchampion::Operation>,
+    ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
     b1: (String, Option<String>),
 ) {
@@ -51,7 +56,7 @@ pub(crate) fn task_apply_tag_remove(
         field: "additional".to_string(),
         message: p.to_string(),
     }) {
-        Ok(tag) => match t.remove_tag(tag, &mut ops).map_err(|p| FieldError {
+        Ok(tag) => match t.remove_tag(tag, ops).map_err(|p| FieldError {
             field: "additional".to_string(),
             message: p.to_string(),
         }) {
@@ -72,22 +77,19 @@ pub(crate) fn task_apply_recur(
         .set_value("recur", b1.1, ops)
         .map_err(|p| FieldError {
             field: "additional".to_string(),
-            message: format!("Failed change recurrence: {}", p.to_string()),
+            message: format!("Failed change recurrence: {}", p),
         })
         .and_then(|_| {
             t.set_status(taskchampion::Status::Recurring, ops)
                 .map_err(|p| FieldError {
                     field: "additional".to_string(),
-                    message: format!("Failed change task status to recurring: {}", p.to_string()),
+                    message: format!("Failed change task status to recurring: {}", p),
                 })
                 .and_then(|_| {
                     t.set_value("rtype", Some("periodic".into()), ops)
                         .map_err(|p| FieldError {
                             field: "additional".to_string(),
-                            message: format!(
-                                "Failed change task status to recurring: {}",
-                                p.to_string()
-                            ),
+                            message: format!("Failed change task status to recurring: {}", p),
                         })
                 })
         }) {
@@ -96,9 +98,9 @@ pub(crate) fn task_apply_recur(
     };
 }
 
-pub(crate) fn task_apply_depends(
+pub(crate) async fn task_apply_depends<S: Storage>(
     t: &mut taskchampion::Task,
-    replica: &mut Replica,
+    replica: &mut Replica<S>,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
     b1: (String, Option<String>),
@@ -126,7 +128,7 @@ pub(crate) fn task_apply_depends(
                 Err(_) => {
                     let tid = result.1.parse::<usize>();
                     match tid {
-                        Ok(e) => replica.working_set().unwrap().by_index(e),
+                        Ok(e) => replica.working_set().await.unwrap().by_index(e),
                         Err(_) => None,
                     }
                 }
@@ -138,11 +140,7 @@ pub(crate) fn task_apply_depends(
                 };
                 match dep_result.map_err(|p| FieldError {
                     field: "additional".to_string(),
-                    message: format!(
-                        "depends-error for uuid {}: {}",
-                        task_uuid.to_string(),
-                        p.to_string()
-                    ),
+                    message: format!("depends-error for uuid {}: {}", task_uuid, p),
                 }) {
                     Ok(_) => (),
                     Err(e) => validation_result.push(e),
@@ -170,7 +168,7 @@ pub(crate) fn task_apply_description(
         .set_description(b1.1.unwrap_or_default(), ops)
         .map_err(|p| FieldError {
             field: "additional".to_string(),
-            message: format!("Invalid description given: {}", p.to_string()),
+            message: format!("Invalid description given: {}", p),
         }) {
         Ok(_) => (),
         Err(e) => validation_result.push(e),
@@ -187,7 +185,7 @@ pub(crate) fn task_apply_priority(
         .set_priority(b1.1.unwrap_or_default(), ops)
         .map_err(|p| FieldError {
             field: "additional".to_string(),
-            message: format!("Invalid priority given: {}", p.to_string()),
+            message: format!("Invalid priority given: {}", p),
         }) {
         Ok(_) => (),
         Err(e) => validation_result.push(e),
@@ -215,13 +213,9 @@ pub(crate) fn task_apply_timestamps(
             })
             .map_err(|p| FieldError {
                 field: "additional".into(),
-                message: format!(
-                    "Failed parsing timestamp for {} ({}).",
-                    &b1.0,
-                    p.to_string()
-                ),
+                message: format!("Failed parsing timestamp for {} ({}).", &b1.0, p),
             })
-            .map(|p| Some(p)),
+            .map(Some),
         Some(_) => Ok(None),
         None => Ok(None),
     };
@@ -235,11 +229,7 @@ pub(crate) fn task_apply_timestamps(
             }
             .map_err(|p| FieldError {
                 field: "additional".into(),
-                message: format!(
-                    "Failed setting timestamp for {} ({}).",
-                    &b1.0,
-                    p.to_string()
-                ),
+                message: format!("Failed setting timestamp for {} ({}).", &b1.0, p),
             });
             if let Err(p) = result {
                 validation_result.push(p);
@@ -259,7 +249,7 @@ pub(crate) fn task_apply_status(
         let task_status = convert_task_status(&val);
         match t.set_status(task_status, ops).map_err(|p| FieldError {
             field: "additional".into(),
-            message: format!("Invalid status {} ({}).", &val, p.to_string()),
+            message: format!("Invalid status {} ({}).", &val, p),
         }) {
             Ok(_) => (),
             Err(p) => validation_result.push(p),
