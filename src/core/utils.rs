@@ -10,11 +10,11 @@
 
 use rand::distr::{Alphanumeric, SampleString};
 use std::collections::HashSet;
-use tracing::{error, trace};
+use tracing::trace;
 
 use super::{app::AppState, cache::MnemonicsType};
 
-pub fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
+pub fn make_shortcut<S: ::std::hash::BuildHasher>(shortcuts: &mut HashSet<String, S>) -> String {
     let mut len = 2;
     let mut tries = 0;
     loop {
@@ -28,58 +28,43 @@ pub fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
         tries += 1;
         if tries > 1000 {
             len += 1;
-            if len > 3 {
-                panic!("too many shortcuts! this should not happen");
-            }
+            // TODO: This can happen if we have many shortcuts in the long run, need to implement cache cleanup
+            assert!(len <= 3, "too many shortcuts! this should not happen");
             tries = 0;
         }
     }
 }
 
-pub fn make_shortcut_cache(mn_type: MnemonicsType, key: &str, app_state: &AppState) -> String {
+pub fn make_shortcut_cache(mn_type: &MnemonicsType, key: &str, app_state: &AppState) -> String {
     let mut len = 2;
     let mut tries = 0;
-    // Check if available in cache.
-    let shortcut_cache = app_state
-        .app_cache
-        .read()
-        .unwrap()
-        .get(mn_type.clone(), key);
+    // Check if available in the cache.
+    let shortcut_cache = app_state.app_cache.read().unwrap().get(mn_type, key);
     if let Some(shortcut_cache) = shortcut_cache {
         return shortcut_cache;
     }
-
     loop {
         let shortcut = Alphanumeric
             .sample_string(&mut rand::rng(), len)
             .to_lowercase();
-        let shortcut_insert =
-            app_state
-                .app_cache
-                .write()
-                .unwrap()
-                .insert(mn_type.clone(), key, &shortcut, false);
-        if shortcut_insert.is_ok() {
-            trace!(
-                "Searching shortcut for type {:?} with key {} and found {}",
-                &mn_type, key, &shortcut
-            );
-            return shortcut;
-        } else {
-            error!(
-                "Failed generating and saving shortcut {} for type {:?} - error: {:?}",
-                shortcut,
-                &mn_type,
-                shortcut_insert.err()
-            );
-        }
-        tries += 1;
-        if tries > 1000 {
-            len += 1;
-            if len > 3 {
-                panic!("too many shortcuts! this should not happen");
+        if app_state
+            .app_cache
+            .write()
+            .unwrap()
+            .insert(mn_type, key, &shortcut, false)
+            .is_err()
+        {
+            tries += 1;
+            if tries > 1000 {
+                len += 1;
             }
-            tries = 0;
+            assert!(len <= 3, "too many shortcuts! this should not happen");
+            continue;
         }
+        trace!(
+            "Searching shortcut for type {:?} with key {} and found {}",
+            &mn_type, key, &shortcut
+        );
+        return shortcut;
     }
 }

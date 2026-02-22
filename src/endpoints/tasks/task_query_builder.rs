@@ -36,11 +36,11 @@ impl Display for TaskReport {
             f,
             "{}",
             match self {
-                TaskReport::Next => "next",
-                TaskReport::New => "new",
-                TaskReport::Ready => "ready",
-                TaskReport::All => "all",
-                TaskReport::NotSet => "",
+                Self::Next => "next",
+                Self::New => "new",
+                Self::Ready => "ready",
+                Self::All => "all",
+                Self::NotSet => "",
             }
         )
     }
@@ -49,11 +49,11 @@ impl Display for TaskReport {
 impl From<String> for TaskReport {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "ready" => TaskReport::Ready,
-            "new" => TaskReport::New,
-            "next" => TaskReport::Next,
-            "all" => TaskReport::All,
-            _ => TaskReport::NotSet,
+            "ready" => Self::Ready,
+            "new" => Self::New,
+            "next" => Self::Next,
+            "all" => Self::All,
+            _ => Self::NotSet,
         }
     }
 }
@@ -69,13 +69,10 @@ pub enum TaskPriority {
 impl From<String> for TaskPriority {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "H" => TaskPriority::High,
-            "M" => TaskPriority::Medium,
-            "L" => TaskPriority::Low,
-            "priority:H" => TaskPriority::High,
-            "priority:M" => TaskPriority::Medium,
-            "priority:L" => TaskPriority::Low,
-            _ => TaskPriority::NotSet,
+            "M" | "priority:M" => Self::Medium,
+            "L" | "priority:L" => Self::Low,
+            "H" | "priority:H" => Self::High,
+            _ => Self::NotSet,
         }
     }
 }
@@ -86,10 +83,10 @@ impl Display for TaskPriority {
             f,
             "{}",
             match self {
-                TaskPriority::High => "priority:H",
-                TaskPriority::Medium => "priority:M",
-                TaskPriority::Low => "priority:L",
-                TaskPriority::NotSet => "",
+                Self::High => "priority:H",
+                Self::Medium => "priority:M",
+                Self::Low => "priority:L",
+                Self::NotSet => "",
             }
         )
     }
@@ -106,13 +103,10 @@ pub enum TaskStatus {
 impl From<String> for TaskStatus {
     fn from(value: String) -> Self {
         match value.as_str() {
-            "pending" => TaskStatus::Pending,
-            "completed" => TaskStatus::Completed,
-            "waiting" => TaskStatus::Waiting,
-            "status:pending" => TaskStatus::Pending,
-            "status:completed" => TaskStatus::Completed,
-            "status:waiting" => TaskStatus::Waiting,
-            _ => TaskStatus::NotSet,
+            "waiting" | "status:waiting" => Self::Waiting,
+            "pending" | "status:pending" => Self::Pending,
+            "completed" | "status:completed" => Self::Completed,
+            _ => Self::NotSet,
         }
     }
 }
@@ -123,10 +117,10 @@ impl Display for TaskStatus {
             f,
             "{}",
             match self {
-                TaskStatus::Pending => "status:pending",
-                TaskStatus::Completed => "status:completed",
-                TaskStatus::Waiting => "status:waiting",
-                TaskStatus::NotSet => "",
+                Self::Pending => "status:pending",
+                Self::Completed => "status:completed",
+                Self::Waiting => "status:waiting",
+                Self::NotSet => "",
             }
         )
     }
@@ -147,7 +141,7 @@ pub struct TaskQuery {
 
 impl Default for TaskQuery {
     fn default() -> Self {
-        TaskQuery {
+        Self {
             status: TaskStatus::NotSet,
             priority: TaskPriority::NotSet,
             report: TaskReport::Next,
@@ -168,28 +162,16 @@ impl TaskQuery {
     }
 
     pub fn all() -> Self {
-        TaskQuery {
-            status: TaskStatus::NotSet,
-            priority: TaskPriority::NotSet,
+        Self {
             report: TaskReport::All,
-            tags: vec![],
-            project: None,
-            filter: None,
-            new_entry: None,
-            custom_query: None,
+            ..Default::default()
         }
     }
 
     pub fn empty() -> Self {
-        TaskQuery {
-            status: TaskStatus::NotSet,
-            priority: TaskPriority::NotSet,
+        Self {
             report: TaskReport::NotSet,
-            tags: vec![],
-            project: None,
-            filter: None,
-            new_entry: None,
-            custom_query: None,
+            ..Default::default()
         }
     }
 
@@ -230,7 +212,7 @@ impl TaskQuery {
                 } else {
                     self.project = Some(t);
                 }
-            } else if t.starts_with("+") {
+            } else if t.starts_with('+') {
                 if self.tags.contains(&t) {
                     self.tags.retain_mut(|iv| iv != &t);
                 } else {
@@ -246,11 +228,11 @@ impl TaskQuery {
             }
         }
         self.new_entry = params.task_entry;
-        trace!("{:?}", self);
+        trace!("{self:?}");
     }
 
     pub fn set_filter(&mut self, filter: &str) {
-        self.filter = Some(filter.to_string())
+        self.filter = Some(filter.to_string());
     }
 
     pub fn get_query(&self, with_export: bool) -> Vec<String> {
@@ -268,15 +250,15 @@ impl TaskQuery {
         }
 
         if let Some(p) = &self.project {
-            export_prefix.push(p.clone())
+            export_prefix.push(p.clone());
         }
 
-        if self.tags.len() > 0 {
-            export_prefix.extend(self.tags.clone())
+        if !self.tags.is_empty() {
+            export_prefix.extend(self.tags.clone());
         }
 
         if !matches!(&self.status, TaskStatus::NotSet) {
-            export_prefix.push(self.status.to_string())
+            export_prefix.push(self.status.to_string());
         }
 
         if let Some(e) = self.new_entry.clone() {
@@ -290,7 +272,7 @@ impl TaskQuery {
         }
 
         if !matches!(&self.report, TaskReport::NotSet) {
-            output.push(self.report.to_string())
+            output.push(self.report.to_string());
         }
 
         output

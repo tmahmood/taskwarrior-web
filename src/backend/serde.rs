@@ -8,14 +8,15 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-pub(crate) mod task_status_serde {
+pub mod task_status_serde {
     use serde::{self, Deserialize, Deserializer, Serializer};
 
+    #[allow(clippy::ref_option)]
     pub fn serialize<S>(status: &Option<taskchampion::Status>, s: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        if let Some(ref d) = *status {
+        if let Some(d) = status {
             let status = match d {
                 taskchampion::Status::Pending => "pending",
                 taskchampion::Status::Completed => "completed",
@@ -48,11 +49,11 @@ pub(crate) mod task_status_serde {
     }
 }
 
-pub(crate) mod task_date_format {
+pub mod task_date_format {
     use chrono::{DateTime, NaiveDateTime, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    const FORMAT: &'static str = "%Y%m%dT%H%M%SZ"; // Is always in UTC, not able to parse %:z
+    const FORMAT: &str = "%Y%m%dT%H%M%SZ"; // Is always in UTC, not able to parse %:z
 
     // The signature of a serialize_with function must follow the pattern:
     //
@@ -61,6 +62,8 @@ pub(crate) mod task_date_format {
     //        S: Serializer
     //
     // although it may also be generic over the input types T.
+
+    #[allow(clippy::ref_option)]
     pub fn serialize<S>(date: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -85,22 +88,19 @@ pub(crate) mod task_date_format {
         D: Deserializer<'de>,
     {
         let s: Option<String> = Option::deserialize(deserializer)?;
-        if let Some(date_str) = s {
-            match NaiveDateTime::parse_from_str(&date_str, FORMAT) {
-                Ok(dt) => Ok(Some(DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))),
-                Err(_) => Ok(None),
-            }
-        } else {
-            Ok(None)
-        }
+        s.map_or(Ok(None), |date_str| {
+            NaiveDateTime::parse_from_str(&date_str, FORMAT).map_or(Ok(None), |dt| {
+                Ok(Some(DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc)))
+            })
+        })
     }
 }
 
-pub(crate) mod task_date_format_mandatory {
+pub mod task_date_format_mandatory {
     use chrono::{DateTime, NaiveDateTime, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    const FORMAT: &'static str = "%Y%m%dT%H%M%SZ"; // Is always in UTC, not able to parse %:z
+    const FORMAT: &str = "%Y%m%dT%H%M%SZ"; // Is always in UTC, not able to parse %:z
 
     // The signature of a serialize_with function must follow the pattern:
     //

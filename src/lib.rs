@@ -8,7 +8,12 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(exit_status_error)]
+#![allow(
+    clippy::missing_const_for_fn,
+    clippy::must_use_candidate,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc
+)]
 
 use std::collections::HashMap;
 use std::fmt;
@@ -24,34 +29,29 @@ use taskchampion::Uuid;
 use tera::{Context, escape_html};
 use tracing::{trace, warn};
 
-lazy_static::lazy_static! {
-    pub static ref TEMPLATES: tera::Tera = {
-        let mut tera = match tera::Tera::new("dist/templates/**/*") {
-            Ok(t) => t,
-            Err(e) => {
-                warn!("Parsing error(s): {}", e);
-                ::std::process::exit(1);
-            }
-        };
-        tera.register_function("project_name", get_project_name_link());
-        tera.register_function("date_proper", get_date_proper());
-        tera.register_function("timer_value", get_timer());
-        tera.register_function("date", get_date());
-        tera.register_function("obj", obj());
-        tera.register_function("remove_project_tag", remove_project_from_tag());
-        tera.register_function("strip_prefix", strip_prefix());
-        tera.register_filter("linkify", linkify_text());
-        tera.register_filter("update_unique_tags", update_unique_tags());
-        tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
-        tera.register_tester("keyword_tag", is_tag_keyword_tests());
-        tera.register_tester("user_tag", is_tag_tests());
-        tera.autoescape_on(vec![
-            ".html",
-            ".sql"
-        ]);
-        tera
+pub static TEMPLATES: std::sync::LazyLock<tera::Tera> = std::sync::LazyLock::new(|| {
+    let mut tera = match tera::Tera::new("dist/templates/**/*") {
+        Ok(t) => t,
+        Err(e) => {
+            warn!("Parsing error(s): {}", e);
+            ::std::process::exit(1);
+        }
     };
-}
+    tera.register_function("project_name", get_project_name_link());
+    tera.register_function("date_proper", get_date_proper());
+    tera.register_function("timer_value", get_timer());
+    tera.register_function("date", get_date());
+    tera.register_function("obj", obj());
+    tera.register_function("remove_project_tag", remove_project_from_tag());
+    tera.register_function("strip_prefix", strip_prefix());
+    tera.register_filter("linkify", linkify_text());
+    tera.register_filter("update_unique_tags", update_unique_tags());
+    tera.register_filter("update_tag_bar_key_comb", update_tag_bar_key_comb());
+    tera.register_tester("keyword_tag", is_tag_keyword_tests());
+    tera.register_tester("user_tag", is_tag_tests());
+    tera.autoescape_on(vec![".html", ".sql"]);
+    tera
+});
 
 pub mod backend;
 pub mod core;
@@ -82,23 +82,27 @@ pub struct FlashMsg {
 }
 
 impl FlashMsg {
+    #[must_use]
     pub fn msg(&self) -> &str {
         &self.msg
     }
 
-    pub fn role(&self) -> &FlashMsgRoles {
+    #[must_use]
+    pub const fn role(&self) -> &FlashMsgRoles {
         &self.role
     }
 
+    #[must_use]
     pub fn timeout(&self) -> u64 {
-        self.timeout.clone().unwrap_or(15)
+        self.timeout.unwrap_or(15)
     }
 
+    #[must_use]
     pub fn new(msg: &str, timeout: Option<u64>, role: FlashMsgRoles) -> Self {
         Self {
             msg: msg.to_string(),
             timeout,
-            role: role,
+            role,
         }
     }
 
@@ -134,7 +138,8 @@ pub struct TWGlobalState {
 }
 
 impl TWGlobalState {
-    pub fn filter(&self) -> &Option<String> {
+    #[must_use]
+    pub const fn filter(&self) -> &Option<String> {
         &self.filter
     }
     pub fn query(&self) -> &Option<String> {
@@ -161,21 +166,21 @@ impl TWGlobalState {
 }
 
 pub fn task_query_merge_previous_params(state: &TWGlobalState) -> TaskQuery {
-    if let Some(fv) = state.filter_value.clone() {
-        let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
-        tq.update(state.clone());
-        tq
-    } else {
-        TaskQuery::new(TWGlobalState::default())
-    }
+    state.filter_value.clone().map_or_else(
+        || TaskQuery::new(TWGlobalState::default()),
+        |fv| {
+            let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
+            tq.update(state.clone());
+            tq
+        },
+    )
 }
 
 pub fn task_query_previous_params(params: &TWGlobalState) -> TaskQuery {
-    if let Some(fv) = params.filter_value.clone() {
-        serde_json::from_str(&fv).unwrap()
-    } else {
-        TaskQuery::new(TWGlobalState::default())
-    }
+    params.filter_value.clone().map_or_else(
+        || TaskQuery::new(TWGlobalState::default()),
+        |fv| serde_json::from_str(&fv).unwrap(),
+    )
 }
 
 pub fn from_task_to_task_update(params: &TWGlobalState) -> Option<TaskUpdateStatus> {
@@ -184,7 +189,7 @@ pub fn from_task_to_task_update(params: &TWGlobalState) -> Option<TaskUpdateStat
     {
         return Some(TaskUpdateStatus {
             status: status.clone(),
-            uuid: uuid.clone(),
+            uuid: *uuid,
         });
     }
     None
@@ -229,12 +234,11 @@ where
 fn remove_project_from_tag() -> impl tera::Function {
     Box::new(
         move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
-            let mut pname =
-                tera::from_value::<String>(args.get("task").clone().unwrap().clone()).unwrap();
+            let mut pname = tera::from_value::<String>(args.get("task").unwrap().clone()).unwrap();
             pname = pname
                 .replace("project:", "")
-                .split(".")
-                .last()
+                .split('.')
+                .next_back()
                 .unwrap()
                 .to_string();
             Ok(tera::to_value(pname).unwrap())
@@ -245,10 +249,8 @@ fn remove_project_from_tag() -> impl tera::Function {
 fn strip_prefix() -> impl tera::Function {
     Box::new(
         move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
-            let pname =
-                tera::from_value::<String>(args.get("string").clone().unwrap().clone()).unwrap();
-            let pprefix =
-                tera::from_value::<String>(args.get("prefix").clone().unwrap().clone()).unwrap();
+            let pname = tera::from_value::<String>(args.get("string").unwrap().clone()).unwrap();
+            let pprefix = tera::from_value::<String>(args.get("prefix").unwrap().clone()).unwrap();
 
             Ok(tera::to_value(pname.strip_prefix(&pprefix).unwrap().to_string()).unwrap())
         },
@@ -280,8 +282,7 @@ fn linkify_text() -> impl tera::Filter {
                             span.as_str()
                         )
                     }
-                    Some(_) => escape_html(span.as_str()),
-                    None => escape_html(span.as_str()),
+                    Some(_) | None => escape_html(span.as_str()),
                 };
                 new_text.push_str(&txt);
             }
@@ -294,11 +295,9 @@ fn linkify_text() -> impl tera::Filter {
 fn get_project_name_link() -> impl tera::Function {
     Box::new(
         move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
-            let pname =
-                tera::from_value::<String>(args.get("full_name").clone().unwrap().clone()).unwrap();
-            let index =
-                tera::from_value::<usize>(args.get("index").clone().unwrap().clone()).unwrap();
-            let r: Vec<&str> = pname.split(".").take(index).collect();
+            let pname = tera::from_value::<String>(args.get("full_name").unwrap().clone()).unwrap();
+            let index = tera::from_value::<usize>(args.get("index").unwrap().clone()).unwrap();
+            let r: Vec<&str> = pname.split('.').take(index).collect();
             Ok(tera::to_value(r.join(".")).unwrap())
         },
     )
@@ -328,7 +327,7 @@ fn update_unique_tags() -> impl tera::Filter {
               args: &HashMap<String, tera::Value>|
               -> tera::Result<tera::Value> {
             let mut tags = tera::from_value::<Vec<String>>(value.clone())?;
-            let new_tag = tera::from_value::<String>(args.get("tag").clone().unwrap().clone())?;
+            let new_tag = tera::from_value::<String>(args.get("tag").unwrap().clone())?;
             tags.push(new_tag);
             Ok(tera::to_value(tags)?)
         },
@@ -350,12 +349,12 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
               args: &HashMap<String, tera::Value>|
               -> tera::Result<tera::Value> {
             let mut tag_key_comb = tera::from_value::<HashMap<String, String>>(value.clone())?;
-            let tag = tera::from_value::<String>(args.get("tag").clone().unwrap().clone())?;
+            let tag = tera::from_value::<String>(args.get("tag").unwrap().clone())?;
             loop {
                 let string = Alphanumeric
                     .sample_string(&mut rand::rng(), 2)
                     .to_lowercase();
-                if tag_key_comb.iter().find(|&(_k, v)| v == &string).is_some() {
+                if tag_key_comb.iter().any(|(_k, v)| v == &string) {
                     continue;
                 }
                 tag_key_comb.insert(tag, string);
@@ -496,11 +495,28 @@ fn get_timer() -> impl tera::Function {
                     num_seconds % 60
                 )
             } else {
-                format!("{}s", num_seconds)
+                format!("{num_seconds}s")
             };
             Ok(tera::to_value(s).unwrap())
         },
     )
+}
+
+#[cfg(test)]
+use crate::core::app::AppState;
+#[cfg(test)]
+use tempfile::{TempDir, tempdir};
+
+#[cfg(test)]
+fn get_random_appstate() -> (TempDir, AppState) {
+    let tmp_dir = tempdir().expect("Cannot create a tempdir.");
+    let app_state = AppState {
+        task_storage_path: tmp_dir.path().to_path_buf(),
+        // don't want any user hooks to execute accidentally
+        task_hooks_path: Some(tmp_dir.path().join("hooks")),
+        ..AppState::default()
+    };
+    (tmp_dir, app_state)
 }
 
 #[cfg(test)]
@@ -517,12 +533,12 @@ mod tests {
         let value = tera::to_value("This is a test").unwrap();
         let args: HashMap<String, Value> = HashMap::new();
         let result = filter.filter(&value, &args);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         assert_eq!(result.unwrap(), tera::to_value("This is a test").unwrap());
 
         let value = tera::to_value("This is very-important-url.tld a test").unwrap();
         let result = filter.filter(&value, &args);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
             tera::to_value("This is very-important-url.tld a test").unwrap()
@@ -530,7 +546,7 @@ mod tests {
 
         let value = tera::to_value("This is https://very-important-url.tld a test").unwrap();
         let result = filter.filter(&value, &args);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
             tera::to_value("This is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
@@ -538,7 +554,7 @@ mod tests {
 
         let value = tera::to_value("This is twk@twk-test.github.com a test").unwrap();
         let result = filter.filter(&value, &args);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
             tera::to_value("This is <a class=\"link\" href=\"mailto:twk@twk-test.github.com\">twk@twk-test.github.com</a> a test").unwrap()
@@ -546,7 +562,7 @@ mod tests {
 
         let value = tera::to_value("This <a href=\"https://very-important-url.tld\">very important</a> is https://very-important-url.tld a test").unwrap();
         let result = filter.filter(&value, &args);
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
         assert_eq!(
             result.unwrap(),
             tera::to_value("This &lt;a href=&quot;<a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()

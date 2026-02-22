@@ -10,3 +10,5 @@
 
 pub(crate) mod serde;
 pub mod task;
+#[cfg(test)]
+mod tests;

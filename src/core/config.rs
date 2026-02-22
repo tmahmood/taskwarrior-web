@@ -43,17 +43,15 @@ impl AppSettings {
             )
             .build()?;
         match settings.try_deserialize::<Self>() {
-            Ok(s) => {
-                let validation = s.validate();
-                match validation.len() {
-                    0 => Ok(s),
-                    _ => {
-                        let error_message = format!(
-                            "Configuration file couldn't be read. Following error came up: {:?}",
-                            validation
-                        );
-                        Err(config::ConfigError::Message(error_message))
-                    }
+            Ok(app_setting) => {
+                let validation_errors = app_setting.validate();
+                if validation_errors.is_empty() {
+                    Ok(app_setting)
+                } else {
+                    let error_message = format!(
+                        "Configuration file couldn't be read. Following error came up: {validation_errors:?}",
+                    );
+                    Err(config::ConfigError::Message(error_message))
                 }
             }
             Err(e) => Err(e),
@@ -66,10 +64,10 @@ impl AppSettings {
         for f in &self.custom_queries {
             if let Some(fixed_key) = &f.1.fixed_key {
                 cache
-                    .get(MnemonicsType::CustomQuery, f.0)
+                    .get(&MnemonicsType::CustomQuery, f.0)
                     .is_some_and(|f| f != *fixed_key)
-                    .then(|| cache.remove(MnemonicsType::CustomQuery, f.0));
-                let _ = cache.insert(MnemonicsType::CustomQuery, f.0, fixed_key, true);
+                    .then(|| cache.remove(&MnemonicsType::CustomQuery, f.0));
+                let _ = cache.insert(&MnemonicsType::CustomQuery, f.0, fixed_key, true);
             }
         }
     }
@@ -93,7 +91,7 @@ impl ValidateSetting for CustomQuery {
     }
 }
 
-impl ValidateSetting for HashMap<String, CustomQuery> {
+impl<S: ::std::hash::BuildHasher> ValidateSetting for HashMap<String, CustomQuery, S> {
     fn validate(&self) -> Vec<FieldError> {
         let mut shortcuts: Vec<String> = Vec::new();
 
@@ -117,20 +115,14 @@ impl ValidateSetting for HashMap<String, CustomQuery> {
             })
             .collect::<Vec<Vec<FieldError>>>()
             .iter()
-            .flat_map(|p| p.to_owned())
+            .flat_map(std::borrow::ToOwned::to_owned)
             .collect::<Vec<FieldError>>()
     }
 }
 
 impl ValidateSetting for AppSettings {
     fn validate(&self) -> Vec<FieldError> {
-        [&self.custom_queries]
-            .iter()
-            .map(|p| p.validate())
-            .collect::<Vec<Vec<FieldError>>>()
-            .iter()
-            .flat_map(|p| p.to_owned())
-            .collect::<Vec<FieldError>>()
+        self.custom_queries.validate()
     }
 }
 
@@ -167,7 +159,7 @@ mod tests {
         let _ = file1.flush();
 
         let appconf = AppSettings::new(file1.path());
-        println!("{:?}", appconf);
+        println!("{appconf:?}");
         assert!(appconf.is_ok());
         let appconf = appconf.unwrap();
         assert_eq!(appconf.custom_queries.len(), 2);
@@ -256,10 +248,10 @@ mod tests {
 
         let mut mock = FileMnemonicsCache::new(file_mtx);
 
-        let result = mock.insert(MnemonicsType::CustomQuery, "two_query", "ad", false);
+        let result = mock.insert(&MnemonicsType::CustomQuery, "two_query", "ad", false);
         assert!(result.is_ok());
         assert_eq!(
-            mock.get(MnemonicsType::CustomQuery, "two_query"),
+            mock.get(&MnemonicsType::CustomQuery, "two_query"),
             Some(String::from("ad"))
         );
 
@@ -283,9 +275,9 @@ mod tests {
         appconf.register_shortcuts(&mut mock);
 
         assert_eq!(
-            mock.get(MnemonicsType::CustomQuery, "two_query"),
+            mock.get(&MnemonicsType::CustomQuery, "two_query"),
             Some(String::from("ni"))
         );
-        assert_eq!(mock.get(MnemonicsType::CustomQuery, "third_query"), None);
+        assert_eq!(mock.get(&MnemonicsType::CustomQuery, "third_query"), None);
     }
 }

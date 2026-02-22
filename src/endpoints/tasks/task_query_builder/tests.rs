@@ -12,13 +12,13 @@ use super::*;
 fn parse_text_and_assert_query(query_text: &str, expected: &[&str]) {
     let task_query = serde_json::from_str::<TaskQuery>(query_text).unwrap();
     let result = task_query.get_query(true);
-    assert_eq!(result, expected)
+    assert_eq!(result, expected);
 }
 
 fn assert_filter_text(twg_global_state: TWGlobalState, expected: &[&str]) {
     let mut task_query = TaskQuery::new(twg_global_state).as_filter_text();
     task_query.sort();
-    assert_eq!(task_query, expected)
+    assert_eq!(task_query, expected);
 }
 
 #[test]
@@ -37,7 +37,7 @@ fn modifying_existing_task_query() {
     assert_eq!(
         &task_query.as_filter_text().join(" "),
         "priority:H status:pending"
-    )
+    );
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn with_priority_string_with_status() {
             ..TWGlobalState::default()
         },
         &["priority:H", "status:pending"],
-    )
+    );
 }
 
 #[test]
@@ -73,7 +73,7 @@ fn with_empty_search_param() {
             ..TWGlobalState::default()
         },
         &["next"],
-    )
+    );
 }
 
 #[test]
@@ -85,7 +85,7 @@ fn when_containing_status() {
             ..TWGlobalState::default()
         },
         &["status:completed"],
-    )
+    );
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn error_condition_for_pending_tasks() {
   "new_entry": null,
   "custom_query": null
 }"#;
-    parse_text_and_assert_query(query_text, &["export", "next"])
+    parse_text_and_assert_query(query_text, &["export", "next"]);
 }
 
 #[test]
@@ -115,5 +115,5 @@ fn error_with_default_queryset() {
         "new_entry": null,
         "custom_query": null
     }"#;
-    parse_text_and_assert_query(query_text, &["export", "ready"])
+    parse_text_and_assert_query(query_text, &["export", "ready"]);
 }
