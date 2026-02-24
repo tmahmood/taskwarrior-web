@@ -25,9 +25,11 @@ pub fn task_apply_tag_add(
     b1: &(String, Option<String>),
 ) {
     let tag_name = b1.0.strip_prefix("+").unwrap();
+    println!("got tag: {}", tag_name);
     let tag = match Tag::from_str(tag_name) {
         Ok(tag) => tag,
         Err(err) => {
+            println!("! did not add: {}", tag_name);
             validation_result.push(
                 FieldError {
                     field: "additional".to_string(),
@@ -38,6 +40,7 @@ pub fn task_apply_tag_add(
         }
     };
     if let Err(err) = task.add_tag(&tag, ops) {
+        println!("!! did not add: {}", tag_name);
         validation_result.push(FieldError {
             field: "additional".to_string(),
             message: err.to_string(),
