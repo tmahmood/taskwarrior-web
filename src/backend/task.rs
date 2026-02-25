@@ -11,8 +11,8 @@
 use crate::backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde};
 use crate::core::app::AppState;
 use crate::core::errors::AppError;
-use anyhow::{Error, bail};
-use chrono::{DateTime, TimeZone, Utc, offset::LocalResult};
+use anyhow::{bail, Error};
+use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs::DirEntry;
 use std::{
@@ -295,6 +295,27 @@ pub struct TaskOperation {
     pub is_tag_change: bool,
 }
 
+impl TaskOperation {
+    pub fn new(operation: &str, uuid: Uuid, is_tag_change: bool) -> Self {
+        Self {
+            operation: operation.to_string(),
+            uuid,
+            property: None,
+            old_value: None,
+            value: None,
+            timestamp: None,
+            old_task: None,
+            is_tag_change,
+        }
+    }
+
+    pub fn new_with_old_task(operation: &str, uuid: Uuid, is_tag_change: bool, old_task: HashMap<String, String>) -> Self {
+        let mut new_op = Self::new(operation, uuid, is_tag_change);
+        new_op.old_task = Some(old_task);
+        new_op
+    }
+}
+
 /// Get replica access to the taskchampion database stored in `taskdb`
 /// # Errors
 ///
@@ -494,33 +515,15 @@ pub async fn get_undo_operations(
     let mut replica = get_replica(taskdb).await?;
     let ops = replica.get_undo_operations().await?;
     let mut converted_ops: HashMap<Uuid, Vec<TaskOperation>> = HashMap::new();
-    for e in ops {
-        let converted_entry = match e {
+    for op in ops.into_iter() { {
+        let converted_entry = match op {
             Operation::Create { uuid } => Some((
                 uuid,
-                TaskOperation {
-                    operation: "Create".to_string(),
-                    uuid,
-                    property: None,
-                    old_value: None,
-                    value: None,
-                    timestamp: None,
-                    old_task: None,
-                    is_tag_change: false,
-                },
+                TaskOperation::new("Create", uuid, false)
             )),
             Operation::Delete { uuid, old_task } => Some((
                 uuid,
-                TaskOperation {
-                    operation: "Delete".to_string(),
-                    uuid,
-                    property: None,
-                    old_value: None,
-                    value: None,
-                    timestamp: None,
-                    old_task: Some(old_task),
-                    is_tag_change: false,
-                },
+                TaskOperation::new_with_old_task("Delete", uuid, false, old_task)
             )),
             Operation::Update {
                 uuid,
@@ -529,14 +532,11 @@ pub async fn get_undo_operations(
                 value,
                 timestamp,
             } => {
-                let is_tag_change = &property.starts_with("tag_");
-                let property = match is_tag_change {
-                    true => property
+                let is_tag_change = property.starts_with("tag_");
+                let property = property
                         .strip_prefix("tag_")
                         .unwrap_or(&property)
-                        .to_string(),
-                    false => property,
-                };
+                        .to_string();
                 Some((
                     uuid,
                     TaskOperation {
@@ -547,7 +547,7 @@ pub async fn get_undo_operations(
                         value,
                         timestamp: Some(timestamp),
                         old_task: None,
-                        is_tag_change: *is_tag_change,
+                        is_tag_change,
                     },
                 ))
             }
@@ -560,7 +560,8 @@ pub async fn get_undo_operations(
                 converted_ops.insert(top.0, vec![top.1]);
             }
         }
-    }
+    } }
+
     Ok(converted_ops)
 }
 

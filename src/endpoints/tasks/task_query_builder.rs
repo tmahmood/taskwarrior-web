@@ -141,7 +141,7 @@ pub struct TaskQuery {
 
 impl Default for TaskQuery {
     fn default() -> Self {
-        TaskQuery {
+        Self {
             status: TaskStatus::NotSet,
             priority: TaskPriority::NotSet,
             report: TaskReport::Next,
@@ -162,28 +162,16 @@ impl TaskQuery {
     }
 
     pub fn all() -> Self {
-        TaskQuery {
-            status: TaskStatus::NotSet,
-            priority: TaskPriority::NotSet,
+        Self {
             report: TaskReport::All,
-            tags: vec![],
-            project: None,
-            filter: None,
-            new_entry: None,
-            custom_query: None,
+            ..Default::default()
         }
     }
 
     pub fn empty() -> Self {
         TaskQuery {
-            status: TaskStatus::NotSet,
-            priority: TaskPriority::NotSet,
             report: TaskReport::NotSet,
-            tags: vec![],
-            project: None,
-            filter: None,
-            new_entry: None,
-            custom_query: None,
+            ..Default::default()
         }
     }
 

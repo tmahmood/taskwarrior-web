@@ -9,10 +9,10 @@
  */
 
 use anyhow::bail;
-use axum::Form;
 use axum::extract::{Path, State};
 use axum::http::header;
 use axum::http::{Response, StatusCode};
+use axum::Form;
 use chrono::Utc;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -33,14 +33,14 @@ use tracing::{debug, error, info, trace};
 pub mod task_query_builder;
 
 use crate::backend::task::{
-    Annotation, TaskEvent, TaskProperties, convert_task_status, denotate_task, execute_hooks,
-    get_replica, get_task,
+    convert_task_status, denotate_task, execute_hooks, get_replica, get_task, Annotation,
+    TaskEvent, TaskProperties,
 };
-use crate::core::app::{AppState, get_default_context};
+use crate::core::app::{get_default_context, AppState};
 use crate::core::config::CustomQuery;
 use crate::core::errors::{FieldError, FormValidation};
 use crate::core::utils::make_shortcut;
-use crate::{NewTask, TEMPLATES, TaskUpdateStatus};
+use crate::{NewTask, TaskUpdateStatus, TEMPLATES};
 use task_query_builder::TaskQuery;
 
 pub(crate) mod task_modify;
@@ -164,7 +164,7 @@ async fn parse_and_apply_additional_command_fragments<S: Storage>(
         if b1.0.starts_with("+") && b1.1.is_none() {
             task_apply_tag_add(task, ops, validation_result, &b1);
         } else if b1.0.starts_with("-") && b1.1.is_none() {
-            task_apply_tag_remove(task, ops, validation_result, b1);
+            task_apply_tag_remove(task, ops, validation_result, &b1);
         } else if b1.0.to_lowercase().as_str() == "depends" {
             task_apply_depends(task, replica, ops, validation_result, b1).await;
         } else if b1.0.to_lowercase().trim() == "description" {
@@ -218,45 +218,42 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormVa
     let mut ops = Operations::new();
     ops.push(taskchampion::Operation::UndoPoint);
 
-    let mut t = replica
+    let mut updated_task = replica
         .create_task(uuid, &mut ops)
         .await
         .map_err(<taskchampion::Error as Into<FormValidation>>::into)?;
-    match t
-        .set_description(task.description.to_string(), &mut ops)
-        .map_err(|p| FieldError {
+
+    if task.description.trim().is_empty() {
+        validation_result.push(FieldError {
             field: TaskProperties::DESCRIPTION.to_string(),
-            message: p.to_string(),
-        }) {
-        Ok(_) => {
-            // Check if it was field. This is a mandatory field!
-            if task.description.trim().is_empty() {
+            message: "Description field is mandatory".to_string(),
+        })
+    } else {
+        updated_task
+            .set_description(task.description.to_string(), &mut ops)
+            .or_else(|err| {
                 validation_result.push(FieldError {
                     field: TaskProperties::DESCRIPTION.to_string(),
-                    message: "Description field is mandatory".to_string(),
-                })
-            }
-        }
-        Err(e) => validation_result.push(e),
-    };
-    match t
-        .set_status(Status::Pending, &mut ops)
-        .map_err(|p| FieldError {
+                    message: err.to_string(),
+                });
+                Err(FormValidation::with_error("Empty description"))
+            })?;
+    }
+
+    if let Err(err) = updated_task.set_status(Status::Pending, &mut ops) {
+        validation_result.push(FieldError {
             field: TaskProperties::STATUS.to_string(),
-            message: p.to_string(),
-        }) {
-        Ok(_) => (),
-        Err(e) => validation_result.push(e),
-    };
-    match t
-        .set_entry(Some(Utc::now()), &mut ops)
-        .map_err(|p| FieldError {
+            message: err.to_string(),
+        });
+    }
+
+    if let Err(e) = updated_task.set_entry(Some(Utc::now()), &mut ops) {
+        validation_result.push(FieldError {
             field: TaskProperties::ENTRY.to_string(),
-            message: p.to_string(),
-        }) {
-        Ok(_) => (),
-        Err(e) => validation_result.push(e),
+            message: e.to_string(),
+        })
     };
+
     if let Some(tags) = task.tags()
         && !tags.trim().is_empty()
     {
@@ -266,7 +263,7 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormVa
                     field: "tags".to_string(),
                     message: p.to_string(),
                 }) {
-                    Ok(tag) => match t.add_tag(tag, &mut ops).map_err(|p| FieldError {
+                    Ok(tag) => match updated_task.add_tag(tag, &mut ops).map_err(|p| FieldError {
                         field: "tags".to_string(),
                         message: p.to_string(),
                     }) {
@@ -282,7 +279,7 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormVa
         if project.starts_with("project:") {
             project = project.replace("project:", "")
         }
-        match t
+        match updated_task
             .set_value(
                 TaskProperties::PROJECT.to_string(),
                 Some(project.to_string()),
@@ -299,7 +296,7 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormVa
 
     if let Some(additional) = task.additional() {
         parse_and_apply_additional_command_fragments(
-            &mut t,
+            &mut updated_task,
             &mut replica,
             &mut ops,
             additional,
@@ -308,33 +305,32 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormVa
         .await;
     }
 
-    match validation_result.is_success() {
-        true => {
-            // Commit those operations to storage.
-            match replica.commit_operations(ops).await {
-                Ok(_) => {
-                    info!("New task {} added", uuid.to_string());
-                    // execute hooks.
-                    let ct: crate::backend::task::Task = t.into();
-                    execute_hooks(
-                        &app_state.task_hooks_path,
-                        &TaskEvent::OnAdd,
-                        &None,
-                        &Some(ct),
-                    );
-                    Ok(())
-                }
-                Err(e) => {
-                    error!(
-                        "Could not create task {}, error: {}",
-                        uuid.to_string(),
-                        e.to_string()
-                    );
-                    Err(e.into())
-                }
+    if validation_result.is_success() {
+        // Commit those operations to storage.
+        match replica.commit_operations(ops).await {
+            Ok(_) => {
+                info!("New task {} added", uuid.to_string());
+                // execute hooks.
+                let ct: crate::backend::task::Task = updated_task.into();
+                execute_hooks(
+                    &app_state.task_hooks_path,
+                    &TaskEvent::OnAdd,
+                    &None,
+                    &Some(ct),
+                );
+                Ok(())
+            }
+            Err(e) => {
+                error!(
+                    "Could not create task {}, error: {}",
+                    uuid.to_string(),
+                    e.to_string()
+                );
+                Err(e.into())
             }
         }
-        false => Err(validation_result),
+    } else {
+        Err(validation_result)
     }
 }
 
@@ -780,11 +776,11 @@ mod tests {
 
     use chrono::{Datelike, Days, Months, Timelike, Utc};
     use taskchampion::{Status, Tag, Uuid};
-    use tempfile::{TempDir, tempdir};
+    use tempfile::{tempdir, TempDir};
 
     use crate::{
-        NewTask, backend::task::get_replica, core::app::AppState,
-        endpoints::tasks::run_modify_command,
+        backend::task::get_replica, core::app::AppState, endpoints::tasks::run_modify_command,
+        NewTask,
     };
 
     use super::task_add;
@@ -950,7 +946,6 @@ mod tests {
         ];
         for tag in updated_task.get_tags() {
             let tag_name = tag.to_string();
-            println!("Comparing {} in {:?}", tag_name, set_tags);
             assert!(set_tags.contains(&tag_name.as_str()));
         }
 
@@ -991,7 +986,6 @@ mod tests {
         let result = run_modify_command(*our_task_1.0, &cmd_text, &app_state).await;
 
         let result = result.unwrap_err();
-        println!("{:#?}", result);
 
         assert!(!result.is_success());
         assert!(result.has_error("additional"));
@@ -999,18 +993,9 @@ mod tests {
         assert!(add_errors.is_some());
         let add_errors = add_errors.unwrap();
 
-        println!("{:#?}", add_errors);
-        assert_eq!(add_errors.len(), 7);
+        assert_eq!(add_errors.len(), 5);
 
-        let mut keywords = vec![
-            "wait",
-            "due",
-            "start",
-            "tag",
-            "tag",
-            "Synthetic",
-            "Synthetic",
-        ];
+        let mut keywords = vec!["wait", "due", "start", "Synthetic", "Synthetic"];
         for err in add_errors {
             assert_eq!(&err.field, "additional");
             let p = keywords.iter().position(|p| err.message.contains(*p));

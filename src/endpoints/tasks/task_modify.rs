@@ -7,7 +7,6 @@
  *
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use std::fmt::format;
 use std::str::FromStr;
 
 use crate::{
@@ -18,53 +17,52 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use taskchampion::storage::Storage;
 use taskchampion::{Replica, Tag, Uuid};
 
+fn get_tag_from_str(maybe_tag_name: &str, strip: &str, validation_result: &mut FormValidation) -> Option<Tag> {
+    let tag_name = maybe_tag_name.strip_prefix(strip).unwrap_or(maybe_tag_name);
+    match Tag::from_str(tag_name) {
+        Ok(tag) => Some(tag),
+        Err(e) => {
+            validation_result.push(
+                FieldError {
+                    field: "additional".to_string(),
+                    message: format!("{e:?}"),
+                }
+            );
+            None
+        }
+    }
+}
+
 pub fn task_apply_tag_add(
     task: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
     b1: &(String, Option<String>),
 ) {
-    let tag_name = b1.0.strip_prefix("-").unwrap_or(&b1.0);
-    let tag = match tag_name.try_into() {
-        Ok(tag) => tag,
-        Err(e) => {
-            validation_result.push(
-                FieldError {
-                    field: "additional".to_string(),
-                    message: format!("{:?}", e),
-                }
-            );
-            return
-        }
-    };
+    let maybe_tag = get_tag_from_str(&b1.0, "+", validation_result);
+    let Some(tag) = maybe_tag else { return };
     if let Err(err) = task.add_tag(&tag, ops) {
         validation_result.push(FieldError {
             field: "additional".to_string(),
             message: err.to_string(),
-        })
+        });
     }
 }
 
 pub fn task_apply_tag_remove(
-    t: &mut taskchampion::Task,
+    task: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
-    b1: (String, Option<String>),
+    b1: &(String, Option<String>),
 ) {
-    let tag_name = b1.0.strip_prefix("-").unwrap_or(&b1.0);
-    match &Tag::from_str(tag_name).map_err(|p| FieldError {
-        field: "additional".to_string(),
-        message: p.to_string(),
-    }) {
-        Ok(tag) => match t.remove_tag(tag, ops).map_err(|p| FieldError {
+    let maybe_tag = get_tag_from_str(&b1.0, "-", validation_result);
+    let Some(tag) = maybe_tag else { return };
+    if let Err(err) = task.remove_tag(&tag, ops) {
+        validation_result.push(FieldError {
             field: "additional".to_string(),
-            message: p.to_string(),
-        }) {
-            Ok(_) => (),
-            Err(e) => validation_result.push(e),
-        },
-        Err(e) => validation_result.push(e.to_owned()),
-    };
+            message: err.to_string(),
+        });
+    }
 }
 
 pub(crate) fn task_apply_recur(
