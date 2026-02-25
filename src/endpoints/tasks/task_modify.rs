@@ -7,7 +7,7 @@
  *
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
+use std::fmt::format;
 use std::str::FromStr;
 
 use crate::{
@@ -26,14 +26,14 @@ pub fn task_apply_tag_add(
 ) {
     let tag_name = b1.0.strip_prefix("+").unwrap();
     println!("got tag: {}", tag_name);
-    let tag = match Tag::from_str(tag_name) {
+    let tag = match tag_name.try_into() {
         Ok(tag) => tag,
-        Err(err) => {
+        Err(e) => {
             println!("! did not add: {}", tag_name);
             validation_result.push(
                 FieldError {
                     field: "additional".to_string(),
-                    message: err.to_string(),
+                    message: format!("{:?}", e),
                 }
             );
             return

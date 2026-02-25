@@ -982,7 +982,7 @@ mod tests {
 
         // Now modify!
         let cmd_text = format!(
-            "wait:{} due:{} +concert -twk +d/c -e/b +WAITING -PENDING start \"description:This is a title with spaces\" depends:{} project:{}",
+            "wait:{} due:{} +concert -twk +dont/c -e/b +WAITING -PENDING start \"description:This is a title with spaces\" depends:{} project:{}",
             "abc",
             "def",
             String::from("ec2c596f-5fa3-442c-80ee-98b087e32bbd"),

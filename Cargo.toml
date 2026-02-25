@@ -16,15 +16,12 @@ tracing-subscriber = { version = "0.3.22", features = [
 serde_json = "1.0.149"
 tera = { version = "1.20.1" }
 anyhow = "1.0.102"
-lazy_static = "1.5.0"
-tower = "0.5.3"
 tower-http = { version = "0.6.8", features = ["fs", "tracing", "trace"] }
 chrono = { version = "0.4.44", features = ["serde"] }
-csv = "1.4.0"
 indexmap = { version = "2.13.0", features = ["serde"] }
 rand = "0.10.0"
 dotenvy = { version = "0.15.7" }
-taskchampion = { version = "3.0.1", default-features = false, features = ["storage-sqlite", "bundled"] }
+taskchampion = { git="https://github.com/tmahmood/taskchampion", default-features = false, features = ["storage-sqlite", "bundled"] }
 serde_path_to_error = "0.1.20"
 shell-words = "1.1.1"
 directories = "6.0.0"
