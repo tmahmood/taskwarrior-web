@@ -24,12 +24,10 @@ pub fn task_apply_tag_add(
     validation_result: &mut FormValidation,
     b1: &(String, Option<String>),
 ) {
-    let tag_name = b1.0.strip_prefix("+").unwrap();
-    println!("got tag: {}", tag_name);
+    let tag_name = b1.0.strip_prefix("-").unwrap_or(&b1.0);
     let tag = match tag_name.try_into() {
         Ok(tag) => tag,
         Err(e) => {
-            println!("! did not add: {}", tag_name);
             validation_result.push(
                 FieldError {
                     field: "additional".to_string(),
@@ -40,7 +38,6 @@ pub fn task_apply_tag_add(
         }
     };
     if let Err(err) = task.add_tag(&tag, ops) {
-        println!("!! did not add: {}", tag_name);
         validation_result.push(FieldError {
             field: "additional".to_string(),
             message: err.to_string(),
@@ -54,7 +51,7 @@ pub fn task_apply_tag_remove(
     validation_result: &mut FormValidation,
     b1: (String, Option<String>),
 ) {
-    let tag_name = b1.0.strip_prefix("-").unwrap();
+    let tag_name = b1.0.strip_prefix("-").unwrap_or(&b1.0);
     match &Tag::from_str(tag_name).map_err(|p| FieldError {
         field: "additional".to_string(),
         message: p.to_string(),

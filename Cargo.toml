@@ -21,7 +21,7 @@ chrono = { version = "0.4.44", features = ["serde"] }
 indexmap = { version = "2.13.0", features = ["serde"] }
 rand = "0.10.0"
 dotenvy = { version = "0.15.7" }
-taskchampion = { git="https://github.com/tmahmood/taskchampion", default-features = false, features = ["storage-sqlite", "bundled"] }
+taskchampion = { version = "3.0.1", default-features = false, features = ["storage-sqlite", "bundled"] }
 serde_path_to_error = "0.1.20"
 shell-words = "1.1.1"
 directories = "6.0.0"

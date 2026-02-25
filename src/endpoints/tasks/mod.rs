@@ -988,7 +988,6 @@ mod tests {
             String::from("ec2c596f-5fa3-442c-80ee-98b087e32bbd"),
             ""
         );
-        println!("{}", cmd_text);
         let result = run_modify_command(*our_task_1.0, &cmd_text, &app_state).await;
 
         let result = result.unwrap_err();
