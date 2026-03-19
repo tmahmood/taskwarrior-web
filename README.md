@@ -1,10 +1,6 @@
-
-
 # Current Update
 
-Hey! 
-Small bug fixes, code cleanup, and support for auto-reload using `systemfd` during development.  Not suggested for daily usage.
-
+All dist files are embeded in the binary. So, no more carrying around the dist folder! 
 
 [I would appreciate if you can support the development effort](https://tmahmood.gumroad.com/coffee)
 

@@ -1,3 +1,7 @@
+## March 2025
+- [x] Now the dist file are embedded in the binary.
+- [x] Cleaned up the code, to fix all clippy warnings.
+
 ## Sun 04, May, 2025
 - [x] Remember shortcuts for project and tags in a cache file.
   Default cache path: $HOME/.cache/taskwarrior-web/mnemonics.cache
