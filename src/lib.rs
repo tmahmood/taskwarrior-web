@@ -559,6 +559,8 @@ fn get_random_appstate() -> (TempDir, AppState) {
     let tmp_dir = tempdir().expect("Cannot create a tempdir.");
     let app_state = AppState {
         task_storage_path: tmp_dir.path().to_path_buf(),
+        // don't want any user hooks to execute accidentally
+        task_hooks_path: Some(tmp_dir.path().join("hooks")),
         ..AppState::default()
     };
     (tmp_dir, app_state)

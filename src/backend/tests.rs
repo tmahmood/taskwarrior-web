@@ -8,21 +8,21 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 use super::*;
+use crate::backend::task::get_replica;
 use crate::core::app::AppState;
-use std::{env, fs};
+use crate::endpoints::tasks::task_add;
+use crate::{NewTask, get_random_appstate};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::{env, fs};
 use taskchampion::{Operation, Operations, Tag, Uuid};
 use tempfile::{NamedTempFile, TempDir};
-use crate::{get_random_appstate, NewTask};
-use crate::backend::task::get_replica;
-use crate::endpoints::tasks::task_add;
 
 /// sets up a taskwarrior configuration file for testing.
-fn setup_test_cfg() -> (TempDir, AppState){
+fn setup_test_cfg() -> (TempDir, AppState) {
     let (temp_dir, app_state) = get_random_appstate();
     (temp_dir, app_state)
 }
@@ -30,10 +30,14 @@ fn setup_test_cfg() -> (TempDir, AppState){
 #[tokio::test]
 async fn check_hook_file_execution() -> anyhow::Result<()> {
     let (temp_dir, app_state) = setup_test_cfg();
-    let hooks_dir = temp_dir.path().join("hooks");
-    let hook_file = hooks_dir.join("on-add.task");
+    let hooks_dir = app_state
+        .task_hooks_path
+        .as_ref()
+        .unwrap();
+    let hook_file = hooks_dir
+        .join("on-add.task");
     let gen_file = hooks_dir.join("on_add_hook_called");
-    let content = "#!/bin/bash\ntouch \"on_add_hook_called\"";
+    let content = format!("#!/bin/bash\ntouch \"{}\"", gen_file.display());
     fs::create_dir_all(&hooks_dir)?;
     {
         let mut file = File::create(&hook_file)?;
@@ -59,5 +63,3 @@ async fn check_hook_file_execution() -> anyhow::Result<()> {
     assert!(gen_file.exists());
     Ok(())
 }
-
-
