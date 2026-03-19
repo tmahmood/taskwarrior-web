@@ -515,7 +515,7 @@ pub async fn get_undo_operations(
     let mut replica = get_replica(taskdb).await?;
     let ops = replica.get_undo_operations().await?;
     let mut converted_ops: HashMap<Uuid, Vec<TaskOperation>> = HashMap::new();
-    for op in ops.into_iter() { {
+    for op in ops { {
         let converted_entry = match op {
             Operation::Create { uuid } => Some((
                 uuid,

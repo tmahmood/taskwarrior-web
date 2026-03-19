@@ -501,6 +501,7 @@ fn get_timer() -> impl tera::Function {
 
 #[cfg(test)]
 use tempfile::{TempDir, tempdir};
+#[cfg(test)]
 use crate::core::app::AppState;
 
 #[cfg(test)]
