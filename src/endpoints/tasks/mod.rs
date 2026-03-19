@@ -40,7 +40,7 @@ use crate::core::app::{AppState, get_default_context};
 use crate::core::config::CustomQuery;
 use crate::core::errors::{FieldError, FormValidation};
 use crate::core::utils::make_shortcut;
-use crate::{NewTask, TEMPLATES, TaskUpdateStatus};
+use crate::{NewTask, TEMPLATES, TaskUpdateStatus, DIST_CONTENT};
 use task_query_builder::TaskQuery;
 
 pub(crate) mod task_modify;
@@ -677,6 +677,8 @@ pub async fn display_task_details(
             // annotate_shortcuts
             ctx.insert("annotate_shortcuts", &shortcut_list);
             ctx.insert("task", &task);
+            ctx.insert("STYLESHEET_URL", DIST_CONTENT.get_file("style.css").unwrap().contents_utf8().unwrap());
+            ctx.insert("JS_BUNDLE_PATH", DIST_CONTENT.get_file("bundle.js").unwrap().contents_utf8().unwrap());
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "text/html")
@@ -704,6 +706,8 @@ pub async fn display_task_delete(
             // annotate_shortcuts
             ctx.insert("annotate_shortcuts", "");
             ctx.insert("task", &task);
+            ctx.insert("STYLESHEET_URL", DIST_CONTENT.get_file("style.css").unwrap().contents_utf8().unwrap());
+            ctx.insert("JS_BUNDLE_PATH", DIST_CONTENT.get_file("bundle.js").unwrap().contents_utf8().unwrap());
             Response::builder()
                 .status(StatusCode::OK)
                 .header(header::CONTENT_TYPE, "text/html")
@@ -733,6 +737,8 @@ pub async fn api_denotate_task_entry(
                 // annotate_shortcuts
                 ctx.insert("annotate_shortcuts", "");
                 ctx.insert("task", &task);
+                ctx.insert("STYLESHEET_URL", DIST_CONTENT.get_file("style.css").unwrap().contents_utf8().unwrap());
+                ctx.insert("JS_BUNDLE_PATH", DIST_CONTENT.get_file("bundle.js").unwrap().contents_utf8().unwrap());
                 Response::builder()
                     .status(StatusCode::OK)
                     .header(header::CONTENT_TYPE, "text/html")

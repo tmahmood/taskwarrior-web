@@ -22,6 +22,7 @@ use std::str::FromStr;
 use crate::endpoints::tasks::task_query_builder::{TaskQuery, TaskReport};
 use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
 use chrono::{DateTime, TimeDelta};
+use include_dir::include_dir;
 use linkify::LinkKind;
 use rand::distr::{Alphanumeric, SampleString};
 use serde::{Deserialize, Deserializer, Serialize, de};
@@ -29,14 +30,32 @@ use taskchampion::Uuid;
 use tera::{Context, escape_html};
 use tracing::{trace, warn};
 
+
+pub static DIST_CONTENT: include_dir::Dir = include_dir!("dist");
+
+pub fn load_templates_from_include_dir() -> anyhow::Result<Vec<(String, String)>> {
+    let templates = DIST_CONTENT.find("templates/**/*").unwrap();
+    let mut raw_templates = vec![];
+    for template in templates {
+        let template_path = template.path();
+        let content = DIST_CONTENT
+            .get_file(template_path)
+            .unwrap()
+            .contents_utf8()
+            .unwrap();
+        let filename = template_path.file_name().unwrap();
+        raw_templates.push((filename.to_str().unwrap().to_string(), content.to_string()));
+    }
+    Ok(raw_templates)
+}
+
 pub static TEMPLATES: std::sync::LazyLock<tera::Tera> = std::sync::LazyLock::new(|| {
-    let mut tera = match tera::Tera::new("dist/templates/**/*") {
-        Ok(t) => t,
-        Err(e) => {
+    let mut tera = tera::Tera::default();
+    let raw_templates = load_templates_from_include_dir().unwrap();
+    if let Err(e) = tera.add_raw_templates(raw_templates) {
             warn!("Parsing error(s): {}", e);
             ::std::process::exit(1);
-        }
-    };
+    }
     tera.register_function("project_name", get_project_name_link());
     tera.register_function("date_proper", get_date_proper());
     tera.register_function("timer_value", get_timer());
@@ -521,11 +540,19 @@ fn get_random_appstate() -> (TempDir, AppState) {
 
 #[cfg(test)]
 mod tests {
-
     use serde_json::value::Value;
     use tera::Filter;
 
     use super::*;
+
+    #[test]
+    fn loading_templates_from_include_dir_test() -> anyhow::Result<()> {
+        let raw_templates = load_templates_from_include_dir()?;
+        let mut tera = tera::Tera::default();
+        let result = tera.add_raw_templates(raw_templates);
+        assert!(result.is_ok());
+        Ok(())
+    }
 
     #[test]
     fn test_tera_linkify_text() {

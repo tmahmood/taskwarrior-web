@@ -34,10 +34,7 @@ use taskwarrior_web::endpoints::tasks::{
 use taskwarrior_web::endpoints::tasks::{
     api_denotate_task_entry, display_task_delete, get_task_details, get_task_details_form,
 };
-use taskwarrior_web::{
-    FlashMsg, FlashMsgRoles, NewTask, TEMPLATES, TWGlobalState, TaskActions,
-    task_query_merge_previous_params, task_query_previous_params,
-};
+use taskwarrior_web::{FlashMsg, FlashMsgRoles, NewTask, TEMPLATES, TWGlobalState, TaskActions, task_query_merge_previous_params, task_query_previous_params, DIST_CONTENT};
 use tokio::net::TcpListener;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::{Level, error, info, trace};
@@ -351,6 +348,8 @@ async fn front_page(app_state: State<AppState>) -> Html<String> {
     ctx.insert("tags_map", &tag_map);
     ctx.insert("custom_queries_map", &custom_queries_map);
     ctx.insert("task_shortcuts", &task_shortcut_map);
+    ctx.insert("STYLESHEET_URL", DIST_CONTENT.get_file("style.css").unwrap().contents_utf8().unwrap());
+    ctx.insert("JS_BUNDLE_PATH", DIST_CONTENT.get_file("bundle.js").unwrap().contents_utf8().unwrap());
     let t: Option<(&TaskUUID, &taskwarrior_web::backend::task::Task)> =
         tasks.iter().find(|(_, task)| task.start.is_some());
     if let Some((_, v)) = t {

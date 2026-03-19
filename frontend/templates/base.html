@@ -12,7 +12,9 @@
 <html lang="en" {% if DEFAULT_THEME %}data-theme="{{ DEFAULT_THEME }}" {% endif %}>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="/dist/style.css"/>
+    <style>
+        {{ STYLESHEET_URL | safe }}
+    </style>
     <style>
         {% if USE_FONT %}
         body {
@@ -20,7 +22,9 @@
         }
         {% endif %}
     </style>
-    <script src="/dist/bundle.js" type="module"></script>
+    <script type="module">
+        {{ JS_BUNDLE_PATH | safe }}
+    </script>
     <title>
         Org.Me
     </title>
