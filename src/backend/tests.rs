@@ -7,8 +7,6 @@
  *
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use super::*;
-use crate::backend::task::get_replica;
 use crate::core::app::AppState;
 use crate::endpoints::tasks::task_add;
 use crate::{NewTask, get_random_appstate};
@@ -30,12 +28,8 @@ fn setup_test_cfg() -> (TempDir, AppState) {
 #[tokio::test]
 async fn check_hook_file_execution() -> anyhow::Result<()> {
     let (temp_dir, app_state) = setup_test_cfg();
-    let hooks_dir = app_state
-        .task_hooks_path
-        .as_ref()
-        .unwrap();
-    let hook_file = hooks_dir
-        .join("on-add.task");
+    let hooks_dir = app_state.task_hooks_path.as_ref().unwrap();
+    let hook_file = hooks_dir.join("on-add.task");
     let gen_file = hooks_dir.join("on_add_hook_called");
     let content = format!("#!/bin/bash\ntouch \"{}\"", gen_file.display());
     fs::create_dir_all(&hooks_dir)?;

@@ -9,6 +9,7 @@
  */
 
 #![feature(exit_status_error)]
+#![allow(clippy::missing_const_for_fn, clippy::must_use_candidate)]
 
 use std::collections::HashMap;
 use std::fmt;
@@ -19,11 +20,10 @@ use crate::endpoints::tasks::{is_a_tag, is_tag_keyword};
 use chrono::{DateTime, TimeDelta};
 use linkify::LinkKind;
 use rand::distr::{Alphanumeric, SampleString};
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use taskchampion::Uuid;
-use tera::{escape_html, Context};
+use tera::{Context, escape_html};
 use tracing::{trace, warn};
-use crate::core::app::AppState;
 
 pub static TEMPLATES: std::sync::LazyLock<tera::Tera> = std::sync::LazyLock::new(|| {
     let mut tera = match tera::Tera::new("dist/templates/**/*") {
@@ -500,6 +500,22 @@ fn get_timer() -> impl tera::Function {
 }
 
 #[cfg(test)]
+use tempfile::{TempDir, tempdir};
+use crate::core::app::AppState;
+
+#[cfg(test)]
+fn get_random_appstate() -> (TempDir, AppState) {
+    let tmp_dir = tempdir().expect("Cannot create a tempdir.");
+    let app_state = AppState {
+        task_storage_path: tmp_dir.path().to_path_buf(),
+        // don't want any user hooks to execute accidentally
+        task_hooks_path: Some(tmp_dir.path().join("hooks")),
+        ..AppState::default()
+    };
+    (tmp_dir, app_state)
+}
+
+#[cfg(test)]
 mod tests {
 
     use serde_json::value::Value;
@@ -548,20 +564,4 @@ mod tests {
             tera::to_value("This &lt;a href=&quot;<a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a>&quot;&gt;very important&lt;&#x2F;a&gt; is <a class=\"link\" href=\"https://very-important-url.tld\">https://very-important-url.tld</a> a test").unwrap()
         );
     }
-}
-
-
-#[cfg(test)]
-use tempfile::{tempdir, TempDir};
-
-#[cfg(test)]
-fn get_random_appstate() -> (TempDir, AppState) {
-    let tmp_dir = tempdir().expect("Cannot create a tempdir.");
-    let app_state = AppState {
-        task_storage_path: tmp_dir.path().to_path_buf(),
-        // don't want any user hooks to execute accidentally
-        task_hooks_path: Some(tmp_dir.path().join("hooks")),
-        ..AppState::default()
-    };
-    (tmp_dir, app_state)
 }
