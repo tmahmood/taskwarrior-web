@@ -8,11 +8,11 @@
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(exit_status_error)]
 #![allow(
     clippy::missing_const_for_fn,
     clippy::must_use_candidate,
-    clippy::missing_errors_doc
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
 )]
 
 use std::collections::HashMap;
@@ -166,13 +166,14 @@ impl TWGlobalState {
 }
 
 pub fn task_query_merge_previous_params(state: &TWGlobalState) -> TaskQuery {
-    if let Some(fv) = state.filter_value.clone() {
-        let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
-        tq.update(state.clone());
-        tq
-    } else {
-        TaskQuery::new(TWGlobalState::default())
-    }
+    state.filter_value.clone().map_or_else(
+        || TaskQuery::new(TWGlobalState::default()),
+        |fv| {
+            let mut tq: TaskQuery = serde_json::from_str(&fv).unwrap();
+            tq.update(state.clone());
+            tq
+        },
+    )
 }
 
 pub fn task_query_previous_params(params: &TWGlobalState) -> TaskQuery {
@@ -236,8 +237,8 @@ fn remove_project_from_tag() -> impl tera::Function {
             let mut pname = tera::from_value::<String>(args.get("task").unwrap().clone()).unwrap();
             pname = pname
                 .replace("project:", "")
-                .split(".")
-                .last()
+                .split('.')
+                .next_back()
                 .unwrap()
                 .to_string();
             Ok(tera::to_value(pname).unwrap())
@@ -281,8 +282,7 @@ fn linkify_text() -> impl tera::Filter {
                             span.as_str()
                         )
                     }
-                    Some(_) => escape_html(span.as_str()),
-                    None => escape_html(span.as_str()),
+                    Some(_) | None => escape_html(span.as_str()),
                 };
                 new_text.push_str(&txt);
             }

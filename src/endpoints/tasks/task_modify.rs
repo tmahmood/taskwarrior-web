@@ -177,14 +177,14 @@ pub fn task_apply_priority(
         .set_priority(b1.1.unwrap_or_default(), ops)
         .map_err(|p| FieldError {
             field: "additional".to_string(),
-            message: format!("Invalid priority given: {}", p),
+            message: format!("Invalid priority given: {p}"),
         }) {
-        Ok(_) => (),
+        Ok(()) => (),
         Err(e) => validation_result.push(e),
     }
 }
 
-pub(crate) fn task_apply_timestamps(
+pub fn task_apply_timestamps(
     t: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
@@ -208,9 +208,8 @@ pub(crate) fn task_apply_timestamps(
                 message: format!("Failed parsing timestamp for {} ({}).", &b1.0, p),
             })
             .map(Some),
-        Some(_) => Ok(None),
-        None => Ok(None),
-    };
+        Some(_) | None => Ok(None),
+        };
     match dt {
         Ok(e) => {
             let result = match b1.0.to_lowercase().trim() {
@@ -228,10 +227,10 @@ pub(crate) fn task_apply_timestamps(
             }
         }
         Err(e) => validation_result.push(e),
-    };
+    }
 }
 
-pub(crate) fn task_apply_status(
+pub fn task_apply_status(
     t: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
@@ -243,8 +242,8 @@ pub(crate) fn task_apply_status(
             field: "additional".into(),
             message: format!("Invalid status {} ({}).", &val, p),
         }) {
-            Ok(_) => (),
+            Ok(()) => (),
             Err(p) => validation_result.push(p),
-        };
+        }
     }
 }

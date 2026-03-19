@@ -159,7 +159,7 @@ mod tests {
         let _ = file1.flush();
 
         let appconf = AppSettings::new(file1.path());
-        println!("{:?}", appconf);
+        println!("{appconf:?}");
         assert!(appconf.is_ok());
         let appconf = appconf.unwrap();
         assert_eq!(appconf.custom_queries.len(), 2);

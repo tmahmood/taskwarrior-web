@@ -33,31 +33,31 @@ const LINE_ENDING: &str = "\n";
 
 #[derive(Clone, Debug)]
 pub enum TaskProperties {
-    DESCRIPTION,
-    DUE,
-    MODIFIED,
-    START,
-    STATUS,
-    PRIORITY,
-    WAIT,
-    END,
-    ENTRY,
-    PROJECT,
+    Description,
+    Due,
+    Modified,
+    Start,
+    Status,
+    Priority,
+    Wait,
+    End,
+    Entry,
+    Project,
 }
 
 impl Display for TaskProperties {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            Self::DESCRIPTION => "description".to_string(),
-            Self::DUE => "due".to_string(),
-            Self::MODIFIED => "modified".to_string(),
-            Self::START => "start".to_string(),
-            Self::STATUS => "status".to_string(),
-            Self::PRIORITY => "priority".to_string(),
-            Self::WAIT => "wait".to_string(),
-            Self::END => "end".to_string(),
-            Self::ENTRY => "entry".to_string(),
-            Self::PROJECT => "project".to_string(),
+            Self::Description => "description".to_string(),
+            Self::Due => "due".to_string(),
+            Self::Modified => "modified".to_string(),
+            Self::Start => "start".to_string(),
+            Self::Status => "status".to_string(),
+            Self::Priority => "priority".to_string(),
+            Self::Wait => "wait".to_string(),
+            Self::End => "end".to_string(),
+            Self::Entry => "entry".to_string(),
+            Self::Project => "project".to_string(),
         };
         write!(f, "{s}")
     }
@@ -69,16 +69,16 @@ impl TryFrom<&str> for TaskProperties {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let chk_value = value.to_lowercase();
         let x = vec![
-            Self::DESCRIPTION,
-            Self::DUE,
-            Self::MODIFIED,
-            Self::START,
-            Self::STATUS,
-            Self::PRIORITY,
-            Self::WAIT,
-            Self::END,
-            Self::ENTRY,
-            Self::PROJECT,
+            Self::Description,
+            Self::Due,
+            Self::Modified,
+            Self::Start,
+            Self::Status,
+            Self::Priority,
+            Self::Wait,
+            Self::End,
+            Self::Entry,
+            Self::Project,
         ];
         x.iter().find(|p| p.to_string().eq(&chk_value)).map_or_else(
             || {
@@ -246,7 +246,7 @@ impl From<taskchampion::Task> for Task {
             depends: Some(deps),
             end: value.get_value("start").map(ToString::to_string),
             project: value
-                .get_value(TaskProperties::PROJECT.to_string())
+                .get_value(TaskProperties::Project.to_string())
                 .map(ToString::to_string),
             urgency: value
                 .get_value("urgency")
@@ -481,10 +481,10 @@ pub async fn get_project_list(taskdb: &Path) -> Result<Vec<String>, AppError> {
         .values()
         .filter_map(|task_data| {
             if task_data
-                .get(TaskProperties::PROJECT.to_string())
+                .get(TaskProperties::Project.to_string())
                 .is_some_and(|v| !v.is_empty())
             {
-                task_data.get(TaskProperties::PROJECT.to_string())
+                task_data.get(TaskProperties::Project.to_string())
             } else {
                 None
             }
