@@ -278,7 +278,7 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<Uuid, Form
             additional,
             &mut validation_result,
         )
-            .await;
+        .await;
     }
 
     if validation_result.is_success() {
@@ -310,7 +310,12 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<Uuid, Form
     }
 }
 
-fn extract_tags_for_task_add(task: &NewTask, validation_result: &mut FormValidation, ops: &mut Vec<Operation>, new_task: &mut taskchampion::Task) {
+fn extract_tags_for_task_add(
+    task: &NewTask,
+    validation_result: &mut FormValidation,
+    ops: &mut Vec<Operation>,
+    new_task: &mut taskchampion::Task,
+) {
     let Some(tags) = task.tags() else {
         return;
     };
@@ -326,11 +331,13 @@ fn extract_tags_for_task_add(task: &NewTask, validation_result: &mut FormValidat
             field: "tags".to_string(),
             message: p.to_string(),
         }) {
-            Ok(tag) => if let Err(e) = new_task.add_tag(tag, ops).map_err(|p| FieldError {
-                field: "tags".to_string(),
-                message: p.to_string(),
-            }) {
-                validation_result.push(e);
+            Ok(tag) => {
+                if let Err(e) = new_task.add_tag(tag, ops).map_err(|p| FieldError {
+                    field: "tags".to_string(),
+                    message: p.to_string(),
+                }) {
+                    validation_result.push(e);
+                }
             }
             Err(e) => validation_result.push(e.to_owned()),
         }
@@ -363,7 +370,7 @@ pub async fn run_modify_command(
         cmd_text,
         &mut validation_result,
     )
-        .await;
+    .await;
 
     if !validation_result.is_success() {
         return Err(validation_result);
@@ -615,9 +622,9 @@ pub async fn get_task_details_form(
             .as_ref()
             .is_some_and(|status| *status == Status::Completed)
             && rhs
-            .status
-            .as_ref()
-            .is_some_and(|status| *status == Status::Completed)
+                .status
+                .as_ref()
+                .is_some_and(|status| *status == Status::Completed)
         {
             Ordering::Equal
         } else if lhs
@@ -625,9 +632,9 @@ pub async fn get_task_details_form(
             .as_ref()
             .is_some_and(|status| *status == Status::Completed)
             && rhs
-            .status
-            .as_ref()
-            .is_some_and(|status| *status != Status::Completed)
+                .status
+                .as_ref()
+                .is_some_and(|status| *status != Status::Completed)
         {
             Ordering::Greater
         } else if lhs
@@ -635,9 +642,9 @@ pub async fn get_task_details_form(
             .as_ref()
             .is_some_and(|status| *status != Status::Completed)
             && rhs
-            .status
-            .as_ref()
-            .is_some_and(|status| *status == Status::Completed)
+                .status
+                .as_ref()
+                .is_some_and(|status| *status == Status::Completed)
         {
             Ordering::Less
         } else {

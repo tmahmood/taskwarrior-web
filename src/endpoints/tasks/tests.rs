@@ -285,7 +285,6 @@ async fn test_task_append_dependency() -> anyhow::Result<()> {
     assert!(result.is_ok());
     let prime_task_uuid = result.unwrap();
 
-
     let mut replica = get_replica(&app_state.task_storage_path).await?;
     let tasks = replica.all_tasks().await?;
     let our_task = tasks

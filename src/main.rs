@@ -47,21 +47,17 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 async fn reload_listener(app: Router) -> anyhow::Result<()> {
     let mut listenfd = ListenFd::from_env();
-    let listener = match listenfd.take_tcp_listener(0)? {
-        // if we are given a tcp listener on listen fd 0, we use that one
-        Some(listener) => {
-            listener.set_nonblocking(true)?;
-            TcpListener::from_std(listener)?
-        }
-        // otherwise fall back to local listening
-        None => {
-            let addr = format!(
-                "{}:{}",
-                env::var("TWK_SERVER_ADDR").unwrap_or("0.0.0.0".to_string()),
-                env::var("TWK_SERVER_PORT").unwrap_or("3000".to_string())
-            );
-            TcpListener::bind(addr).await?
-        }
+    // if we are given a tcp listener on listen fd 0, we use that one
+    let listener = if let Some(listener) = listenfd.take_tcp_listener(0)? {
+        listener.set_nonblocking(true)?;
+        TcpListener::from_std(listener)?
+    } else {
+        let addr = format!(
+            "{}:{}",
+            env::var("TWK_SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            env::var("TWK_SERVER_PORT").unwrap_or_else(|_| "3000".to_string())
+        );
+        TcpListener::bind(addr).await?
     };
 
     info!("listening on {}", listener.local_addr()?);
@@ -74,8 +70,8 @@ async fn main() -> anyhow::Result<()> {
     // initialize tracing
     init_tracing();
     if dotenvy::dotenv().is_err() {
-        tracing::warn!("failed to initialize env")
-    };
+        tracing::warn!("failed to initialize env");
+    }
 
     let app_settings = AppState::default();
 
@@ -125,7 +121,7 @@ fn init_tracing() {
 async fn get_active_task(app_state: State<AppState>) -> Html<String> {
     let mut ctx = get_default_context(&app_state);
     if let Ok(Some(v)) = fetch_active_task() {
-        ctx.insert("active_task", &v)
+        ctx.insert("active_task", &v);
     }
     Html(TEMPLATES.render("active_task.html", &ctx).unwrap())
 }
@@ -143,23 +139,24 @@ async fn check_and_sync(app_state: State<AppState>) -> Html<String> {
         // TODO: Show update available message, need a direct keyboard shortcut to perform update
         return Html("Task Update available".to_string());
     }
-    Html("".to_string())
+    Html(String::new())
 }
 
 async fn get_bar(
     Query(param): Query<HashMap<String, String>>,
     app_state: State<AppState>,
 ) -> Html<String> {
-    if let Some(bar) = param.get("bar") {
-        let ctx = get_default_context(&app_state);
-        if bar == "left_action_bar" {
-            Html(TEMPLATES.render("left_action_bar.html", &ctx).unwrap())
-        } else {
-            Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
-        }
-    } else {
-        Html("".to_string())
-    }
+    param.get("bar").map_or_else(
+        || Html(String::new()),
+        |bar| {
+            let ctx = get_default_context(&app_state);
+            if bar == "left_action_bar" {
+                Html(TEMPLATES.render("left_action_bar.html", &ctx).unwrap())
+            } else {
+                Html(TEMPLATES.render("task_action_bar.html", &ctx).unwrap())
+            }
+        },
+    )
 }
 
 async fn get_tag_bar(app_state: State<AppState>) -> Html<String> {
@@ -168,7 +165,7 @@ async fn get_tag_bar(app_state: State<AppState>) -> Html<String> {
 }
 
 async fn just_empty() -> Html<String> {
-    Html("".to_string())
+    Html(String::new())
 }
 
 async fn display_flash_message(
@@ -184,15 +181,15 @@ async fn display_flash_message(
 
 async fn get_undo_report(app_state: State<AppState>) -> Html<String> {
     match taskwarrior_web::backend::task::get_undo_operations(&app_state.task_storage_path).await {
-        Ok(s) => {
+        Ok(task_operations) => {
             let mut ctx = get_default_context(&app_state);
-            let number_operations: i64 = s.values().map(|f| f.len() as i64).sum();
-            let heading = format!(
-                "The following {} operations would be reverted",
-                number_operations
-            );
+            let number_operations = task_operations
+                .values()
+                .map(std::vec::Vec::len)
+                .sum::<usize>();
+            let heading = format!("The following {number_operations} operations would be reverted");
             ctx.insert("heading", &heading);
-            ctx.insert("undo_report", &s);
+            ctx.insert("undo_report", &task_operations);
             Html(TEMPLATES.render("undo_report.html", &ctx).unwrap())
         }
         Err(e) => {
@@ -211,14 +208,13 @@ async fn display_task_add_window(
     let tq: TaskQuery = params
         .filter_value()
         .clone()
-        .map(|v| {
+        .map_or_else(TaskQuery::default, |v| {
             if v.is_empty() {
                 TaskQuery::default()
             } else {
-                serde_json::from_str(&v).unwrap_or(TaskQuery::default())
+                serde_json::from_str(&v).unwrap_or_else(|_| TaskQuery::default())
             }
-        })
-        .unwrap_or(TaskQuery::default());
+        });
     let project_list = get_project_list(&app_state.task_storage_path)
         .await
         .unwrap_or_default();
@@ -244,7 +240,7 @@ async fn undo_last_change(
 ) -> Html<String> {
     task_undo().unwrap();
     let fm = FlashMsg::new("Undo successful", None, FlashMsgRoles::Success);
-    get_tasks_view(task_query_previous_params(&params), Some(fm), &app_state)
+    get_tasks_view(&task_query_previous_params(&params), Some(fm), &app_state)
 }
 
 fn get_tasks_view_data(
@@ -260,13 +256,13 @@ fn get_tasks_view_data(
         .values_mut()
         .map(|task| {
             if let Some(tags) = &mut task.tags {
-                tags.iter_mut().for_each(|v| {
+                for v in tags.iter_mut() {
                     if !tasks::is_tag_keyword(v) {
-                        *v = format!("+{}", v);
+                        *v = format!("+{v}");
                     }
                     let shortcut = make_shortcut_cache(&MnemonicsType::TAG, v, app_state);
                     tag_map.insert(v.clone(), shortcut);
-                });
+                }
             }
             if let Some(project) = &task.project {
                 // the project is not in the map, so all of it can be added
@@ -276,7 +272,7 @@ fn get_tasks_view_data(
                     for part in parts {
                         total_parts.push(part);
                         let project_name = &total_parts.join(".");
-                        let s = format!("project:{}", project_name);
+                        let s = format!("project:{project_name}");
                         let shortcut =
                             make_shortcut_cache(&MnemonicsType::PROJECT, project_name, app_state);
                         tag_map.insert(s, shortcut);
@@ -299,15 +295,13 @@ fn get_tasks_view_data(
         if !tag_map.contains_key(filter) {
             if tasks::is_tag_keyword(filter) {
             } else if tasks::is_a_tag(filter) {
-                let ky = format!("@{}", filter);
+                let ky = format!("@{filter}");
                 let shortcut = make_shortcut(&mut shortcuts);
                 tag_map.insert(ky, shortcut);
             } else {
                 let parts: Vec<_> = filter.split('.').collect();
-                let mut total_parts = vec![];
-                for part in parts {
-                    total_parts.push(part);
-                    let ky = format!("@{}", filter);
+                for _part in parts {
+                    let ky = format!("@{filter}");
                     let shortcut = make_shortcut(&mut shortcuts);
                     tag_map.insert(ky, shortcut);
                 }
@@ -317,10 +311,9 @@ fn get_tasks_view_data(
 
     // prepare custom queries
     for custom_query in &app_state.app_config.custom_queries {
-        let shortcut = match custom_query.1.fixed_key.clone() {
-            Some(s) => s,
-            None => make_shortcut_cache(&MnemonicsType::CustomQuery, custom_query.0, app_state),
-        };
+        let shortcut = custom_query.1.fixed_key.clone().unwrap_or_else(|| {
+            make_shortcut_cache(&MnemonicsType::CustomQuery, custom_query.0, app_state)
+        });
         custom_queries_map.insert(shortcut, custom_query.1.clone());
     }
 
@@ -370,11 +363,11 @@ async fn tasks_display(
     Query(params): Query<TWGlobalState>,
     app_state: State<AppState>,
 ) -> Html<String> {
-    get_tasks_view(task_query_merge_previous_params(&params), None, &app_state)
+    get_tasks_view(&task_query_merge_previous_params(&params), None, &app_state)
 }
 
 fn get_tasks_view(
-    tq: TaskQuery,
+    tq: &TaskQuery,
     flash_msg: Option<FlashMsg>,
     app_state: &State<AppState>,
 ) -> Html<String> {
@@ -382,31 +375,31 @@ fn get_tasks_view(
 }
 
 fn get_tasks_view_plain(
-    tq: TaskQuery,
+    task_query: &TaskQuery,
     flash_msg: Option<FlashMsg>,
     app_state: &State<AppState>,
 ) -> String {
-    let tasks = match list_tasks(&tq) {
+    let tasks = match list_tasks(task_query) {
         Ok(t) => t,
         Err(e) => {
             return e.to_string();
         }
     };
-    let current_filter = tq.as_filter_text();
+    let current_filter = task_query.as_filter_text();
     let mut filter_ar = vec![];
-    for filter in current_filter.iter() {
+    for filter in &current_filter {
         if filter.starts_with("project:") {
             let mut stack = vec![];
-            for part in filter.split(":").nth(1).unwrap().split(".") {
+            for part in filter.split(':').nth(1).unwrap().split('.') {
                 stack.push(part);
-                filter_ar.push(format!("project:{}", stack.join(".")))
+                filter_ar.push(format!("project:{}", stack.join(".")));
             }
         } else {
-            filter_ar.push(filter.to_string());
+            filter_ar.push(filter.clone());
         }
     }
-    if let Some(custom_query) = tq.custom_query() {
-        filter_ar.push(format!("custom_query:{}", custom_query));
+    if let Some(custom_query) = task_query.custom_query() {
+        filter_ar.push(format!("custom_query:{custom_query}"));
     }
     let TaskViewDataRetType {
         tasks,
@@ -421,7 +414,7 @@ fn get_tasks_view_plain(
     ctx_b.insert("tasks_db", &tasks);
     ctx_b.insert("tasks", &task_list);
     ctx_b.insert("current_filter", &filter_ar);
-    ctx_b.insert("filter_value", &serde_json::to_string(&tq).unwrap());
+    ctx_b.insert("filter_value", &serde_json::to_string(&task_query).unwrap());
     ctx_b.insert("tags_map", &tag_map);
     ctx_b.insert("custom_queries_map", &custom_queries_map);
     ctx_b.insert("task_shortcuts", &task_shortcut_map);
@@ -439,11 +432,12 @@ async fn create_new_task(
     app_state: State<AppState>,
     Form(new_task): Form<NewTask>,
 ) -> Response<String> {
-    let s = if let Some(tw_q) = new_task.filter_value() {
-        serde_json::from_str(tw_q).unwrap()
-    } else {
-        TaskQuery::default()
-    };
+    let task_query = new_task
+        .filter_value()
+        .as_ref()
+        .map_or_else(TaskQuery::default, |tw_q| {
+            serde_json::from_str(tw_q).unwrap()
+        });
     match task_add(&new_task, &app_state).await {
         Ok(_) => {
             let flash_msg = FlashMsg::new("New task created", None, FlashMsgRoles::Success);
@@ -452,7 +446,11 @@ async fn create_new_task(
                 .header("HX-Retarget", "#list-of-tasks")
                 .header("HX-Reswap", "innerHTML")
                 .header("Content-Type", "text/html")
-                .body(get_tasks_view_plain(s, Some(flash_msg), &app_state))
+                .body(get_tasks_view_plain(
+                    &task_query,
+                    Some(flash_msg),
+                    &app_state,
+                ))
                 .unwrap()
         }
         Err(e) => {
@@ -478,59 +476,8 @@ async fn do_task_actions(
 ) -> Response<String> {
     info!("{:?}", multipart);
     let fm = match multipart.action().clone().unwrap() {
-        TaskActions::StatusUpdate => {
-            if let Some(task) = taskwarrior_web::from_task_to_task_update(&multipart) {
-                match change_task_status(task.clone(), &app_state).await {
-                    Ok(_) => FlashMsg::new(
-                        &format!("Task [{}] was updated", task.uuid),
-                        None,
-                        FlashMsgRoles::Success,
-                    ),
-                    Err(e) => {
-                        error!("Failed: {}", e);
-                        FlashMsg::new(
-                            &format!("Failed to update task: {e}"),
-                            None,
-                            FlashMsgRoles::Error,
-                        )
-                    }
-                }
-            } else {
-                FlashMsg::new("No task to update", None, FlashMsgRoles::Info)
-            }
-        }
-        TaskActions::ToggleTimer => {
-            let task_uuid = (*multipart.uuid()).unwrap();
-            let task_status = multipart.status().clone().unwrap_or("start".to_string());
-            match toggle_task_active(task_uuid, task_status, &app_state).await {
-                Ok(v) => {
-                    if v {
-                        FlashMsg::new(
-                            &format!(
-                                "Task {} started, any other tasks running were stopped",
-                                task_uuid
-                            ),
-                            None,
-                            FlashMsgRoles::Success,
-                        )
-                    } else {
-                        FlashMsg::new(
-                            &format!("Task {} stopped", task_uuid),
-                            None,
-                            FlashMsgRoles::Success,
-                        )
-                    }
-                }
-                Err(e) => {
-                    error!("Failed: {}", e);
-                    FlashMsg::new(
-                        &format!("Failed to update task: {e}"),
-                        None,
-                        FlashMsgRoles::Error,
-                    )
-                }
-            }
-        }
+        TaskActions::StatusUpdate => task_actions_status_update(&app_state, &multipart).await,
+        TaskActions::ToggleTimer => task_actions_toggle_timer(&app_state, &multipart).await,
         TaskActions::ModifyTask => {
             error!("Failed: This endpoint is not supported anymore for this task!");
             FlashMsg::new(
@@ -539,43 +486,106 @@ async fn do_task_actions(
                 FlashMsgRoles::Error,
             )
         }
-        TaskActions::AnnotateTask => {
-            let cmd = multipart.task_entry().clone().unwrap();
-            if cmd.is_empty() {
-                error!("Failed: No command provided");
-                FlashMsg::new(
-                    "Failed to execute command, none provided",
-                    None,
-                    FlashMsgRoles::Error,
-                )
-            } else {
-                match run_annotate_command(multipart.uuid().unwrap(), &cmd) {
-                    Ok(_) => FlashMsg::new("Annotation added", None, FlashMsgRoles::Success),
-                    Err(e) => FlashMsg::new(
-                        &format!("Annotation command failed: {}", e),
-                        None,
-                        FlashMsgRoles::Error,
-                    ),
-                }
-            }
-        }
-        TaskActions::DenotateTask => match run_denotate_command(multipart.uuid().unwrap()) {
-            Ok(_) => FlashMsg::new("Denotated task", None, FlashMsgRoles::Success),
-            Err(e) => FlashMsg::new(
-                &format!("Denotation command failed: {}", e),
-                None,
-                FlashMsgRoles::Error,
-            ),
-        },
+        TaskActions::AnnotateTask => task_actions_annotate_task(&multipart),
+        TaskActions::DenotateTask => task_actions_denotate_task(&multipart),
     };
     Response::builder()
         .status(StatusCode::OK)
         .body(get_tasks_view_plain(
-            task_query_previous_params(&multipart),
+            &task_query_previous_params(&multipart),
             Some(fm),
             &app_state,
         ))
         .unwrap()
+}
+
+fn task_actions_denotate_task(multipart: &TWGlobalState) -> FlashMsg {
+    match run_denotate_command(multipart.uuid().unwrap()) {
+        Ok(()) => FlashMsg::new("Denotated task", None, FlashMsgRoles::Success),
+        Err(e) => FlashMsg::new(
+            &format!("Denotation command failed: {e}"),
+            None,
+            FlashMsgRoles::Error,
+        ),
+    }
+}
+
+fn task_actions_annotate_task(multipart: &TWGlobalState) -> FlashMsg {
+    let cmd = multipart.task_entry().clone().unwrap();
+    if cmd.is_empty() {
+        error!("Failed: No command provided");
+        FlashMsg::new(
+            "Failed to execute command, none provided",
+            None,
+            FlashMsgRoles::Error,
+        )
+    } else {
+        match run_annotate_command(multipart.uuid().unwrap(), &cmd) {
+            Ok(()) => FlashMsg::new("Annotation added", None, FlashMsgRoles::Success),
+            Err(e) => FlashMsg::new(
+                &format!("Annotation command failed: {e}"),
+                None,
+                FlashMsgRoles::Error,
+            ),
+        }
+    }
+}
+
+async fn task_actions_toggle_timer(app_state: &State<AppState>, multipart: &TWGlobalState) -> FlashMsg {
+    let task_uuid = (*multipart.uuid()).unwrap();
+    let task_status = multipart
+        .status()
+        .clone()
+        .unwrap_or_else(|| "start".to_string());
+    match toggle_task_active(task_uuid, task_status, app_state).await {
+        Ok(v) => {
+            if v {
+                FlashMsg::new(
+                    &format!(
+                        "Task {task_uuid} started, any other tasks running were stopped"
+                    ),
+                    None,
+                    FlashMsgRoles::Success,
+                )
+            } else {
+                FlashMsg::new(
+                    &format!("Task {task_uuid} stopped"),
+                    None,
+                    FlashMsgRoles::Success,
+                )
+            }
+        }
+        Err(e) => {
+            error!("Failed: {}", e);
+            FlashMsg::new(
+                &format!("Failed to update task: {e}"),
+                None,
+                FlashMsgRoles::Error,
+            )
+        }
+    }
+}
+
+async fn task_actions_status_update(app_state: &State<AppState>, multipart: &TWGlobalState) -> FlashMsg {
+    if let Some(task) = taskwarrior_web::from_task_to_task_update(multipart) {
+        match change_task_status(task.clone(), app_state).await {
+            Ok(()) => FlashMsg::new(
+                &format!("Task [{}] was updated", task.uuid),
+                None,
+                FlashMsgRoles::Success,
+            ),
+            Err(e) => {
+                error!("Failed: {}", e);
+                FlashMsg::new(
+                    &format!("Failed to update task: {e}"),
+                    None,
+                    FlashMsgRoles::Error,
+                )
+            }
+        }
+    } else {
+        FlashMsg::new("No task to update", None, FlashMsgRoles::Info)
+    }
 }
 
 async fn update_task_details(
@@ -595,7 +605,7 @@ async fn update_task_details(
                     .header("HX-Reswap", "innerHTML")
                     .header("Content-Type", "text/html")
                     .body(get_tasks_view_plain(
-                        task_query_previous_params(&multipart),
+                        &task_query_previous_params(&multipart),
                         Some(flash_msg),
                         &app_state,
                     ))
@@ -617,7 +627,7 @@ async fn update_task_details(
         },
         Err(_) => Response::builder()
             .status(StatusCode::NOT_FOUND)
-            .body("".to_string())
+            .body(String::new())
             .unwrap(),
     }
 }

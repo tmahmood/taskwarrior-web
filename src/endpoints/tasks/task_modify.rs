@@ -209,7 +209,7 @@ pub fn task_apply_timestamps(
             })
             .map(Some),
         Some(_) | None => Ok(None),
-        };
+    };
     match dt {
         Ok(e) => {
             let result = match b1.0.to_lowercase().trim() {
