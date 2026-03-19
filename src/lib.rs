@@ -9,7 +9,11 @@
  */
 
 #![feature(exit_status_error)]
-#![allow(clippy::missing_const_for_fn, clippy::must_use_candidate)]
+#![allow(
+    clippy::missing_const_for_fn,
+    clippy::must_use_candidate,
+    clippy::missing_errors_doc
+)]
 
 use std::collections::HashMap;
 use std::fmt;
@@ -172,11 +176,10 @@ pub fn task_query_merge_previous_params(state: &TWGlobalState) -> TaskQuery {
 }
 
 pub fn task_query_previous_params(params: &TWGlobalState) -> TaskQuery {
-    if let Some(fv) = params.filter_value.clone() {
-        serde_json::from_str(&fv).unwrap()
-    } else {
-        TaskQuery::new(TWGlobalState::default())
-    }
+    params.filter_value.clone().map_or_else(
+        || TaskQuery::new(TWGlobalState::default()),
+        |fv| serde_json::from_str(&fv).unwrap(),
+    )
 }
 
 pub fn from_task_to_task_update(params: &TWGlobalState) -> Option<TaskUpdateStatus> {
@@ -294,7 +297,7 @@ fn get_project_name_link() -> impl tera::Function {
         move |args: &HashMap<String, tera::Value>| -> tera::Result<tera::Value> {
             let pname = tera::from_value::<String>(args.get("full_name").unwrap().clone()).unwrap();
             let index = tera::from_value::<usize>(args.get("index").unwrap().clone()).unwrap();
-            let r: Vec<&str> = pname.split(".").take(index).collect();
+            let r: Vec<&str> = pname.split('.').take(index).collect();
             Ok(tera::to_value(r.join(".")).unwrap())
         },
     )
@@ -351,7 +354,7 @@ fn update_tag_bar_key_comb() -> impl tera::Filter {
                 let string = Alphanumeric
                     .sample_string(&mut rand::rng(), 2)
                     .to_lowercase();
-                if tag_key_comb.iter().find(|&(_k, v)| v == &string).is_some() {
+                if tag_key_comb.iter().any(|(_k, v)| v == &string) {
                     continue;
                 }
                 tag_key_comb.insert(tag, string);
@@ -492,7 +495,7 @@ fn get_timer() -> impl tera::Function {
                     num_seconds % 60
                 )
             } else {
-                format!("{}s", num_seconds)
+                format!("{num_seconds}s")
             };
             Ok(tera::to_value(s).unwrap())
         },
@@ -500,9 +503,9 @@ fn get_timer() -> impl tera::Function {
 }
 
 #[cfg(test)]
-use tempfile::{TempDir, tempdir};
-#[cfg(test)]
 use crate::core::app::AppState;
+#[cfg(test)]
+use tempfile::{TempDir, tempdir};
 
 #[cfg(test)]
 fn get_random_appstate() -> (TempDir, AppState) {

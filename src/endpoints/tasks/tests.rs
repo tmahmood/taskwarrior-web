@@ -10,12 +10,9 @@
 
 use std::str::FromStr;
 
+use crate::{NewTask, backend::task::get_replica, endpoints::tasks::run_modify_command};
 use chrono::{Datelike, Days, Months, Timelike, Utc};
 use taskchampion::{Status, Tag, Uuid};
-use crate::{
-    backend::task::get_replica, endpoints::tasks::run_modify_command,
-    NewTask,
-};
 
 use super::task_add;
 
@@ -268,6 +265,51 @@ async fn test_task_add_recur() -> anyhow::Result<()> {
     assert_eq!(our_task.1.get_value("rtype"), Some("periodic"));
     assert_eq!(our_task.1.get_value("recur"), Some("monthly"));
 
+    let _ = tmp_dir.close();
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_task_append_dependency() -> anyhow::Result<()> {
+    let (tmp_dir, app_state) = crate::get_random_appstate();
+    let task_name_prime = Uuid::new_v4();
+
+    let task = NewTask {
+        description: task_name_prime.clone().to_string(),
+        tags: Some("+twk development".into()),
+        project: Some("TWK".into()),
+        filter_value: None,
+        additional: Some("priority:H".into()),
+    };
+    let result = task_add(&task, &app_state).await;
+    assert!(result.is_ok());
+    let prime_task_uuid = result.unwrap();
+
+
+    let mut replica = get_replica(&app_state.task_storage_path).await?;
+    let tasks = replica.all_tasks().await?;
+    let our_task = tasks
+        .iter()
+        .find(|p| p.1.get_description() == task_name_prime.to_string())
+        .unwrap();
+
+    assert_eq!(our_task.0, &prime_task_uuid);
+
+    let task_name = Uuid::new_v4();
+    let task = NewTask {
+        description: task_name.clone().to_string(),
+        tags: Some("+twk development".into()),
+        project: Some("TWK".into()),
+        filter_value: None,
+        additional: Some(format!("depends:{}", our_task.0)),
+    };
+    let result = task_add(&task, &app_state).await;
+    assert!(result.is_ok());
+    let dependent_task_uuid = result.unwrap();
+
+    let tasks = replica.all_tasks().await?;
+    let dependent_task = tasks.get(&dependent_task_uuid).unwrap();
+    assert_eq!(dependent_task.get_dependencies().count(), 1);
     let _ = tmp_dir.close();
     Ok(())
 }

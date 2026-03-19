@@ -14,7 +14,7 @@ use tracing::trace;
 
 use super::{app::AppState, cache::MnemonicsType};
 
-pub fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
+pub fn make_shortcut<S: ::std::hash::BuildHasher>(shortcuts: &mut HashSet<String, S>) -> String {
     let mut len = 2;
     let mut tries = 0;
     loop {
@@ -35,15 +35,11 @@ pub fn make_shortcut(shortcuts: &mut HashSet<String>) -> String {
     }
 }
 
-pub fn make_shortcut_cache(mn_type: MnemonicsType, key: &str, app_state: &AppState) -> String {
+pub fn make_shortcut_cache(mn_type: &MnemonicsType, key: &str, app_state: &AppState) -> String {
     let mut len = 2;
     let mut tries = 0;
     // Check if available in the cache.
-    let shortcut_cache = app_state
-        .app_cache
-        .read()
-        .unwrap()
-        .get(mn_type.clone(), key);
+    let shortcut_cache = app_state.app_cache.read().unwrap().get(mn_type, key);
     if let Some(shortcut_cache) = shortcut_cache {
         return shortcut_cache;
     }
@@ -55,16 +51,14 @@ pub fn make_shortcut_cache(mn_type: MnemonicsType, key: &str, app_state: &AppSta
             .app_cache
             .write()
             .unwrap()
-            .insert(mn_type.clone(), key, &shortcut, false)
+            .insert(mn_type, key, &shortcut, false)
             .is_err()
         {
             tries += 1;
             if tries > 1000 {
                 len += 1;
             }
-            if len > 3 {
-                panic!("too many shortcuts! this should not happen");
-            }
+            assert!(len <= 3, "too many shortcuts! this should not happen");
             continue;
         }
         trace!(

@@ -209,7 +209,7 @@ async fn parse_and_apply_additional_command_fragments<S: Storage>(
 /// Requires corresponding task information and path to the taskchampion directory.
 ///
 /// The data will be evaluated and a response will be provided via FormValidation.
-pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormValidation> {
+pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<Uuid, FormValidation> {
     let mut validation_result = FormValidation::default();
     let mut replica = get_replica(&app_state.task_storage_path)
         .await
@@ -318,7 +318,7 @@ pub async fn task_add(task: &NewTask, app_state: &AppState) -> Result<(), FormVa
                     &None,
                     &Some(ct),
                 );
-                Ok(())
+                Ok(uuid)
             }
             Err(e) => {
                 error!(
@@ -772,4 +772,3 @@ pub struct TaskViewDataRetType {
 
 #[cfg(test)]
 mod tests;
-

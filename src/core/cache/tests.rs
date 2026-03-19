@@ -23,13 +23,13 @@ fn test_mnemonics_cache() {
     let file_mtx = Arc::new(Mutex::new(x));
 
     let mut mock = FileMnemonicsCache::new(file_mtx);
-    assert_eq!(mock.get(MnemonicsType::PROJECT, "personal"), None);
+    assert_eq!(mock.get(&MnemonicsType::PROJECT, "personal"), None);
     assert!(
-        mock.insert(MnemonicsType::TAG, "personal", "xz", false)
+        mock.insert(&MnemonicsType::TAG, "personal", "xz", false)
             .is_ok()
     );
     assert_eq!(
-        mock.get(MnemonicsType::TAG, "personal"),
+        mock.get(&MnemonicsType::TAG, "personal"),
         Some(String::from("xz"))
     );
     // how to validate content?
@@ -41,20 +41,20 @@ fn test_mnemonics_cache() {
     assert!(read_result > 0);
     assert_eq!(buf, String::from("[tags]\npersonal = \"xz\"\n"));
     assert!(
-        mock.insert(MnemonicsType::PROJECT, "taskwarrior", "xz", false)
+        mock.insert(&MnemonicsType::PROJECT, "taskwarrior", "xz", false)
             .is_err(),
     );
-    assert!(mock.remove(MnemonicsType::TAG, "personal").is_ok());
-    assert_eq!(mock.get(MnemonicsType::TAG, "personal"), None);
+    assert!(mock.remove(&MnemonicsType::TAG, "personal").is_ok());
+    assert_eq!(mock.get(&MnemonicsType::TAG, "personal"), None);
     assert!(
-        mock.insert(MnemonicsType::PROJECT, "taskwarrior", "xz", false)
+        mock.insert(&MnemonicsType::PROJECT, "taskwarrior", "xz", false)
             .is_ok(),
     );
     assert!(
-        mock.insert(MnemonicsType::TAG, "personal", "xz", false)
+        mock.insert(&MnemonicsType::TAG, "personal", "xz", false)
             .is_err(),
     );
-    assert!(mock.remove(MnemonicsType::PROJECT, "taskwarrior").is_ok());
+    assert!(mock.remove(&MnemonicsType::PROJECT, "taskwarrior").is_ok());
     file1.reopen().expect("Cannot reopen");
     let _ = file1.as_file().set_len(0);
     let _ = file1.seek(std::io::SeekFrom::Start(0));
@@ -63,7 +63,7 @@ fn test_mnemonics_cache() {
     let _ = file1.flush();
     assert!(mock.load().is_ok());
     assert_eq!(
-        mock.get(MnemonicsType::TAG, "personal"),
+        mock.get(&MnemonicsType::TAG, "personal"),
         Some(String::from("xz"))
     );
     file1.reopen().expect("Cannot reopen");
@@ -92,16 +92,16 @@ fn test_custom_queries() {
     let mut mock = FileMnemonicsCache::new(file_mtx);
 
     // Check for retrieving custom query shortcuts.
-    assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
+    assert_eq!(mock.get(&MnemonicsType::CustomQuery, "one_query"), None);
 
     // Insert a one_query shortcut and verify, that the query shortcut
     // is saved.
     assert!(
-        mock.insert(MnemonicsType::CustomQuery, "one_query", "ad", false)
+        mock.insert(&MnemonicsType::CustomQuery, "one_query", "ad", false)
             .is_ok()
     );
     assert_eq!(
-        mock.get(MnemonicsType::CustomQuery, "one_query"),
+        mock.get(&MnemonicsType::CustomQuery, "one_query"),
         Some(String::from("ad"))
     );
 
@@ -114,8 +114,11 @@ fn test_custom_queries() {
     assert_eq!(buf, String::from("[custom_queries]\none_query = \"ad\"\n"));
 
     // Delete again.
-    assert!(mock.remove(MnemonicsType::CustomQuery, "one_query").is_ok());
-    assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
+    assert!(
+        mock.remove(&MnemonicsType::CustomQuery, "one_query")
+            .is_ok()
+    );
+    assert_eq!(mock.get(&MnemonicsType::CustomQuery, "one_query"), None);
 
     // Test overwriting of queries.
     file1.reopen().expect("Cannot reopen");
@@ -127,17 +130,17 @@ fn test_custom_queries() {
     assert!(mock.load().is_ok());
     // Add a second query and ensure, that the one_query gets removed.
     assert!(
-        mock.insert(MnemonicsType::CustomQuery, "second_query", "ad", true)
+        mock.insert(&MnemonicsType::CustomQuery, "second_query", "ad", true)
             .is_ok()
     );
-    assert_eq!(mock.get(MnemonicsType::CustomQuery, "one_query"), None);
+    assert_eq!(mock.get(&MnemonicsType::CustomQuery, "one_query"), None);
     assert_eq!(
-        mock.get(MnemonicsType::CustomQuery, "second_query"),
+        mock.get(&MnemonicsType::CustomQuery, "second_query"),
         Some(String::from("ad"))
     );
     // Ensure, an error is produced in case its not overwritten.
     assert!(
-        mock.insert(MnemonicsType::CustomQuery, "one_query", "ad", false)
+        mock.insert(&MnemonicsType::CustomQuery, "one_query", "ad", false)
             .is_err()
     );
 }
@@ -149,8 +152,8 @@ fn test_mnemonics_cache_file_fail() {
 
     let mut mock = FileMnemonicsCache::new(file_mtx);
     assert!(
-        mock.insert(MnemonicsType::TAG, "personal", "xz", false)
+        mock.insert(&MnemonicsType::TAG, "personal", "xz", false)
             .is_err()
     );
-    assert!(mock.remove(MnemonicsType::PROJECT, "taskwarrior").is_err());
+    assert!(mock.remove(&MnemonicsType::PROJECT, "taskwarrior").is_err());
 }

@@ -17,17 +17,19 @@ use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use taskchampion::storage::Storage;
 use taskchampion::{Replica, Tag, Uuid};
 
-fn get_tag_from_str(maybe_tag_name: &str, strip: &str, validation_result: &mut FormValidation) -> Option<Tag> {
+fn get_tag_from_str(
+    maybe_tag_name: &str,
+    strip: &str,
+    validation_result: &mut FormValidation,
+) -> Option<Tag> {
     let tag_name = maybe_tag_name.strip_prefix(strip).unwrap_or(maybe_tag_name);
     match Tag::from_str(tag_name) {
         Ok(tag) => Some(tag),
         Err(e) => {
-            validation_result.push(
-                FieldError {
-                    field: "additional".to_string(),
-                    message: format!("{e:?}"),
-                }
-            );
+            validation_result.push(FieldError {
+                field: "additional".to_string(),
+                message: format!("{e:?}"),
+            });
             None
         }
     }
@@ -65,7 +67,7 @@ pub fn task_apply_tag_remove(
     }
 }
 
-pub(crate) fn task_apply_recur(
+pub fn task_apply_recur(
     t: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
@@ -75,28 +77,28 @@ pub(crate) fn task_apply_recur(
         .set_value("recur", b1.1, ops)
         .map_err(|p| FieldError {
             field: "additional".to_string(),
-            message: format!("Failed change recurrence: {}", p),
+            message: format!("Failed change recurrence: {p}"),
         })
-        .and_then(|_| {
+        .and_then(|()| {
             t.set_status(taskchampion::Status::Recurring, ops)
                 .map_err(|p| FieldError {
                     field: "additional".to_string(),
-                    message: format!("Failed change task status to recurring: {}", p),
+                    message: format!("Failed change task status to recurring: {p}"),
                 })
-                .and_then(|_| {
+                .and_then(|()| {
                     t.set_value("rtype", Some("periodic".into()), ops)
                         .map_err(|p| FieldError {
                             field: "additional".to_string(),
-                            message: format!("Failed change task status to recurring: {}", p),
+                            message: format!("Failed change task status to recurring: {p}"),
                         })
                 })
         }) {
-        Ok(_) => (),
+        Ok(()) => (),
         Err(e) => validation_result.push(e),
-    };
+    }
 }
 
-pub(crate) async fn task_apply_depends<S: Storage>(
+pub async fn task_apply_depends<S: Storage>(
     t: &mut taskchampion::Task,
     replica: &mut Replica<S>,
     ops: &mut Vec<taskchampion::Operation>,
@@ -104,45 +106,37 @@ pub(crate) async fn task_apply_depends<S: Storage>(
     b1: (String, Option<String>),
 ) {
     let dep_list = b1.1.unwrap_or_default();
-    for dep in dep_list
-        .split(",")
-        .map(|f| f.trim())
-        .filter(|p| !p.is_empty())
-    {
+    for dep in dep_list.split(',').map(str::trim).filter(|p| !p.is_empty()) {
         let result = match dep.chars().next() {
             Some(e) if (e == '+' || e == '-') && dep.len() > 1 => Some((e, dep.get(1..).unwrap())),
             Some(_) if !dep.is_empty() => {
                 // We assume adding.
                 Some(('+', dep))
             }
-            Some(_) => None,
-            None => None,
+            Some(_) | None => None,
         };
         if let Some(result) = result {
             // Try to identify the uuid.
-            let x = Uuid::try_parse(result.1);
-            let x = match x {
-                Ok(e) => Some(e),
-                Err(_) => {
-                    let tid = result.1.parse::<usize>();
-                    match tid {
-                        Ok(e) => replica.working_set().await.unwrap().by_index(e),
-                        Err(_) => None,
-                    }
+            let found_uuid = if let Ok(e) = Uuid::try_parse(result.1) {
+                Some(e)
+            } else {
+                match result.1.parse::<usize>() {
+                    Ok(e) => replica.working_set().await.unwrap().by_index(e),
+                    Err(_) => None,
                 }
             };
-            if let Some(task_uuid) = x {
+            if let Some(task_uuid) = found_uuid {
                 let dep_result = match result.0 {
                     '-' => t.remove_dependency(task_uuid, ops),
                     _ => t.add_dependency(task_uuid, ops),
                 };
                 match dep_result.map_err(|p| FieldError {
                     field: "additional".to_string(),
-                    message: format!("depends-error for uuid {}: {}", task_uuid, p),
+                    message: format!("depends-error for uuid {task_uuid}: {p}"),
                 }) {
-                    Ok(_) => (),
+                    Ok(()) => (),
                     Err(e) => validation_result.push(e),
-                };
+                }
             } else {
                 validation_result.push(FieldError {
                     field: String::from("additional"),
@@ -152,11 +146,11 @@ pub(crate) async fn task_apply_depends<S: Storage>(
                     ),
                 });
             }
-        };
+        }
     }
 }
 
-pub(crate) fn task_apply_description(
+pub fn task_apply_description(
     t: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
@@ -166,14 +160,14 @@ pub(crate) fn task_apply_description(
         .set_description(b1.1.unwrap_or_default(), ops)
         .map_err(|p| FieldError {
             field: "additional".to_string(),
-            message: format!("Invalid description given: {}", p),
+            message: format!("Invalid description given: {p}"),
         }) {
-        Ok(_) => (),
+        Ok(()) => (),
         Err(e) => validation_result.push(e),
-    };
+    }
 }
 
-pub(crate) fn task_apply_priority(
+pub fn task_apply_priority(
     t: &mut taskchampion::Task,
     ops: &mut Vec<taskchampion::Operation>,
     validation_result: &mut FormValidation,
@@ -187,7 +181,7 @@ pub(crate) fn task_apply_priority(
         }) {
         Ok(_) => (),
         Err(e) => validation_result.push(e),
-    };
+    }
 }
 
 pub(crate) fn task_apply_timestamps(

@@ -7,18 +7,16 @@
  *
  * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-use crate::get_random_appstate;
+use crate::NewTask;
 use crate::core::app::AppState;
 use crate::endpoints::tasks::task_add;
-use crate::{NewTask};
+use crate::get_random_appstate;
+use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::{env, fs};
-use taskchampion::{Operation, Operations, Tag, Uuid};
-use tempfile::{NamedTempFile, TempDir};
+use taskchampion::Uuid;
+use tempfile::TempDir;
 
 /// sets up a taskwarrior configuration file for testing.
 fn setup_test_cfg() -> (TempDir, AppState) {
@@ -28,12 +26,12 @@ fn setup_test_cfg() -> (TempDir, AppState) {
 
 #[tokio::test]
 async fn check_hook_file_execution() -> anyhow::Result<()> {
-    let (temp_dir, app_state) = setup_test_cfg();
+    let (_temp_dir, app_state) = setup_test_cfg();
     let hooks_dir = app_state.task_hooks_path.as_ref().unwrap();
     let hook_file = hooks_dir.join("on-add.task");
     let gen_file = hooks_dir.join("on_add_hook_called");
     let content = format!("#!/bin/bash\ntouch \"{}\"", gen_file.display());
-    fs::create_dir_all(&hooks_dir)?;
+    fs::create_dir_all(hooks_dir)?;
     {
         let mut file = File::create(&hook_file)?;
         file.write_all(content.as_bytes())?;

@@ -62,7 +62,7 @@ pub struct FormValidation {
 impl Default for FormValidation {
     fn default() -> Self {
         Self {
-            fields: Default::default(),
+            fields: HashMap::default(),
             msg: None,
             success: true,
         }
@@ -96,7 +96,7 @@ impl std::error::Error for FormValidation {
         None
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         "description() is deprecated; use Display"
     }
 
@@ -123,7 +123,7 @@ impl From<taskchampion::Error> for FormValidation {
 
 impl FormValidation {
     pub fn with_error(msg: &str) -> Self {
-        FormValidation {
+        Self {
             fields: HashMap::new(),
             msg: Some(msg.to_string()),
             success: false,
@@ -134,7 +134,7 @@ impl FormValidation {
         if let Some(val) = self.fields.get_mut(&error.field) {
             val.push(error);
         } else {
-            self.fields.insert(error.field.to_string(), vec![error]);
+            self.fields.insert(error.field.clone(), vec![error]);
         }
     }
 

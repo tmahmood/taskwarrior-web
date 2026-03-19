@@ -57,7 +57,7 @@ pub struct AppState {
 
 impl Default for AppState {
     fn default() -> Self {
-        let font = env::var("TWK_USE_FONT").map(Some).unwrap_or(None);
+        let font = env::var("TWK_USE_FONT").ok();
         let theme = match env::var("TWK_THEME") {
             Ok(p) if p.is_empty() => None,
             Ok(p) => Some(p),
@@ -72,11 +72,8 @@ impl Default for AppState {
         let home_dir = home_dir.join(".task");
         let task_storage_path =
             env::var("TASKDATA").unwrap_or_else(|_| home_dir.to_str().unwrap_or("").to_string());
-        let sync_interval = if let Ok(sync_interval) = env::var("TWK_SYNC") {
-            i64::from_str(&sync_interval).unwrap_or_default()
-        } else {
-            0
-        };
+        let sync_interval = env::var("TWK_SYNC").map_or(0, |s| i64::from_str(&s).unwrap_or(0));
+
         let task_storage_path =
             PathBuf::from_str(&task_storage_path).expect("Storage path cannot be found");
         let task_hooks_path = Some(home_dir.join("hooks"));
@@ -84,10 +81,8 @@ impl Default for AppState {
         let standard_project_dirs = ProjectDirs::from("", "", "Taskwarrior-Web");
 
         // Overall determination of the configuration files.
-        let mut app_config_path: Option<PathBuf> = match env::var("TWK_CONFIG_FOLDER") {
-            Ok(p) => Some(p.into()),
-            Err(_) => None,
-        };
+        let mut app_config_path: Option<PathBuf> =
+            env::var("TWK_CONFIG_FOLDER").map_or(None, |p| Some(p.into()));
         if app_config_path.is_none()
             && standard_project_dirs.is_some()
             && let Some(ref proj_dirs) = standard_project_dirs
@@ -159,7 +154,7 @@ impl Default for AppState {
 
 impl From<&AppState> for Context {
     fn from(val: &AppState) -> Self {
-        let mut ctx = Context::new();
+        let mut ctx = Self::new();
         ctx.insert("USE_FONT", &val.font);
         ctx.insert("FALLBACK_FAMILY", &val.fallback_family);
         ctx.insert("DEFAULT_THEME", &val.theme);

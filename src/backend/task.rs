@@ -11,8 +11,8 @@
 use crate::backend::serde::{task_date_format, task_date_format_mandatory, task_status_serde};
 use crate::core::app::AppState;
 use crate::core::errors::AppError;
-use anyhow::{bail, Error};
-use chrono::{offset::LocalResult, DateTime, TimeZone, Utc};
+use anyhow::{Error, bail};
+use chrono::{DateTime, TimeZone, Utc, offset::LocalResult};
 use serde::{Deserialize, Serialize};
 use std::fs::DirEntry;
 use std::{
@@ -309,7 +309,12 @@ impl TaskOperation {
         }
     }
 
-    pub fn new_with_old_task(operation: &str, uuid: Uuid, is_tag_change: bool, old_task: HashMap<String, String>) -> Self {
+    pub fn new_with_old_task(
+        operation: &str,
+        uuid: Uuid,
+        is_tag_change: bool,
+        old_task: HashMap<String, String>,
+    ) -> Self {
         let mut new_op = Self::new(operation, uuid, is_tag_change);
         new_op.old_task = Some(old_task);
         new_op
@@ -515,52 +520,53 @@ pub async fn get_undo_operations(
     let mut replica = get_replica(taskdb).await?;
     let ops = replica.get_undo_operations().await?;
     let mut converted_ops: HashMap<Uuid, Vec<TaskOperation>> = HashMap::new();
-    for op in ops { {
-        let converted_entry = match op {
-            Operation::Create { uuid } => Some((
-                uuid,
-                TaskOperation::new("Create", uuid, false)
-            )),
-            Operation::Delete { uuid, old_task } => Some((
-                uuid,
-                TaskOperation::new_with_old_task("Delete", uuid, false, old_task)
-            )),
-            Operation::Update {
-                uuid,
-                property,
-                old_value,
-                value,
-                timestamp,
-            } => {
-                let is_tag_change = property.starts_with("tag_");
-                let property = property
+    for op in ops {
+        {
+            let converted_entry = match op {
+                Operation::Create { uuid } => {
+                    Some((uuid, TaskOperation::new("Create", uuid, false)))
+                }
+                Operation::Delete { uuid, old_task } => Some((
+                    uuid,
+                    TaskOperation::new_with_old_task("Delete", uuid, false, old_task),
+                )),
+                Operation::Update {
+                    uuid,
+                    property,
+                    old_value,
+                    value,
+                    timestamp,
+                } => {
+                    let is_tag_change = property.starts_with("tag_");
+                    let property = property
                         .strip_prefix("tag_")
                         .unwrap_or(&property)
                         .to_string();
-                Some((
-                    uuid,
-                    TaskOperation {
-                        operation: "Modified".to_string(),
+                    Some((
                         uuid,
-                        property: Some(property),
-                        old_value,
-                        value,
-                        timestamp: Some(timestamp),
-                        old_task: None,
-                        is_tag_change,
-                    },
-                ))
-            }
-            Operation::UndoPoint => None,
-        };
-        if let Some(top) = converted_entry {
-            if let Some(op_list) = converted_ops.get_mut(&top.0) {
-                op_list.push(top.1);
-            } else {
-                converted_ops.insert(top.0, vec![top.1]);
+                        TaskOperation {
+                            operation: "Modified".to_string(),
+                            uuid,
+                            property: Some(property),
+                            old_value,
+                            value,
+                            timestamp: Some(timestamp),
+                            old_task: None,
+                            is_tag_change,
+                        },
+                    ))
+                }
+                Operation::UndoPoint => None,
+            };
+            if let Some(top) = converted_entry {
+                if let Some(op_list) = converted_ops.get_mut(&top.0) {
+                    op_list.push(top.1);
+                } else {
+                    converted_ops.insert(top.0, vec![top.1]);
+                }
             }
         }
-    } }
+    }
 
     Ok(converted_ops)
 }
@@ -571,8 +577,7 @@ pub async fn get_task(taskdb: &Path, task_id: Uuid) -> Result<Option<Task>, anyh
         .working_set()
         .await?
         .by_uuid(task_id)
-        .map(|p| Some(p as i64))
-        .unwrap_or(None);
+        .and_then(|p| i64::try_from(p).ok());
     let maybe_task = replica.get_task(task_id).await.map(|maybe_task| {
         maybe_task.map_or_else(
             || None,

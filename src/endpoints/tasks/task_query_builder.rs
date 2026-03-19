@@ -169,7 +169,7 @@ impl TaskQuery {
     }
 
     pub fn empty() -> Self {
-        TaskQuery {
+        Self {
             report: TaskReport::NotSet,
             ..Default::default()
         }
@@ -212,7 +212,7 @@ impl TaskQuery {
                 } else {
                     self.project = Some(t);
                 }
-            } else if t.starts_with("+") {
+            } else if t.starts_with('+') {
                 if self.tags.contains(&t) {
                     self.tags.retain_mut(|iv| iv != &t);
                 } else {
@@ -228,11 +228,11 @@ impl TaskQuery {
             }
         }
         self.new_entry = params.task_entry;
-        trace!("{:?}", self);
+        trace!("{self:?}");
     }
 
     pub fn set_filter(&mut self, filter: &str) {
-        self.filter = Some(filter.to_string())
+        self.filter = Some(filter.to_string());
     }
 
     pub fn get_query(&self, with_export: bool) -> Vec<String> {
@@ -250,15 +250,15 @@ impl TaskQuery {
         }
 
         if let Some(p) = &self.project {
-            export_prefix.push(p.clone())
+            export_prefix.push(p.clone());
         }
 
         if !self.tags.is_empty() {
-            export_prefix.extend(self.tags.clone())
+            export_prefix.extend(self.tags.clone());
         }
 
         if !matches!(&self.status, TaskStatus::NotSet) {
-            export_prefix.push(self.status.to_string())
+            export_prefix.push(self.status.to_string());
         }
 
         if let Some(e) = self.new_entry.clone() {
@@ -272,7 +272,7 @@ impl TaskQuery {
         }
 
         if !matches!(&self.report, TaskReport::NotSet) {
-            output.push(self.report.to_string())
+            output.push(self.report.to_string());
         }
 
         output
