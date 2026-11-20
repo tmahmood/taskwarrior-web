@@ -30,7 +30,6 @@ use taskchampion::Uuid;
 use tera::{Context, escape_html};
 use tracing::{trace, warn};
 
-
 pub static DIST_CONTENT: include_dir::Dir = include_dir!("dist");
 
 pub fn load_templates_from_include_dir() -> anyhow::Result<Vec<(String, String)>> {
@@ -53,8 +52,8 @@ pub static TEMPLATES: std::sync::LazyLock<tera::Tera> = std::sync::LazyLock::new
     let mut tera = tera::Tera::default();
     let raw_templates = load_templates_from_include_dir().unwrap();
     if let Err(e) = tera.add_raw_templates(raw_templates) {
-            warn!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
+        warn!("Parsing error(s): {}", e);
+        ::std::process::exit(1);
     }
     tera.register_function("project_name", get_project_name_link());
     tera.register_function("date_proper", get_date_proper());
@@ -552,6 +551,20 @@ mod tests {
         let result = tera.add_raw_templates(raw_templates);
         assert!(result.is_ok());
         Ok(())
+    }
+
+    /// Reproduces the missing-template bug in the undo error path:
+    /// `src/main.rs` calls `TEMPLATES.render("error.html", ...)` when
+    /// `get_undo_operations` fails, but no such template ships in
+    /// `frontend/templates`.
+    #[test]
+    fn error_template_exists_for_undo_error_path() {
+        let result = TEMPLATES.get_template("error.html");
+        assert!(
+            result.is_ok(),
+            "the undo error path renders 'error.html', but that template is missing: {:?}",
+            result.err()
+        );
     }
 
     #[test]
