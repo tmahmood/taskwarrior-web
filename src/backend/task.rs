@@ -244,7 +244,7 @@ impl From<taskchampion::Task> for Task {
             description: value.get_description().to_string(),
             tags: Some(tags),
             depends: Some(deps),
-            end: value.get_value("start").map(ToString::to_string),
+            end: value.get_value("end").map(ToString::to_string),
             project: value
                 .get_value(TaskProperties::Project.to_string())
                 .map(ToString::to_string),
