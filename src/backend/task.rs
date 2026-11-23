@@ -244,6 +244,8 @@ impl From<taskchampion::Task> for Task {
             description: value.get_description().to_string(),
             tags: Some(tags),
             depends: Some(deps),
+            // if a task has started, then it will have an end date.
+            // If not, then it has no end date, end date should not be same as start date.
             end: value.get_value("end").map(ToString::to_string),
             project: value
                 .get_value(TaskProperties::Project.to_string())
